@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Report" ALTER COLUMN "matchId" SET NOT NULL,
+ALTER COLUMN "championName" SET NOT NULL,
+ALTER COLUMN "queueId" SET NOT NULL;
+

@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Riotの PUUID は改名しても変わらない不変IDなので、これを同定の軸にする。
+model Player {
+  id        String   @id @default(uuid())
+  puuid     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  nameHistory      PlayerNameHistory[]
+  reports          Report[]
+  moderatorReviews ModeratorReview[]
+  rankActivity     RankActivityCheck[]
+
+  @@index([platform])
+}
+
+// 表示名(Riot ID)の変遷履歴。改名を追従するための記録。
+model PlayerNameHistory {
+  id            String   @id @default(uuid())
+  playerId      String
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  riotIdName    String
+  riotIdTagLine String
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  isCurrent     Boolean  @default(true)
+
+  @@unique([playerId, riotIdName, riotIdTagLine])
+  @@index([riotIdName, riotIdTagLine])
+}
+
+enum ReportCategory {
+  VERBAL_ABUSE
+  HATE_SPEECH
+  INTENTIONAL_FEEDING
+  AFK_LEAVING
+  CHEATING
+  SMURFING
+  ACCOUNT_TRADING
+}
+
+// 一般ユーザーからの通報。固定カテゴリ+任意の目安時間+任意の短いコメント。
+// 即時公開だが、投稿元IP/deviceIdは表示せず内部保持のみ(発信者情報開示請求への備え)。
+model Report {
+  id         String          @id @default(uuid())
+  playerId   String
+  player     Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  category   ReportCategory
+  // 対象の試合。通報者がLoLクライアント上で特定したmatchIdを入力し、
+  // その試合の参加者一覧(Riot APIで1回取得)から対象アカウントを選ぶ形で必ず紐付く。
+  matchId       String
+  championName  String
+  queueId       Int
+  // 問題のシーンの試合内経過時間(秒)。通報者が試合タイムラインを見て任意入力する目安。
+  incidentTimestampSeconds Int?
+  // 何を主張したいかの補足。即時・無検証で公開されるため短文(300字)に制限する。
+  comment    String?
+  deviceId   String
+  posterIp   String
+  createdAt  DateTime        @default(now())
+  hiddenAt   DateTime?
+  hiddenReason String?
+
+  @@index([playerId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([posterIp, createdAt])
+}
+
+model Moderator {
+  id                  String    @id @default(uuid())
+  username            String    @unique
+  passwordHash        String
+  displayName         String
+  createdAt           DateTime  @default(now())
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  reviews  ModeratorReview[]
+  sessions ModeratorSession[]
+}
+
+// ログイントークンはハッシュ化して保存する(Cookieには生トークンのみ)。
+model ModeratorSession {
+  id          String    @id @default(uuid())
+  moderatorId String
+  moderator   Moderator @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+
+  @@index([moderatorId])
+}
+
+enum ModeratorVerdict {
+  VIOLATION_CONFIRMED
+  NO_VIOLATION
+  INSUFFICIENT_EVIDENCE
+}
+
+// モデレーターが判断指針に沿って実際にリプレイを確認した上での評価。
+// 一般ユーザーの通報(Report)とはUI上明確に区別して表示する。
+model ModeratorReview {
+  id                String           @id @default(uuid())
+  playerId          String
+  player            Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  moderatorId       String
+  moderator         Moderator        @relation(fields: [moderatorId], references: [id])
+  verdict           ModeratorVerdict
+  rationale         String
+  createdAt         DateTime         @default(now())
+
+  @@index([playerId, createdAt])
+}
+
+// 「通報がちゃんと機能してランク参加できなくなっているか」の監視。
+// 直近のランク参加有無をバッチで定期確認して記録する。
+model RankActivityCheck {
+  id                 String   @id @default(uuid())
+  playerId           String
+  player             Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  checkedAt          DateTime @default(now())
+  isActiveInRanked   Boolean
+  lastRankedMatchAt  DateTime?
+
+  @@index([playerId, checkedAt])
+}
