@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { SiteNav } from "./site-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,13 +32,12 @@ export default function RootLayout({
           <header className="site-header">
             <div className="site-header-inner">
               <Link href="/" className="site-logo">
+                <span className="site-logo-mark" aria-hidden>
+                  LW
+                </span>
                 lolwatch
               </Link>
-              <nav className="site-nav">
-                <Link href="/players">通報一覧</Link>
-                <Link href="/stats">統計</Link>
-                <Link href="/moderator/guidelines">ガイドライン</Link>
-              </nav>
+              <SiteNav />
             </div>
           </header>
           <main className="site-main">{children}</main>
