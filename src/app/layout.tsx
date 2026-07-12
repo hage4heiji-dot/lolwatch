@@ -35,6 +35,7 @@ export default function RootLayout({
               </Link>
               <nav className="site-nav">
                 <Link href="/players">通報一覧</Link>
+                <Link href="/stats">統計</Link>
                 <Link href="/moderator/guidelines">ガイドライン</Link>
               </nav>
             </div>
