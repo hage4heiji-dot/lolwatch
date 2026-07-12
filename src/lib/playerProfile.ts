@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ModeratorVerdict, Prisma, ReportCategory } from "@/generated/prisma";
 
 // 通報のいいね/悪いね、モデレーター評価の異議件数はJS側でvotes/objections配列から
 // 集計する(種別ごとの件数はPrismaの_count.selectでは同一リレーションに複数条件を
@@ -63,15 +64,42 @@ export async function findPlayersNeedingReview(limit = 20) {
   return players;
 }
 
+export type ReportedPlayersVerdictFilter = ModeratorVerdict | "UNREVIEWED";
+
 // 公開の「通報されているユーザー一覧」ページ用。非表示にされた通報のみのプレイヤーは除外する。
 export async function findReportedPlayers({
   page,
   pageSize,
+  query,
+  category,
+  verdict,
 }: {
   page: number;
   pageSize: number;
+  query?: string;
+  category?: ReportCategory;
+  verdict?: ReportedPlayersVerdictFilter;
 }) {
-  const where = { reports: { some: { hiddenAt: null } } };
+  const reportFilter: Prisma.ReportWhereInput = {
+    hiddenAt: null,
+    ...(category ? { category } : {}),
+    ...(verdict === "UNREVIEWED"
+      ? { moderatorReviews: { none: {} } }
+      : verdict
+        ? { moderatorReviews: { some: { verdict } } }
+        : {}),
+  };
+
+  const where: Prisma.PlayerWhereInput = {
+    reports: { some: reportFilter },
+    ...(query
+      ? {
+          nameHistory: {
+            some: { riotIdName: { contains: query, mode: "insensitive" } },
+          },
+        }
+      : {}),
+  };
 
   const [players, totalCount] = await Promise.all([
     prisma.player.findMany({

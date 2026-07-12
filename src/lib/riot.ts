@@ -279,3 +279,41 @@ export async function getAccountByPuuid(puuid: string): Promise<RiotAccount> {
   const data = (await res.json()) as RiotAccount;
   return data;
 }
+
+export interface LeagueEntry {
+  queueType: string;
+  tier: string;
+  rank: string;
+  leaguePoints: number;
+  wins: number;
+  losses: number;
+}
+
+// ランク情報はmatch-v5等と違いplatform routing(jp1等、Player.platformに保存済みの値)で問い合わせる。
+export async function getLeagueEntriesByPuuid(
+  puuid: string,
+  platform: string,
+): Promise<LeagueEntry[]> {
+  if (!RIOT_API_KEY) {
+    throw new Error("RIOT_API_KEY is not configured");
+  }
+
+  const url = `https://${platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`;
+
+  const res = await fetch(url, {
+    headers: { "X-Riot-Token": RIOT_API_KEY },
+    cache: "no-store",
+  });
+
+  if (res.status === 404) {
+    return [];
+  }
+  if (res.status === 429) {
+    throw new RiotApiError("Riot API rate limit exceeded", 429);
+  }
+  if (!res.ok) {
+    throw new RiotApiError(`Riot API error: ${res.status}`, res.status);
+  }
+
+  return (await res.json()) as LeagueEntry[];
+}

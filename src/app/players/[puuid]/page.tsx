@@ -2,10 +2,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
-import { getAccountByPuuid, RiotApiError } from "@/lib/riot";
+import { getAccountByPuuid, getLeagueEntriesByPuuid, getMatchDetail, RiotApiError } from "@/lib/riot";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
+import { QUEUE_TYPE_LABELS, formatRank } from "@/lib/rankLabel";
 import { formatMatchTime } from "@/lib/matchTime";
 import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
 import { canEditReport } from "@/lib/reportEdit";
@@ -59,6 +60,21 @@ export default async function PlayerProfilePage({
   const pastNames = player.nameHistory.filter((n) => !n.isCurrent);
   const latestRankCheck = player.rankActivity[0];
 
+  // ランクや試合結果はRiot APIの補助情報。取得に失敗しても通報一覧自体は表示できるよう、
+  // 個別にcatchしてページ全体を落とさない(api/matches/[matchId]と同じ方針)。
+  const leagueEntries = await getLeagueEntriesByPuuid(player.puuid, player.platform).catch(
+    () => [],
+  );
+
+  const uniqueMatchIds = [...new Set(player.reports.map((r) => r.matchId))];
+  const matchDetailResults = await Promise.allSettled(uniqueMatchIds.map(getMatchDetail));
+  const matchDetailByMatchId = new Map<string, Awaited<ReturnType<typeof getMatchDetail>>>();
+  matchDetailResults.forEach((result, i) => {
+    if (result.status === "fulfilled") {
+      matchDetailByMatchId.set(uniqueMatchIds[i], result.value);
+    }
+  });
+
   return (
     <div>
       <h1>
@@ -73,6 +89,15 @@ export default async function PlayerProfilePage({
           {pastNames
             .map((n) => `${n.riotIdName} #${n.riotIdTagLine}`)
             .join(", ")}
+        </p>
+      )}
+
+      {leagueEntries.length > 0 && (
+        <p className="muted" style={{ marginTop: "0.5rem" }}>
+          現在のランク:{" "}
+          {leagueEntries
+            .map((entry) => `${QUEUE_TYPE_LABELS[entry.queueType] ?? entry.queueType} ${formatRank(entry)}`)
+            .join(" ・ ")}
         </p>
       )}
 
@@ -104,74 +129,111 @@ export default async function PlayerProfilePage({
         {player.reports.length === 0 ? (
           <p className="muted">まだ通報はありません。</p>
         ) : (
-          player.reports.map((report) => (
-            <div className="card" key={report.id}>
-              <span className="badge">{CATEGORY_LABELS[report.category]}</span>
-              <p style={{ marginTop: "0.5rem" }}>
-                対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
-              </p>
-              {report.incidentTimestampSeconds !== null && (
-                <p style={{ marginTop: "0.5rem" }}>
-                  問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
-                </p>
-              )}
-              {report.comment && (
-                <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
-              )}
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                {formatDateTime(report.createdAt)}
-              </p>
-
-              {canEditReport({
-                viewerDeviceId: deviceId,
-                reportDeviceId: report.deviceId,
-                createdAt: report.createdAt,
-              }) && (
-                <ReportEditForm
-                  reportId={report.id}
-                  initialCategory={report.category}
-                  initialComment={report.comment}
-                  initialIncidentSeconds={report.incidentTimestampSeconds}
-                />
-              )}
-
-              <ReportVoteButtons
-                reportId={report.id}
-                initialLikeCount={report.votes.filter((v) => v.voteType === "LIKE").length}
-                initialDislikeCount={report.votes.filter((v) => v.voteType === "DISLIKE").length}
-                initialMyVote={
-                  deviceId
-                    ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
-                    : null
-                }
-              />
-
-              {report.moderatorReviews.length > 0 && (
-                <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
-                  {report.moderatorReviews.map((review) => (
-                    <div key={review.id} style={{ marginTop: "0.5rem" }}>
-                      <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                        {VERDICT_LABELS[review.verdict]}
+          player.reports.map((report) => {
+            const matchDetail = matchDetailByMatchId.get(report.matchId);
+            const participant = matchDetail?.participants.find((p) => p.puuid === player.puuid);
+            return (
+              <div className="card" key={report.id}>
+                <span className="badge">{CATEGORY_LABELS[report.category]}</span>
+                <p
+                  style={{
+                    marginTop: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>
+                    対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・{" "}
+                    {report.matchId}
+                  </span>
+                  {participant && (
+                    <>
+                      <span
+                        className={`team-result ${participant.win ? "result-win" : "result-lose"}`}
+                      >
+                        {participant.win ? "勝利" : "敗北"}
                       </span>
-                      <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
-                      <p className="muted" style={{ marginTop: "0.5rem" }}>
-                        {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
-                      </p>
-                      <ReviewObjectionButton
-                        reviewId={review.id}
-                        initialCount={review.objections.length}
-                        initialHasObjected={
-                          deviceId
-                            ? review.objections.some((o) => o.deviceId === deviceId)
-                            : false
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
+                      <span className="kda">
+                        <span className="kda-kills">{participant.kills}</span>
+                        <span className="kda-sep">/</span>
+                        <span className="kda-deaths">{participant.deaths}</span>
+                        <span className="kda-sep">/</span>
+                        <span className="kda-assists">{participant.assists}</span>
+                      </span>
+                    </>
+                  )}
+                </p>
+                {report.incidentTimestampSeconds !== null && (
+                  <p style={{ marginTop: "0.5rem" }}>
+                    問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
+                  </p>
+                )}
+                {report.comment && (
+                  <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
+                )}
+                <p className="muted" style={{ marginTop: "0.5rem" }}>
+                  {formatDateTime(report.createdAt)}
+                </p>
+
+                {canEditReport({
+                  viewerDeviceId: deviceId,
+                  reportDeviceId: report.deviceId,
+                  createdAt: report.createdAt,
+                }) && (
+                  <ReportEditForm
+                    reportId={report.id}
+                    initialCategory={report.category}
+                    initialComment={report.comment}
+                    initialIncidentSeconds={report.incidentTimestampSeconds}
+                  />
+                )}
+
+                <ReportVoteButtons
+                  reportId={report.id}
+                  initialLikeCount={report.votes.filter((v) => v.voteType === "LIKE").length}
+                  initialDislikeCount={report.votes.filter((v) => v.voteType === "DISLIKE").length}
+                  initialMyVote={
+                    deviceId
+                      ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
+                      : null
+                  }
+                />
+
+                {report.moderatorReviews.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "0.75rem",
+                      paddingTop: "0.75rem",
+                      borderTop: "1px solid var(--border)",
+                    }}
+                  >
+                    {report.moderatorReviews.map((review) => (
+                      <div key={review.id} style={{ marginTop: "0.5rem" }}>
+                        <span className={VERDICT_BADGE_CLASS[review.verdict]}>
+                          {VERDICT_LABELS[review.verdict]}
+                        </span>
+                        <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
+                        <p className="muted" style={{ marginTop: "0.5rem" }}>
+                          {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
+                        </p>
+                        <ReviewObjectionButton
+                          reviewId={review.id}
+                          initialCount={review.objections.length}
+                          initialHasObjected={
+                            deviceId
+                              ? review.objections.some((o) => o.deviceId === deviceId)
+                              : false
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </section>
     </div>
