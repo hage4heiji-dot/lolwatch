@@ -193,6 +193,13 @@ export default async function PlayerProfilePage({
                 {report.comment && (
                   <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
                 )}
+                {report.videoUrl && (
+                  <p style={{ marginTop: "0.5rem" }}>
+                    <a href={report.videoUrl} target="_blank" rel="noopener noreferrer">
+                      添付された動画を見る
+                    </a>
+                  </p>
+                )}
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
                   {formatDateTime(report.createdAt)}
                 </p>
@@ -207,6 +214,7 @@ export default async function PlayerProfilePage({
                     initialCategory={report.category}
                     initialComment={report.comment}
                     initialIncidentSeconds={report.incidentTimestampSeconds}
+                    initialVideoUrl={report.videoUrl}
                   />
                 )}
 

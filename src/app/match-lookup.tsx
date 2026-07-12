@@ -8,6 +8,7 @@ import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { getChampionIconUrl } from "@/lib/ddragon";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
+import { isSafeVideoUrl } from "@/lib/videoUrl";
 import { KillTimeline } from "./kill-timeline";
 import type { MatchDetail, MatchKillEvent, MatchParticipant } from "@/lib/riot";
 
@@ -92,6 +93,7 @@ export function MatchLookup() {
   const [incidentTimeInput, setIncidentTimeInput] = useState("");
   const [incidentSeconds, setIncidentSeconds] = useState<number | null>(null);
   const [comment, setComment] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   const [submitPending, setSubmitPending] = useState(false);
@@ -149,6 +151,10 @@ export function MatchLookup() {
       setError("目安時間の形式が正しくありません(例: 12:34)。");
       return;
     }
+    if (videoUrl.trim() && !isSafeVideoUrl(videoUrl.trim())) {
+      setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      return;
+    }
 
     setSubmitPending(true);
     try {
@@ -163,6 +169,7 @@ export function MatchLookup() {
           category,
           incidentTimestampSeconds: incidentSeconds ?? undefined,
           comment: comment.trim() || undefined,
+          videoUrl: videoUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -293,6 +300,21 @@ export function MatchLookup() {
         <span className="muted">特定できない場合は空欄のままで構いません。</span>
       </div>
 
+      <div className="form-field">
+        <label htmlFor="videoUrl">動画URL(任意)</label>
+        <input
+          id="videoUrl"
+          type="url"
+          placeholder="例: https://www.youtube.com/watch?v=..."
+          autoComplete="off"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
+        />
+        <span className="muted">
+          リプレイにはチャットログ等が残らないため、別途録画した動画があればURLを添付してください。
+        </span>
+      </div>
+
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn" type="submit" disabled={submitPending}>
           {submitPending ? "送信中…" : "選択したアカウントを通報する"}
@@ -308,6 +330,7 @@ export function MatchLookup() {
             setIncidentTimeInput("");
             setIncidentSeconds(null);
             setComment("");
+            setVideoUrl("");
           }}
         >
           別の試合IDを入力し直す

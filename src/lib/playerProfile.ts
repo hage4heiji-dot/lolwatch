@@ -21,6 +21,7 @@ export async function findPlayerByPuuid(puuid: string, options?: { includeHidden
           category: true,
           incidentTimestampSeconds: true,
           comment: true,
+          videoUrl: true,
           matchId: true,
           championName: true,
           queueId: true,

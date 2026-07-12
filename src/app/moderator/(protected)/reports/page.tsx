@@ -207,6 +207,13 @@ export default async function AdminReportsPage({
               {report.comment && (
                 <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
               )}
+              {report.videoUrl && (
+                <p style={{ marginTop: "0.5rem" }}>
+                  <a href={report.videoUrl} target="_blank" rel="noopener noreferrer">
+                    🎬 添付動画を見る
+                  </a>
+                </p>
+              )}
               {report.hiddenReason && (
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
                   非表示理由: {report.hiddenReason}

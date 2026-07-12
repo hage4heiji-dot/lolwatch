@@ -34,9 +34,10 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
     ],
     verdictGuidance: {
       violationConfirmed:
-        "リプレイのチャットログ等で、対象アカウントによる個人攻撃・脅迫・執拗な罵倒を直接確認できる場合。",
+        "対象アカウントによる個人攻撃・脅迫・執拗な罵倒を直接確認できる場合。リプレイ自体にはチャットログが残らないため、通報者が添付した動画があればそちらで確認する。",
       noViolation: "プレイへの指摘や挑発に留まり、個人攻撃に該当しないと判断できる場合。",
-      insufficientEvidence: "リプレイが取得できない、または該当箇所を特定・確認できない場合。",
+      insufficientEvidence:
+        "動画が添付されておらずチャット内容を確認できない、またはリプレイ・動画のいずれを確認しても該当箇所を特定できない場合。",
     },
   },
   HATE_SPEECH: {
@@ -52,9 +53,9 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
     dontExamples: ["属性に触れない一般的な暴言(VERBAL_ABUSE側で検討する)"],
     verdictGuidance: {
       violationConfirmed:
-        "属性を理由にした蔑称・侮辱がチャットログ等で確認できる場合。原則として一度でも明確な該当があればVIOLATION_CONFIRMEDとし、繰り返しの有無は問わない。",
+        "属性を理由にした蔑称・侮辱が確認できる場合。チャットはリプレイに残らないため、通報者が添付した動画で確認する。原則として一度でも明確な該当があればVIOLATION_CONFIRMEDとし、繰り返しの有無は問わない。",
       noViolation: "属性への言及ではない、または引用・注意喚起としての発言に過ぎないと判断できる場合。",
-      insufficientEvidence: "該当箇所を確認できない場合。",
+      insufficientEvidence: "動画が添付されていない、または動画を確認しても該当箇所を確認できない場合。",
     },
   },
   INTENTIONAL_FEEDING: {

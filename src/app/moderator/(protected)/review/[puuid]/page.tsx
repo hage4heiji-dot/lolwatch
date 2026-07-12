@@ -87,9 +87,29 @@ export default async function ModeratorReviewPage({
                   リプレイ起動スクリプトをダウンロード(.ps1)
                 </a>
                 <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
-                  手元のPCでLeagueクライアントにログインした状態で実行してください。未検証の仕組みのため、動作しない場合があります。
+                  手元のPCでLeagueクライアントにログインした状態で実行してください。未検証の仕組みのため、動作しない場合があります。リプレイにはチャットログ等は記録されません。
                 </span>
               </p>
+              {report.videoUrl ? (
+                <p style={{ marginTop: "0.5rem" }}>
+                  <a
+                    className="btn btn-secondary"
+                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
+                    href={report.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    通報者が添付した動画を見る
+                  </a>
+                  <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
+                    チャット等、リプレイに残らない証跡はこちらで確認してください。
+                  </span>
+                </p>
+              ) : (
+                <p className="muted" style={{ marginTop: "0.5rem" }}>
+                  動画は添付されていません(チャット等が争点の場合、リプレイのみでは確認できません)。
+                </p>
+              )}
 
               {moderator?.isAdmin ? (
                 <HideReportControl

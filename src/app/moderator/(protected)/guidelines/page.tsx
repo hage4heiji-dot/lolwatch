@@ -26,7 +26,8 @@ export default async function ModerationGuidelinesPage() {
         <h2>判定の基本方針</h2>
         <div className="card">
           <ul style={{ paddingLeft: "1.2rem" }}>
-            <li>判定は必ず対象試合のリプレイ等を実際に確認した上で行う。一般ユーザーの通報内容(カテゴリ・コメント)はあくまで参考情報であり、それ自体を根拠に判定しない。</li>
+            <li>判定は必ず対象試合のリプレイ、および通報者が動画を添付している場合はその動画を実際に確認した上で行う。一般ユーザーの通報内容(カテゴリ・コメント)はあくまで参考情報であり、それ自体を根拠に判定しない。</li>
+            <li>リプレイにはチャットログが記録されないため、VERBAL_ABUSE・HATE_SPEECHなどチャット内容が争点になるカテゴリは、動画が添付されていない場合は原則INSUFFICIENT_EVIDENCEとする。</li>
             <li>判定は「その通報(=その試合)」に対して行う。プレイヤー全体の印象や過去の評価で判断しない。</li>
             <li>疑わしいが確証が持てない場合はINSUFFICIENT_EVIDENCEを積極的に使う。特にCHEATING・ACCOUNT_TRADINGは誤判定のコストが大きいため慎重に。</li>
             <li>INTENTIONAL_FEEDING等、パターンの繰り返しが要件になっているカテゴリでは、1回のミス・不運だけでVIOLATION_CONFIRMEDにしない。</li>

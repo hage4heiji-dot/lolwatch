@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
+import { isSafeVideoUrl } from "@/lib/videoUrl";
 import type { ReportCategory } from "@/generated/prisma";
 
 export function ReportEditForm({
@@ -11,11 +12,13 @@ export function ReportEditForm({
   initialCategory,
   initialComment,
   initialIncidentSeconds,
+  initialVideoUrl,
 }: {
   reportId: string;
   initialCategory: ReportCategory;
   initialComment: string | null;
   initialIncidentSeconds: number | null;
+  initialVideoUrl: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -24,6 +27,7 @@ export function ReportEditForm({
   const [incidentTimeInput, setIncidentTimeInput] = useState(
     initialIncidentSeconds !== null ? formatMatchTime(initialIncidentSeconds) : "",
   );
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -48,6 +52,10 @@ export function ReportEditForm({
       setError("目安時間の形式が正しくありません(例: 12:34)。");
       return;
     }
+    if (videoUrl.trim() && !isSafeVideoUrl(videoUrl.trim())) {
+      setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      return;
+    }
 
     setPending(true);
     try {
@@ -58,6 +66,7 @@ export function ReportEditForm({
           category,
           comment: comment.trim() || undefined,
           incidentTimestampSeconds: incidentSeconds ?? undefined,
+          videoUrl: videoUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -101,6 +110,15 @@ export function ReportEditForm({
           placeholder="12:34"
           value={incidentTimeInput}
           onChange={(e) => setIncidentTimeInput(e.target.value)}
+        />
+      </div>
+      <div className="form-field">
+        <label>動画URL(任意)</label>
+        <input
+          type="url"
+          placeholder="例: https://www.youtube.com/watch?v=..."
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
         />
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>

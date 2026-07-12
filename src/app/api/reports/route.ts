@@ -13,6 +13,7 @@ import {
 import { getClientIp } from "@/lib/ip";
 import { checkReportRateLimit } from "@/lib/rateLimit";
 import { ReportCategory } from "@/generated/prisma";
+import { VIDEO_URL_MAX_LENGTH, isSafeVideoUrl } from "@/lib/videoUrl";
 
 // 通報は必ず特定の試合(matchId)と、その試合内の対象アカウント(puuid)に紐付ける。
 // puuid/championName/queueIdは事前に GET /api/matches/[matchId] で取得した参加者一覧から選ばれたもの。
@@ -24,6 +25,15 @@ const requestSchema = z.object({
   category: z.enum(ReportCategory),
   incidentTimestampSeconds: z.number().int().min(0).max(4 * 60 * 60).optional().nullable(),
   comment: z.string().trim().max(300).optional().nullable(),
+  videoUrl: z
+    .string()
+    .trim()
+    .max(VIDEO_URL_MAX_LENGTH)
+    .refine((v) => v === "" || isSafeVideoUrl(v), {
+      message: "動画URLの形式が正しくありません(http/httpsのみ)。",
+    })
+    .optional()
+    .nullable(),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,8 +46,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { puuid, matchId, championName, queueId, category, incidentTimestampSeconds, comment } =
-    parsed.data;
+  const {
+    puuid,
+    matchId,
+    championName,
+    queueId,
+    category,
+    incidentTimestampSeconds,
+    comment,
+    videoUrl,
+  } = parsed.data;
 
   const existingDeviceId = readDeviceId(request);
   const deviceId = existingDeviceId ?? generateDeviceId();
@@ -82,6 +100,7 @@ export async function POST(request: NextRequest) {
       category,
       incidentTimestampSeconds: incidentTimestampSeconds ?? null,
       comment: comment || null,
+      videoUrl: videoUrl || null,
       matchId,
       championName,
       queueId,
