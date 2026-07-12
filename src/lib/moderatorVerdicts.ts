@@ -11,3 +11,9 @@ export const VERDICT_BADGE_CLASS: Record<ModeratorVerdict, string> = {
   NO_VIOLATION: "badge badge-verified",
   INSUFFICIENT_EVIDENCE: "badge",
 };
+
+export const VERDICT_ICONS: Record<ModeratorVerdict, string> = {
+  VIOLATION_CONFIRMED: "⚠️",
+  NO_VIOLATION: "✅",
+  INSUFFICIENT_EVIDENCE: "❓",
+};

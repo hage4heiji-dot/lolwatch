@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { findReportedPlayers, ReportedPlayersVerdictFilter } from "@/lib/playerProfile";
-import { VERDICT_LABELS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
-import { CATEGORY_LABELS } from "@/lib/reportCategories";
+import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
+import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
 
 const PAGE_SIZE = 20;
@@ -66,7 +66,7 @@ export default async function ReportedPlayersPage({
             <option value="">すべて</option>
             {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
-                {label}
+                {CATEGORY_ICONS[value as ReportCategory]} {label}
               </option>
             ))}
           </select>
@@ -78,7 +78,7 @@ export default async function ReportedPlayersPage({
             <option value="UNREVIEWED">未評価のみ</option>
             {Object.entries(VERDICT_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
-                {label}
+                {VERDICT_ICONS[value as ModeratorVerdict]} {label}
               </option>
             ))}
           </select>
@@ -123,7 +123,7 @@ export default async function ReportedPlayersPage({
               </div>
               {latestReview && (
                 <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
-                  {VERDICT_LABELS[latestReview.verdict]}
+                  {VERDICT_ICONS[latestReview.verdict]} {VERDICT_LABELS[latestReview.verdict]}
                 </span>
               )}
             </div>

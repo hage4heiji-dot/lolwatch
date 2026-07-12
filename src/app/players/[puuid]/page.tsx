@@ -10,8 +10,8 @@ import {
   RiotApiError,
 } from "@/lib/riot";
 import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
-import { CATEGORY_LABELS } from "@/lib/reportCategories";
-import { VERDICT_LABELS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
+import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
+import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
 import { QUEUE_TYPE_LABELS, formatRank } from "@/lib/rankLabel";
 import { formatMatchTime } from "@/lib/matchTime";
@@ -145,7 +145,9 @@ export default async function PlayerProfilePage({
             const participant = matchDetail?.participants.find((p) => p.puuid === player.puuid);
             return (
               <div className="card" key={report.id}>
-                <span className="badge">{CATEGORY_LABELS[report.category]}</span>
+                <span className="badge">
+                  {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
+                </span>
                 <p
                   style={{
                     marginTop: "0.5rem",
@@ -230,7 +232,7 @@ export default async function PlayerProfilePage({
                     {report.moderatorReviews.map((review) => (
                       <div key={review.id} style={{ marginTop: "0.5rem" }}>
                         <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                          {VERDICT_LABELS[review.verdict]}
+                          {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
                         </span>
                         <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
                         <p className="muted" style={{ marginTop: "0.5rem" }}>

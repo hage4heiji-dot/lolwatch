@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useActionState } from "react";
 import { editReviewAction, type ReviewFormState } from "./actions";
-import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
+import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { ModeratorVerdict } from "@/generated/prisma";
 
 const initialState: ReviewFormState = {};
@@ -39,7 +39,7 @@ export function ModeratorReviewCard({
           <select id={verdictId} name="verdict" defaultValue={verdict} required>
             {(Object.keys(VERDICT_LABELS) as ModeratorVerdict[]).map((v) => (
               <option key={v} value={v}>
-                {VERDICT_LABELS[v]}
+                {VERDICT_ICONS[v]} {VERDICT_LABELS[v]}
               </option>
             ))}
           </select>
@@ -75,7 +75,9 @@ export function ModeratorReviewCard({
 
   return (
     <div style={{ marginBottom: "0.5rem" }}>
-      <span className="badge badge-verified">{VERDICT_LABELS[verdict]}</span>
+      <span className="badge badge-verified">
+        {VERDICT_ICONS[verdict]} {VERDICT_LABELS[verdict]}
+      </span>
       <p style={{ marginTop: "0.5rem" }}>{rationale}</p>
       <p className="muted" style={{ marginTop: "0.5rem" }}>
         {moderatorDisplayName} ・ {createdAtLabel}

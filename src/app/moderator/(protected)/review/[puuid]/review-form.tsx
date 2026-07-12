@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { submitReviewAction, type ReviewFormState } from "./actions";
-import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
+import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { ModeratorVerdict } from "@/generated/prisma";
 
 const initialState: ReviewFormState = {};
@@ -23,7 +23,7 @@ export function ReviewForm({ reportId, puuid }: { reportId: string; puuid: strin
           </option>
           {(Object.keys(VERDICT_LABELS) as ModeratorVerdict[]).map((verdict) => (
             <option key={verdict} value={verdict}>
-              {VERDICT_LABELS[verdict]}
+              {VERDICT_ICONS[verdict]} {VERDICT_LABELS[verdict]}
             </option>
           ))}
         </select>
