@@ -2,7 +2,14 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
-import { getAccountByPuuid, getLeagueEntriesByPuuid, getMatchDetail, RiotApiError } from "@/lib/riot";
+import {
+  getAccountByPuuid,
+  getLatestDdragonVersion,
+  getLeagueEntriesByPuuid,
+  getMatchDetail,
+  RiotApiError,
+} from "@/lib/riot";
+import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
@@ -13,6 +20,7 @@ import { canEditReport } from "@/lib/reportEdit";
 import { ReportVoteButtons } from "@/app/report-vote-buttons";
 import { ReviewObjectionButton } from "@/app/review-objection-button";
 import { ReportEditForm } from "@/app/report-edit-form";
+import { MatchScoreboard } from "@/app/match-scoreboard";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -67,7 +75,10 @@ export default async function PlayerProfilePage({
   );
 
   const uniqueMatchIds = [...new Set(player.reports.map((r) => r.matchId))];
-  const matchDetailResults = await Promise.allSettled(uniqueMatchIds.map(getMatchDetail));
+  const [matchDetailResults, ddragonVersion] = await Promise.all([
+    Promise.allSettled(uniqueMatchIds.map(getMatchDetail)),
+    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
+  ]);
   const matchDetailByMatchId = new Map<string, Awaited<ReturnType<typeof getMatchDetail>>>();
   matchDetailResults.forEach((result, i) => {
     if (result.status === "fulfilled") {
@@ -165,6 +176,13 @@ export default async function PlayerProfilePage({
                     </>
                   )}
                 </p>
+                {matchDetail && (
+                  <MatchScoreboard
+                    participants={matchDetail.participants}
+                    ddragonVersion={ddragonVersion}
+                    highlightPuuid={player.puuid}
+                  />
+                )}
                 {report.incidentTimestampSeconds !== null && (
                   <p style={{ marginTop: "0.5rem" }}>
                     問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}

@@ -9,10 +9,7 @@ import {
 import { normalizeMatchId } from "@/lib/matchId";
 import { getClientIp } from "@/lib/ip";
 import { checkMatchLookupRateLimit } from "@/lib/rateLimit";
-
-// DDragonバージョン取得に失敗した場合の最終手段のフォールバック(チャンピオンアイコンが
-// 数パッチ古くなる可能性はあるが、画像自体は404にならない程度には安定して存在する)。
-const FALLBACK_DDRAGON_VERSION = "14.23.1";
+import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
 
 export async function GET(
   request: NextRequest,
