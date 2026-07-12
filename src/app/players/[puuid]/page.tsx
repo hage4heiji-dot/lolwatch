@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
 import { getAccountByPuuid, RiotApiError } from "@/lib/riot";
@@ -6,6 +7,11 @@ import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
 import { formatMatchTime } from "@/lib/matchTime";
+import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
+import { canEditReport } from "@/lib/reportEdit";
+import { ReportVoteButtons } from "@/app/report-vote-buttons";
+import { ReviewObjectionButton } from "@/app/review-objection-button";
+import { ReportEditForm } from "@/app/report-edit-form";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -21,6 +27,8 @@ export default async function PlayerProfilePage({
 }) {
   const { puuid } = await params;
   const player = await findPlayerByPuuid(puuid);
+  const cookieStore = await cookies();
+  const deviceId = cookieStore.get(DEVICE_ID_COOKIE)?.value ?? null;
 
   if (!player) {
     let displayName: string;
@@ -87,31 +95,12 @@ export default async function PlayerProfilePage({
 
       <section className="section">
         <h2>
-          モデレーター評価{" "}
-          <span className="badge badge-verified">検証済み</span>
+          試合ごとの通報{" "}
+          <span className="badge badge-unverified">通報自体は未検証</span>
         </h2>
-        {player.moderatorReviews.length === 0 ? (
-          <p className="muted">まだモデレーターによる評価はありません。</p>
-        ) : (
-          player.moderatorReviews.map((review) => (
-            <div className="card" key={review.id}>
-              <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                {VERDICT_LABELS[review.verdict]}
-              </span>
-              <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
-              </p>
-            </div>
-          ))
-        )}
-      </section>
-
-      <section className="section">
-        <h2>
-          一般ユーザーからの通報{" "}
-          <span className="badge badge-unverified">未検証</span>
-        </h2>
+        <p className="muted" style={{ marginBottom: "0.75rem" }}>
+          「モデレーター評価」が付いている試合は、運営が実際にリプレイ等を確認した上での判定です。付いていない試合は一般ユーザーからの未検証の通報のみです。
+        </p>
         {player.reports.length === 0 ? (
           <p className="muted">まだ通報はありません。</p>
         ) : (
@@ -119,7 +108,7 @@ export default async function PlayerProfilePage({
             <div className="card" key={report.id}>
               <span className="badge">{CATEGORY_LABELS[report.category]}</span>
               <p style={{ marginTop: "0.5rem" }}>
-                対象試合: {report.championName} ・ {queueLabel(report.queueId)}
+                対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
               </p>
               {report.incidentTimestampSeconds !== null && (
                 <p style={{ marginTop: "0.5rem" }}>
@@ -132,6 +121,55 @@ export default async function PlayerProfilePage({
               <p className="muted" style={{ marginTop: "0.5rem" }}>
                 {formatDateTime(report.createdAt)}
               </p>
+
+              {canEditReport({
+                viewerDeviceId: deviceId,
+                reportDeviceId: report.deviceId,
+                createdAt: report.createdAt,
+              }) && (
+                <ReportEditForm
+                  reportId={report.id}
+                  initialCategory={report.category}
+                  initialComment={report.comment}
+                  initialIncidentSeconds={report.incidentTimestampSeconds}
+                />
+              )}
+
+              <ReportVoteButtons
+                reportId={report.id}
+                initialLikeCount={report.votes.filter((v) => v.voteType === "LIKE").length}
+                initialDislikeCount={report.votes.filter((v) => v.voteType === "DISLIKE").length}
+                initialMyVote={
+                  deviceId
+                    ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
+                    : null
+                }
+              />
+
+              {report.moderatorReviews.length > 0 && (
+                <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+                  {report.moderatorReviews.map((review) => (
+                    <div key={review.id} style={{ marginTop: "0.5rem" }}>
+                      <span className={VERDICT_BADGE_CLASS[review.verdict]}>
+                        {VERDICT_LABELS[review.verdict]}
+                      </span>
+                      <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
+                      <p className="muted" style={{ marginTop: "0.5rem" }}>
+                        {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
+                      </p>
+                      <ReviewObjectionButton
+                        reviewId={review.id}
+                        initialCount={review.objections.length}
+                        initialHasObjected={
+                          deviceId
+                            ? review.objections.some((o) => o.deviceId === deviceId)
+                            : false
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))
         )}

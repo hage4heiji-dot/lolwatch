@@ -63,6 +63,16 @@ export async function GET(
         { status: 503 },
       );
     }
+    // カスタムゲーム等、Riot側の仕様でmatch-v5から取得できない試合は403が返る。
+    if (err instanceof RiotApiError && err.status === 403) {
+      return NextResponse.json(
+        {
+          error:
+            "この試合の情報は取得できませんでした。カスタムゲームなど、Riot APIの対象外の試合の可能性があります。通常のマッチメイキングの試合IDをお試しください。",
+        },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
       { error: "Riot APIへの問い合わせに失敗しました。" },
       { status: 502 },

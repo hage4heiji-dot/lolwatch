@@ -7,15 +7,17 @@ import { ModeratorVerdict } from "@/generated/prisma";
 
 const initialState: ReviewFormState = {};
 
-export function ReviewForm({ puuid }: { puuid: string }) {
-  const action = submitReviewAction.bind(null, puuid);
+export function ReviewForm({ reportId, puuid }: { reportId: string; puuid: string }) {
+  const action = submitReviewAction.bind(null, reportId, puuid);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const verdictId = `verdict-${reportId}`;
+  const rationaleId = `rationale-${reportId}`;
 
   return (
     <form action={formAction}>
       <div className="form-field">
-        <label htmlFor="verdict">判定</label>
-        <select id="verdict" name="verdict" defaultValue="" required>
+        <label htmlFor={verdictId}>判定</label>
+        <select id={verdictId} name="verdict" defaultValue="" required>
           <option value="" disabled>
             選択してください
           </option>
@@ -28,8 +30,8 @@ export function ReviewForm({ puuid }: { puuid: string }) {
       </div>
 
       <div className="form-field">
-        <label htmlFor="rationale">判断理由(判断指針に基づき具体的に記載)</label>
-        <textarea id="rationale" name="rationale" rows={5} required minLength={10} />
+        <label htmlFor={rationaleId}>判断理由(判断指針に基づき具体的に記載)</label>
+        <textarea id={rationaleId} name="rationale" rows={5} required minLength={10} />
       </div>
 
       <button className="btn" type="submit" disabled={pending}>

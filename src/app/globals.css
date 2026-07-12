@@ -506,3 +506,18 @@ a {
   display: flex;
   justify-content: space-between;
 }
+
+.vote-btn {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.vote-btn-active-like {
+  color: var(--kill-color);
+  border-color: var(--kill-color);
+}
+
+.vote-btn-active-dislike {
+  color: var(--danger);
+  border-color: var(--danger);
+}

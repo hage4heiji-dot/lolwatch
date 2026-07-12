@@ -16,7 +16,6 @@ model Player {
 
   nameHistory      PlayerNameHistory[]
   reports          Report[]
-  moderatorReviews ModeratorReview[]
   rankActivity     RankActivityCheck[]
 
   @@index([platform])
@@ -69,9 +68,32 @@ model Report {
   hiddenAt   DateTime?
   hiddenReason String?
 
+  moderatorReviews ModeratorReview[]
+  votes            ReportVote[]
+
   @@index([playerId, createdAt])
   @@index([deviceId, createdAt])
   @@index([posterIp, createdAt])
+}
+
+enum VoteType {
+  LIKE
+  DISLIKE
+}
+
+// 通報に対する一般ユーザーの「いいね/悪いね」。モデレーターの検証結果とは違い、
+// あくまで参考シグナル。device単位で1票のみ(同じボタンを再度押すと取り消し)。
+model ReportVote {
+  id        String   @id @default(uuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  voteType  VoteType
+  deviceId  String
+  posterIp  String
+  createdAt DateTime @default(now())
+
+  @@unique([reportId, deviceId])
+  @@index([reportId, voteType])
 }
 
 model Moderator {
@@ -79,6 +101,8 @@ model Moderator {
   username            String    @unique
   passwordHash        String
   displayName         String
+  // 管理者権限(通報の非表示化など)を持つかどうか。付与はCLIスクリプト経由のみ。
+  isAdmin             Boolean   @default(false)
   createdAt           DateTime  @default(now())
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
@@ -106,18 +130,35 @@ enum ModeratorVerdict {
 }
 
 // モデレーターが判断指針に沿って実際にリプレイを確認した上での評価。
-// 一般ユーザーの通報(Report)とはUI上明確に区別して表示する。
+// 特定の通報(=特定の試合)に対する評価として紐付ける。一般ユーザーの通報(Report)
+// とはUI上明確に区別して表示する。
 model ModeratorReview {
   id                String           @id @default(uuid())
-  playerId          String
-  player            Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  reportId          String
+  report            Report           @relation(fields: [reportId], references: [id], onDelete: Cascade)
   moderatorId       String
   moderator         Moderator        @relation(fields: [moderatorId], references: [id])
   verdict           ModeratorVerdict
   rationale         String
   createdAt         DateTime         @default(now())
 
-  @@index([playerId, createdAt])
+  objections ReviewObjection[]
+
+  @@index([reportId, createdAt])
+}
+
+// モデレーター評価に対する一般ユーザーからの「異議あり」。投票の集計ではなく
+// 再審査を促すシグナルとして扱う(投票による多数決で判定を覆す仕組みではない)。
+model ReviewObjection {
+  id                String          @id @default(uuid())
+  moderatorReviewId String
+  moderatorReview   ModeratorReview @relation(fields: [moderatorReviewId], references: [id], onDelete: Cascade)
+  deviceId          String
+  posterIp          String
+  createdAt         DateTime        @default(now())
+
+  @@unique([moderatorReviewId, deviceId])
+  @@index([moderatorReviewId])
 }
 
 // 「通報がちゃんと機能してランク参加できなくなっているか」の監視。

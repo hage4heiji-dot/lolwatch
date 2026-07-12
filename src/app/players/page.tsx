@@ -26,7 +26,7 @@ export default async function ReportedPlayersPage({
       ) : (
         players.map((player) => {
           const name = player.nameHistory[0];
-          const latestReview = player.moderatorReviews[0];
+          const latestReview = player.latestReview;
           return (
             <div
               className="card"

@@ -9,3 +9,13 @@ export const CATEGORY_LABELS: Record<ReportCategory, string> = {
   SMURFING: "スマーフ疑惑",
   ACCOUNT_TRADING: "アカウント売買・譲渡疑惑",
 };
+
+export const CATEGORY_ICONS: Record<ReportCategory, string> = {
+  VERBAL_ABUSE: "💢",
+  HATE_SPEECH: "🚫",
+  INTENTIONAL_FEEDING: "💀",
+  AFK_LEAVING: "🚪",
+  CHEATING: "⚠️",
+  SMURFING: "👥",
+  ACCOUNT_TRADING: "💰",
+};

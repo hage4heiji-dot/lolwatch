@@ -1,11 +1,20 @@
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
 import { getAccountByPuuid, RiotApiError } from "@/lib/riot";
+import { getSessionModerator } from "@/lib/moderatorAuth";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
-import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
 import { formatMatchTime } from "@/lib/matchTime";
 import { ReviewForm } from "./review-form";
+import { ModeratorReviewCard } from "./review-card";
+import { HideReportControl } from "./hide-report-control";
+
+function replayScriptHref(matchId: string, incidentTimestampSeconds: number | null): string {
+  const base = `/api/moderator/replay-script/${encodeURIComponent(matchId)}`;
+  return incidentTimestampSeconds !== null
+    ? `${base}?t=${incidentTimestampSeconds}`
+    : base;
+}
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -20,7 +29,8 @@ export default async function ModeratorReviewPage({
   params: Promise<{ puuid: string }>;
 }) {
   const { puuid } = await params;
-  const player = await findPlayerByPuuid(puuid);
+  const player = await findPlayerByPuuid(puuid, { includeHidden: true });
+  const moderator = await getSessionModerator();
 
   let displayName: string;
   if (player) {
@@ -41,14 +51,17 @@ export default async function ModeratorReviewPage({
   return (
     <div>
       <h1>{displayName} をレビュー</h1>
+      <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1.5rem" }}>
+        評価は通報(=試合)ごとに登録します。試合を実際に確認した上で、該当する通報に対して判定を残してください。
+      </p>
 
       <section className="section">
-        <h2>一般ユーザーからの通報(未検証・参考情報)</h2>
+        <h2>通報一覧</h2>
         {!player || player.reports.length === 0 ? (
-          <p className="muted">通報はまだありません。</p>
+          <p className="muted">通報はまだありません。評価できる対象がないため、このページでは何もできません。</p>
         ) : (
           player.reports.map((report) => (
-            <div className="card" key={report.id}>
+            <div className="card" key={report.id} style={report.hiddenAt ? { opacity: 0.6 } : undefined}>
               <span className="badge">{CATEGORY_LABELS[report.category]}</span>
               <p style={{ marginTop: "0.5rem" }}>
                 対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
@@ -64,29 +77,62 @@ export default async function ModeratorReviewPage({
               <p className="muted" style={{ marginTop: "0.5rem" }}>
                 {formatDateTime(report.createdAt)}
               </p>
+              <p style={{ marginTop: "0.5rem" }}>
+                <a
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
+                  href={replayScriptHref(report.matchId, report.incidentTimestampSeconds)}
+                  download
+                >
+                  リプレイ起動スクリプトをダウンロード(.ps1)
+                </a>
+                <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
+                  手元のPCでLeagueクライアントにログインした状態で実行してください。未検証の仕組みのため、動作しない場合があります。
+                </span>
+              </p>
+
+              {moderator?.isAdmin ? (
+                <HideReportControl
+                  reportId={report.id}
+                  puuid={puuid}
+                  hiddenAt={report.hiddenAt ? report.hiddenAt.toISOString() : null}
+                  hiddenReason={report.hiddenReason}
+                />
+              ) : (
+                report.hiddenAt && (
+                  <p className="muted" style={{ marginTop: "0.5rem" }}>
+                    この通報は非表示になっています{report.hiddenReason ? `(理由: ${report.hiddenReason})` : ""}。
+                  </p>
+                )
+              )}
+
+              {report.moderatorReviews.length > 0 && (
+                <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+                  <p className="muted" style={{ marginBottom: "0.35rem" }}>この通報への評価:</p>
+                  {report.moderatorReviews.map((review) => (
+                    <ModeratorReviewCard
+                      key={review.id}
+                      reviewId={review.id}
+                      puuid={puuid}
+                      verdict={review.verdict}
+                      rationale={review.rationale}
+                      moderatorDisplayName={review.moderator.displayName}
+                      createdAtLabel={formatDateTime(review.createdAt)}
+                      canEdit={review.moderatorId === moderator?.id}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+                <p className="muted" style={{ marginBottom: "0.5rem" }}>
+                  {report.moderatorReviews.length > 0 ? "この通報を再評価する" : "この通報を評価する"}
+                </p>
+                <ReviewForm reportId={report.id} puuid={puuid} />
+              </div>
             </div>
           ))
         )}
-      </section>
-
-      {player && player.moderatorReviews.length > 0 && (
-        <section className="section">
-          <h2>過去のモデレーター評価</h2>
-          {player.moderatorReviews.map((review) => (
-            <div className="card" key={review.id}>
-              <span className="badge badge-verified">{VERDICT_LABELS[review.verdict]}</span>
-              <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
-              </p>
-            </div>
-          ))}
-        </section>
-      )}
-
-      <section className="section">
-        <h2>新しい評価を登録</h2>
-        <ReviewForm puuid={puuid} />
       </section>
     </div>
   );
