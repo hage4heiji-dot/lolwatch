@@ -17,6 +17,12 @@ export type TopPlayer = {
   displayName: string;
   count: number;
 };
+export type WatchedPlayer = {
+  puuid: string;
+  displayName: string;
+  reportCount: number;
+  validatedCount: number;
+};
 
 export async function getOverviewStats(since: Date | null = null) {
   const [totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount] =
@@ -140,5 +146,56 @@ export async function getTopReportedPlayers(
       displayName: name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid,
       count: player._count.reports,
     };
+  });
+}
+
+// ホーム画面の「要注意人物」用。指定期間内の通報について、一般ユーザーから
+// 「妥当」票(LIKE)を多く集めた順に並べる(同数の場合は通報件数で補完)。
+// 単純な通報件数だけだと逆恨みの連投に弱いため、コミュニティの support を優先する。
+export async function getMostWatchedPlayers(
+  limit = 5,
+  since: Date | null = null,
+): Promise<WatchedPlayer[]> {
+  const reports = await prisma.report.findMany({
+    where: { hiddenAt: null, ...createdAtFilter(since) },
+    select: {
+      playerId: true,
+      votes: { where: { voteType: "LIKE" }, select: { id: true } },
+    },
+  });
+
+  const tallyByPlayerId = new Map<string, { reportCount: number; validatedCount: number }>();
+  for (const report of reports) {
+    const tally = tallyByPlayerId.get(report.playerId) ?? { reportCount: 0, validatedCount: 0 };
+    tally.reportCount += 1;
+    tally.validatedCount += report.votes.length;
+    tallyByPlayerId.set(report.playerId, tally);
+  }
+
+  const topPlayerIds = Array.from(tallyByPlayerId.entries())
+    .sort(([, a], [, b]) => b.validatedCount - a.validatedCount || b.reportCount - a.reportCount)
+    .slice(0, limit)
+    .map(([playerId]) => playerId);
+  if (topPlayerIds.length === 0) return [];
+
+  const players = await prisma.player.findMany({
+    where: { id: { in: topPlayerIds } },
+    include: { nameHistory: { where: { isCurrent: true }, take: 1 } },
+  });
+  const playerById = new Map(players.map((p) => [p.id, p]));
+
+  return topPlayerIds.flatMap((playerId) => {
+    const player = playerById.get(playerId);
+    if (!player) return [];
+    const tally = tallyByPlayerId.get(playerId)!;
+    const name = player.nameHistory[0];
+    return [
+      {
+        puuid: player.puuid,
+        displayName: name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid,
+        reportCount: tally.reportCount,
+        validatedCount: tally.validatedCount,
+      },
+    ];
   });
 }

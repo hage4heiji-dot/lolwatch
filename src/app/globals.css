@@ -169,6 +169,23 @@ h2 {
   background: var(--accent-soft);
 }
 
+/* 通報リンクだけは常に目立たせる(他のタブと同列に埋もれさせない) */
+.site-nav a.site-nav-report {
+  margin-left: 0.25rem;
+  padding: 0.4rem 0.85rem;
+  color: #fff;
+  font-weight: 800;
+  background: linear-gradient(135deg, #8a1414, var(--danger));
+  box-shadow: 0 2px 8px rgba(179, 38, 30, 0.35);
+}
+
+.site-nav a.site-nav-report:hover,
+.site-nav a.site-nav-report.active {
+  color: #fff;
+  background: linear-gradient(135deg, #9c1a1a, #c93b30);
+  box-shadow: 0 2px 12px rgba(179, 38, 30, 0.5);
+}
+
 .site-logo {
   display: flex;
   align-items: center;
@@ -384,6 +401,119 @@ a.card:hover {
 .muted {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+/* --- ホーム: 通報CTA --- */
+.report-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 1.5rem 0;
+  padding: 1.1rem 1.4rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #7a0f0f, #b3261e 55%, #7a0f0f);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(179, 38, 30, 0.35);
+  animation: report-cta-pulse 2.4s ease-in-out infinite;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.report-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(179, 38, 30, 0.5);
+}
+
+.report-cta-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.report-cta-sub {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@keyframes report-cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(179, 38, 30, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 32px rgba(179, 38, 30, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-cta {
+    animation: none;
+  }
+}
+
+/* --- ホーム: 要注意人物 --- */
+.watchlist {
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.watchlist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--danger-bg) 55%, var(--card-bg));
+  transition: background-color 0.15s ease;
+}
+
+.watchlist-row:hover {
+  background: var(--danger-bg);
+}
+
+.watchlist-row + .watchlist-row {
+  border-top: 1px solid color-mix(in srgb, var(--danger) 25%, var(--border));
+}
+
+.watchlist-rank {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.watchlist-name {
+  flex: 1;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watchlist-tally {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .watchlist-row {
+    flex-wrap: wrap;
+  }
+
+  .watchlist-tally {
+    width: 100%;
+    padding-left: calc(1.9rem + 0.85rem);
+  }
 }
 
 /* --- 試合サマリ --- */

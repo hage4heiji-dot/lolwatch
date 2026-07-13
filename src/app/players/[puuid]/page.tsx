@@ -57,7 +57,7 @@ export default async function PlayerProfilePage({
         <p className="muted" style={{ marginTop: "0.5rem" }}>
           このIDに対する通報はまだありません。
         </p>
-        <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/">
+        <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/report">
           試合IDから通報する
         </Link>
       </div>
@@ -125,7 +125,7 @@ export default async function PlayerProfilePage({
         </p>
       )}
 
-      <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/">
+      <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/report">
         試合IDから通報する
       </Link>
 
