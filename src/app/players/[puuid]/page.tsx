@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
@@ -39,7 +38,8 @@ function formatDateTime(date: Date): string {
 function TeammateRankBadge({ mate }: { mate: FrequentTeammate }) {
   const tier = mate.soloRank?.tier ?? null;
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element -- SVGはnext/imageが標準では最適化しないため
+    <img
       src={getRankEmblemUrl(tier)}
       alt={tier ?? "UNRANKED"}
       width={28}
@@ -165,7 +165,8 @@ export default async function PlayerProfilePage({
       )}
 
       <div className="rank-card">
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element -- SVGはnext/imageが標準では最適化しないため */}
+        <img
           src={getRankEmblemUrl(soloRank?.tier ?? null)}
           alt={soloRank?.tier ?? "UNRANKED"}
           width={64}

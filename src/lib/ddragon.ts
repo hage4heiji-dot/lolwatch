@@ -13,7 +13,9 @@ export const FALLBACK_DDRAGON_VERSION = "14.23.1";
 // 広く使われている安定した非公式CDN)を利用する。
 // ranked-emblem/配下は2560x1440の大きな背景素材でアイコン用途には向かないため、
 // 正方形に切り出し済みのranked-mini-crests/を使う。
+// 拡張子はsvgを使う(emeraldのみpngが用意されておらず404になるため、
+// 全ティアで確実に存在するsvgに統一している)。
 export function getRankEmblemUrl(tier: string | null): string {
   const name = tier ? tier.toLowerCase() : "unranked";
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${name}.png`;
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${name}.svg`;
 }
