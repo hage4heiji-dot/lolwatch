@@ -207,22 +207,11 @@ export default async function AdminReportsPage({
               {report.comment && (
                 <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
               )}
-              {report.videoUrl && (
+              {report.referenceUrl && (
                 <p style={{ marginTop: "0.5rem" }}>
-                  <a href={report.videoUrl} target="_blank" rel="noopener noreferrer">
-                    🎬 添付動画を見る
+                  <a href={report.referenceUrl} target="_blank" rel="noopener noreferrer">
+                    🔗 添付された参考URLを見る
                   </a>
-                </p>
-              )}
-              {report.imageUrl && (
-                <p style={{ marginTop: "0.5rem" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
-                  <img
-                    src={report.imageUrl}
-                    alt="通報者が添付した画像"
-                    referrerPolicy="no-referrer"
-                    style={{ maxWidth: "100%", maxHeight: "240px", borderRadius: "6px" }}
-                  />
                 </p>
               )}
               {report.hiddenReason && (

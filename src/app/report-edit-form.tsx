@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
-import { isSafeVideoUrl } from "@/lib/videoUrl";
-import { isSafeImageUrl } from "@/lib/imageUrl";
+import { isSafeReferenceUrl } from "@/lib/referenceUrl";
 import type { ReportCategory } from "@/generated/prisma";
 
 export function ReportEditForm({
@@ -13,15 +12,13 @@ export function ReportEditForm({
   initialCategory,
   initialComment,
   initialIncidentSeconds,
-  initialVideoUrl,
-  initialImageUrl,
+  initialReferenceUrl,
 }: {
   reportId: string;
   initialCategory: ReportCategory;
   initialComment: string | null;
   initialIncidentSeconds: number | null;
-  initialVideoUrl: string | null;
-  initialImageUrl: string | null;
+  initialReferenceUrl: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -30,8 +27,7 @@ export function ReportEditForm({
   const [incidentTimeInput, setIncidentTimeInput] = useState(
     initialIncidentSeconds !== null ? formatMatchTime(initialIncidentSeconds) : "",
   );
-  const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
-  const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
+  const [referenceUrl, setReferenceUrl] = useState(initialReferenceUrl ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -56,12 +52,8 @@ export function ReportEditForm({
       setError("目安時間の形式が正しくありません(例: 12:34)。");
       return;
     }
-    if (videoUrl.trim() && !isSafeVideoUrl(videoUrl.trim())) {
-      setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
-      return;
-    }
-    if (imageUrl.trim() && !isSafeImageUrl(imageUrl.trim())) {
-      setError("画像URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+    if (referenceUrl.trim() && !isSafeReferenceUrl(referenceUrl.trim())) {
+      setError("参考URLの形式が正しくありません(http/httpsのURLを入力してください)。");
       return;
     }
 
@@ -74,8 +66,7 @@ export function ReportEditForm({
           category,
           comment: comment.trim() || undefined,
           incidentTimestampSeconds: incidentSeconds ?? undefined,
-          videoUrl: videoUrl.trim() || undefined,
-          imageUrl: imageUrl.trim() || undefined,
+          referenceUrl: referenceUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -122,40 +113,13 @@ export function ReportEditForm({
         />
       </div>
       <div className="form-field">
-        <label>動画URL(任意)</label>
+        <label>参考URL(任意)</label>
         <input
           type="url"
-          placeholder="例: https://www.youtube.com/watch?v=..."
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
+          placeholder="例: Xの投稿、YouTubeの動画URL、imgur.comの画像URL等"
+          value={referenceUrl}
+          onChange={(e) => setReferenceUrl(e.target.value)}
         />
-      </div>
-      <div className="form-field">
-        <label>画像URL(任意)</label>
-        <input
-          type="url"
-          placeholder="例: https://fivemanage.com/image/..."
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-        />
-        <span className="muted">
-          スクリーンショット等の画像は、外部の画像ホスティングサービスに投稿した上でそのURLを貼ってください。
-        </span>
-        {imageUrl.trim() && isSafeImageUrl(imageUrl.trim()) && (
-          // eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない
-          <img
-            src={imageUrl.trim()}
-            alt="プレビュー"
-            referrerPolicy="no-referrer"
-            style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "0.5rem", borderRadius: "6px" }}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-            onLoad={(e) => {
-              e.currentTarget.style.display = "";
-            }}
-          />
-        )}
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn" type="submit" disabled={pending}>

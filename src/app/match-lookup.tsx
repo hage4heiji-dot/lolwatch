@@ -8,8 +8,7 @@ import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { getChampionIconUrl } from "@/lib/ddragon";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
-import { isSafeVideoUrl } from "@/lib/videoUrl";
-import { isSafeImageUrl } from "@/lib/imageUrl";
+import { isSafeReferenceUrl } from "@/lib/referenceUrl";
 import { KillTimeline } from "./kill-timeline";
 import type { MatchDetail, MatchKillEvent, MatchParticipant } from "@/lib/riot";
 
@@ -94,8 +93,7 @@ export function MatchLookup() {
   const [incidentTimeInput, setIncidentTimeInput] = useState("");
   const [incidentSeconds, setIncidentSeconds] = useState<number | null>(null);
   const [comment, setComment] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [referenceUrl, setReferenceUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   const [submitPending, setSubmitPending] = useState(false);
@@ -153,12 +151,8 @@ export function MatchLookup() {
       setError("目安時間の形式が正しくありません(例: 12:34)。");
       return;
     }
-    if (videoUrl.trim() && !isSafeVideoUrl(videoUrl.trim())) {
-      setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
-      return;
-    }
-    if (imageUrl.trim() && !isSafeImageUrl(imageUrl.trim())) {
-      setError("画像URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+    if (referenceUrl.trim() && !isSafeReferenceUrl(referenceUrl.trim())) {
+      setError("参考URLの形式が正しくありません(http/httpsのURLを入力してください)。");
       return;
     }
 
@@ -175,8 +169,7 @@ export function MatchLookup() {
           category,
           incidentTimestampSeconds: incidentSeconds ?? undefined,
           comment: comment.trim() || undefined,
-          videoUrl: videoUrl.trim() || undefined,
-          imageUrl: imageUrl.trim() || undefined,
+          referenceUrl: referenceUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -308,48 +301,18 @@ export function MatchLookup() {
       </div>
 
       <div className="form-field">
-        <label htmlFor="videoUrl">動画URL(任意)</label>
+        <label htmlFor="referenceUrl">参考URL(任意)</label>
         <input
-          id="videoUrl"
+          id="referenceUrl"
           type="url"
-          placeholder="例: https://www.youtube.com/watch?v=..."
+          placeholder="例: Xの投稿、YouTubeの動画URL、imgur.comの画像URL等"
           autoComplete="off"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
+          value={referenceUrl}
+          onChange={(e) => setReferenceUrl(e.target.value)}
         />
         <span className="muted">
-          リプレイにはチャットログ等が残らないため、別途録画した動画があればURLを添付してください。
+          リプレイにはチャットログ等が残らないため、証跡となるURL(X投稿・動画・画像等)があれば添付してください。
         </span>
-      </div>
-
-      <div className="form-field">
-        <label htmlFor="imageUrl">画像URL(任意)</label>
-        <input
-          id="imageUrl"
-          type="url"
-          placeholder="例: https://fivemanage.com/image/..."
-          autoComplete="off"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-        />
-        <span className="muted">
-          スクリーンショット等の画像は、外部の画像ホスティングサービス(fivemanage等)に投稿した上でそのURLを貼ってください。
-        </span>
-        {imageUrl.trim() && isSafeImageUrl(imageUrl.trim()) && (
-          // eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない
-          <img
-            src={imageUrl.trim()}
-            alt="プレビュー"
-            referrerPolicy="no-referrer"
-            style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "0.5rem", borderRadius: "6px" }}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-            onLoad={(e) => {
-              e.currentTarget.style.display = "";
-            }}
-          />
-        )}
       </div>
 
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -367,8 +330,7 @@ export function MatchLookup() {
             setIncidentTimeInput("");
             setIncidentSeconds(null);
             setComment("");
-            setVideoUrl("");
-            setImageUrl("");
+            setReferenceUrl("");
           }}
         >
           別の試合IDを入力し直す

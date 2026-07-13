@@ -90,16 +90,16 @@ export default async function ModeratorReviewPage({
                   手元のPCでLeagueクライアントにログインした状態で実行してください。未検証の仕組みのため、動作しない場合があります。リプレイにはチャットログ等は記録されません。
                 </span>
               </p>
-              {report.videoUrl ? (
+              {report.referenceUrl ? (
                 <p style={{ marginTop: "0.5rem" }}>
                   <a
                     className="btn btn-secondary"
                     style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                    href={report.videoUrl}
+                    href={report.referenceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    通報者が添付した動画を見る
+                    通報者が添付した参考URLを見る
                   </a>
                   <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
                     チャット等、リプレイに残らない証跡はこちらで確認してください。
@@ -107,18 +107,7 @@ export default async function ModeratorReviewPage({
                 </p>
               ) : (
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
-                  動画は添付されていません(チャット等が争点の場合、リプレイのみでは確認できません)。
-                </p>
-              )}
-              {report.imageUrl && (
-                <p style={{ marginTop: "0.5rem" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
-                  <img
-                    src={report.imageUrl}
-                    alt="通報者が添付した画像"
-                    referrerPolicy="no-referrer"
-                    style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "6px" }}
-                  />
+                  参考URLは添付されていません(チャット等が争点の場合、リプレイのみでは確認できません)。
                 </p>
               )}
 

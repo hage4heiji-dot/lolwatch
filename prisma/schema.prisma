@@ -62,12 +62,11 @@ model Report {
   incidentTimestampSeconds Int?
   // 何を主張したいかの補足。即時・無検証で公開されるため短文(300字)に制限する。
   comment    String?
-  // リプレイにはチャットログ等が残らないため、通報者が別途録画した動画のURL(任意)。
-  // モデレーターがリプレイと合わせて確認する参考証跡。http/httpsのみ許可。
-  videoUrl   String?
-  // 外部の画像ホスティングサービス(fivemanage等)に投稿してもらった画像へのリンク。
-  // 動画同様、自前ではファイルを保持しない。http/httpsのみ許可。
-  imageUrl   String?
+  // リプレイにはチャットログ等が残らないため、通報者が任意で添付する参考URL
+  // (X投稿・YouTube動画・imgur画像等)。自前ではファイルを保持せず、
+  // モデレーターがリプレイと合わせて確認する参考証跡としてリンクを貼るのみ。
+  // http/httpsのみ許可。
+  referenceUrl String?
   deviceId   String
   posterIp   String
   createdAt  DateTime        @default(now())

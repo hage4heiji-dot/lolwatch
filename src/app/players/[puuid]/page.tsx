@@ -193,22 +193,11 @@ export default async function PlayerProfilePage({
                 {report.comment && (
                   <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
                 )}
-                {report.videoUrl && (
+                {report.referenceUrl && (
                   <p style={{ marginTop: "0.5rem" }}>
-                    <a href={report.videoUrl} target="_blank" rel="noopener noreferrer">
-                      添付された動画を見る
+                    <a href={report.referenceUrl} target="_blank" rel="noopener noreferrer">
+                      添付された参考URLを見る
                     </a>
-                  </p>
-                )}
-                {report.imageUrl && (
-                  <p style={{ marginTop: "0.5rem" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
-                    <img
-                      src={report.imageUrl}
-                      alt="通報者が添付した画像"
-                      referrerPolicy="no-referrer"
-                      style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "6px" }}
-                    />
                   </p>
                 )}
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
@@ -225,8 +214,7 @@ export default async function PlayerProfilePage({
                     initialCategory={report.category}
                     initialComment={report.comment}
                     initialIncidentSeconds={report.incidentTimestampSeconds}
-                    initialVideoUrl={report.videoUrl}
-                    initialImageUrl={report.imageUrl}
+                    initialReferenceUrl={report.referenceUrl}
                   />
                 )}
 
