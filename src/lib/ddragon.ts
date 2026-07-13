@@ -12,5 +12,5 @@ export const FALLBACK_DDRAGON_VERSION = "14.23.1";
 // ゲームクライアントのアセットをミラーしているCommunity Dragon(LoL関連サイトで
 // 広く使われている安定した非公式CDN)を利用する。
 export function getRankEmblemUrl(tier: string): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblems/emblem-${tier.toLowerCase()}.png`;
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${tier.toLowerCase()}.png`;
 }

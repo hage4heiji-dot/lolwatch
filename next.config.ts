@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "raw.communitydragon.org",
-        pathname: "/latest/plugins/rcp-fe-lol-static-assets/**",
+        pathname: "/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/**",
       },
     ],
   },
