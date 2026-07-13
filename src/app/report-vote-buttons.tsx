@@ -46,16 +46,18 @@ export function ReportVoteButtons({
         className={`btn btn-secondary vote-btn${myVote === "LIKE" ? " vote-btn-active-like" : ""}`}
         onClick={() => vote("LIKE")}
         disabled={pending}
+        title="この通報の内容は妥当だと思う場合に押してください"
       >
-        いいね {likeCount}
+        この通報は妥当 {likeCount}
       </button>
       <button
         type="button"
         className={`btn btn-secondary vote-btn${myVote === "DISLIKE" ? " vote-btn-active-dislike" : ""}`}
         onClick={() => vote("DISLIKE")}
         disabled={pending}
+        title="この通報の内容は不当だと思う場合に押してください"
       >
-        悪いね {dislikeCount}
+        この通報は不当 {dislikeCount}
       </button>
     </div>
   );

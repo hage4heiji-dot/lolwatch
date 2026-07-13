@@ -18,7 +18,7 @@ export interface CategoryGuideline {
 export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = {
   VERBAL_ABUSE: {
     riotBasis:
-      "「Criticizing a play or egging on an opponent doesn't break the pact, but attacking someone's identity, threatening harm, or spamming repeated insults crosses the line.」",
+      "「プレイ内容への批判や相手を挑発する行為はCommunity Pactに違反しないが、相手の人格を攻撃すること、危害を加えると脅すこと、同じ侮辱を執拗に繰り返すことは一線を越える行為である。」",
     definition:
       "プレイ内容ではなく「人」そのものを対象にした攻撃的な発言。個人の能力・存在への侮辱、脅迫、執拗な暴言の連投。",
     doExamples: [
@@ -42,7 +42,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   HATE_SPEECH: {
     riotBasis:
-      "「language that attacks or degrades someone based on who they are—like their race, gender, nationality, or other protected characteristics」「there's no space for hate speech in our games」",
+      "「人種・性別・国籍など、本人が何者であるか(保護されるべき属性)を理由に相手を攻撃・貶める言葉」「我々のゲームにヘイトスピーチの居場所はない」",
     definition:
       "人種・性別・国籍・性的指向・宗教・障害など、本人の属性そのものを理由にした侮辱・差別的発言。VERBAL_ABUSEとは別カテゴリとして特に重く扱う。",
     doExamples: [
@@ -60,7 +60,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   INTENTIONAL_FEEDING: {
     riotBasis:
-      "「Intentionally Feeding / Inting: When an ally dies intentionally to increase the strength of the enemy team」「Griefing: when someone intentionally ruins the game for others—trolling, teamkilling, or just causing chaos」",
+      "「意図的なフィード(インティング):味方が敵チームを強化する目的でわざと死ぬこと」「グリーフィング:荒らし・味方殺し・混乱を引き起こす行為など、他人の試合を意図的に台無しにすること」",
     definition:
       "明確な意図を持って自キャラを敵に渡す、または試合を妨害する行為。単なる下手さ・不運とは区別する。",
     doExamples: [
@@ -83,7 +83,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   AFK_LEAVING: {
     riotBasis:
-      "「Abandoning matches is prohibited, including intentional disconnects, being AFK, queue dodging, lobby hostage taking, etc.」",
+      "「意図的な切断、AFK(無操作放置)、キューダッジ、ロビー人質などを含め、試合を放棄する行為は禁止されている。」",
     definition: "試合を放棄する行為全般。切断・無操作放置・キューダッジ・ロビー人質等。",
     doExamples: [
       "試合中、無操作のまま長時間動かない(ベースで待機し続ける等)",
@@ -91,7 +91,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
       "ピック画面で意図的に応答しない(ロビー人質)",
     ],
     dontExamples: [
-      "通信障害による一時的な切断で、その後復帰(reconnect)している場合",
+      "通信障害による一時的な切断で、その後再接続して復帰している場合",
       "アイテム購入・戦略確認等、合理的な範囲の短時間の操作停止",
     ],
     verdictGuidance: {
@@ -102,7 +102,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   CHEATING: {
     riotBasis:
-      "「Scripting: using 3rd party software (or hardware) to take automated actions (ie: auto-aiming or auto-dodging) or respond to in-game events on their behalf」",
+      "「スクリプティング:サードパーティ製のソフトウェア(またはハードウェア)を用いて、自動でのエイムやスキルの回避といった操作を行わせたり、本人に代わってゲーム内の出来事に反応させたりすること」",
     definition:
       "非公式の外部ツール・改造クライアント等を用い、人力では説明が難しい精度・反応速度・情報でプレイする行為。",
     doExamples: [
@@ -124,7 +124,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   SMURFING: {
     riotBasis:
-      "「Smurfing occurs when a higher skilled player deliberately—typically through purchasing accounts, deranking, or account sharing—attempts to circumvent matchmaking systems」",
+      "「スマーフとは、実力のあるプレイヤーが、主にアカウントの購入・意図的なランク降格・アカウントの共有などを通じて、マッチメイキングシステムを意図的に迂回しようとすることをいう。」",
     definition:
       "実力のあるプレイヤーが、意図的にマッチメイキングを迂回する目的で低ランク帯のアカウントを使用する行為。単に「新規アカウントなのに上手い」だけでは足りず、迂回の意図性がポイント。",
     doExamples: [
@@ -145,7 +145,7 @@ export const MODERATION_GUIDELINES: Record<ReportCategory, CategoryGuideline> = 
   },
   ACCOUNT_TRADING: {
     riotBasis:
-      "「Buying, selling, or transferring accounts violates our Terms of Service」「Solo Boosting: a high-ranked player hops on someone else's account to score them a better rank they didn't earn」",
+      "「アカウントの売買・譲渡は利用規約違反である」「ソロブースティング:高ランクのプレイヤーが他人のアカウントを操作し、本来その本人が実力で得ていないランクを与えること」",
     definition: "アカウントの売買・譲渡、および代行(ブースティング)行為。",
     doExamples: [
       "チャットや外部証跡でアカウント売買の交渉・実行が確認できる",
