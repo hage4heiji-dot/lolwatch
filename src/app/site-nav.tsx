@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/players", label: "通報一覧" },
   { href: "/stats", label: "統計" },
-  { href: "/moderator/guidelines", label: "ガイドライン" },
+  { href: "/guidelines", label: "ガイドライン" },
 ];
 
 export function SiteNav() {
