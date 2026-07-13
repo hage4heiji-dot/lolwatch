@@ -170,6 +170,32 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail> {
   };
 }
 
+// 直近試合ID一覧(ゲームモード問わず)。「一緒にプレイした人」の検出に使う。
+export async function getRecentMatchIds(puuid: string, count = 20): Promise<string[]> {
+  if (!RIOT_API_KEY) {
+    throw new Error("RIOT_API_KEY is not configured");
+  }
+
+  const url = `https://${RIOT_REGION}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${count}`;
+
+  const res = await fetch(url, {
+    headers: { "X-Riot-Token": RIOT_API_KEY },
+    cache: "no-store",
+  });
+
+  if (res.status === 404) {
+    return [];
+  }
+  if (res.status === 429) {
+    throw new RiotApiError("Riot API rate limit exceeded", 429);
+  }
+  if (!res.ok) {
+    throw new RiotApiError(`Riot API error: ${res.status}`, res.status);
+  }
+
+  return (await res.json()) as string[];
+}
+
 export interface MatchKillEvent {
   timestampSeconds: number;
   // 0 はタワー/モンスター等、プレイヤー以外によるキル(processed as environmental)。

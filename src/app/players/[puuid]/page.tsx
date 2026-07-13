@@ -10,6 +10,7 @@ import {
   RiotApiError,
 } from "@/lib/riot";
 import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
+import { findFrequentTeammates, FREQUENT_TEAMMATES_MATCH_COUNT } from "@/lib/frequentTeammates";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
@@ -68,16 +69,15 @@ export default async function PlayerProfilePage({
   const pastNames = player.nameHistory.filter((n) => !n.isCurrent);
   const latestRankCheck = player.rankActivity[0];
 
-  // ランクや試合結果はRiot APIの補助情報。取得に失敗しても通報一覧自体は表示できるよう、
-  // 個別にcatchしてページ全体を落とさない(api/matches/[matchId]と同じ方針)。
-  const leagueEntries = await getLeagueEntriesByPuuid(player.puuid, player.platform).catch(
-    () => [],
-  );
-
+  // ランクや試合結果、一緒にプレイした相手はいずれもRiot APIの補助情報。
+  // 取得に失敗しても通報一覧自体は表示できるよう、個別にcatchしてページ全体を
+  // 落とさない(api/matches/[matchId]と同じ方針)。
   const uniqueMatchIds = [...new Set(player.reports.map((r) => r.matchId))];
-  const [matchDetailResults, ddragonVersion] = await Promise.all([
+  const [leagueEntries, matchDetailResults, ddragonVersion, frequentTeammates] = await Promise.all([
+    getLeagueEntriesByPuuid(player.puuid, player.platform).catch(() => []),
     Promise.allSettled(uniqueMatchIds.map(getMatchDetail)),
     getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
+    findFrequentTeammates(player.puuid),
   ]);
   const matchDetailByMatchId = new Map<string, Awaited<ReturnType<typeof getMatchDetail>>>();
   matchDetailResults.forEach((result, i) => {
@@ -128,6 +128,28 @@ export default async function PlayerProfilePage({
       <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/report">
         試合IDから通報する
       </Link>
+
+      <section className="section">
+        <h2>👥 直近一緒にプレイしていたユーザー</h2>
+        <p className="muted" style={{ marginBottom: "0.75rem" }}>
+          直近{FREQUENT_TEAMMATES_MATCH_COUNT}試合のうち、2試合以上同じチームだった相手をRiot
+          APIから自動検出したものです。この一覧に載ること自体は通報や違反を意味しません。
+        </p>
+        {frequentTeammates.length === 0 ? (
+          <p className="muted">該当する相手はいませんでした。</p>
+        ) : (
+          frequentTeammates.map((mate) => (
+            <div
+              className="card"
+              key={mate.puuid}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <Link href={`/players/${mate.puuid}`}>{mate.displayName}</Link>
+              <span className="muted">{mate.gamesTogether}試合共にプレイ</span>
+            </div>
+          ))
+        )}
+      </section>
 
       <section className="section">
         <h2>
