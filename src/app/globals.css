@@ -328,6 +328,18 @@ a.card:hover {
   padding: 0.9rem 1.1rem 1rem;
 }
 
+.teammate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.teammate-row + .teammate-row {
+  border-top: 1px solid var(--border);
+}
+
 .section {
   margin-top: 2rem;
 }

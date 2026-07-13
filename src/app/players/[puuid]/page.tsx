@@ -138,16 +138,23 @@ export default async function PlayerProfilePage({
         {frequentTeammates.length === 0 ? (
           <p className="muted">該当する相手はいませんでした。</p>
         ) : (
-          frequentTeammates.map((mate) => (
-            <div
-              className="card"
-              key={mate.puuid}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-            >
-              <Link href={`/players/${mate.puuid}`}>{mate.displayName}</Link>
-              <span className="muted">{mate.gamesTogether}試合共にプレイ</span>
+          <details className="card report-card">
+            <summary className="report-summary">
+              <span className="report-summary-match">{frequentTeammates.length}人</span>
+              <span className="report-summary-toggle" aria-hidden="true">
+                <span className="report-summary-toggle-closed">一覧を見る ▾</span>
+                <span className="report-summary-toggle-open">閉じる ▴</span>
+              </span>
+            </summary>
+            <div className="report-detail">
+              {frequentTeammates.map((mate) => (
+                <div className="teammate-row" key={mate.puuid}>
+                  <Link href={`/players/${mate.puuid}`}>{mate.displayName}</Link>
+                  <span className="muted">{mate.gamesTogether}試合共にプレイ</span>
+                </div>
+              ))}
             </div>
-          ))
+          </details>
         )}
       </section>
 
