@@ -264,6 +264,70 @@ a.card:hover {
   margin-top: 0.75rem;
 }
 
+/* --- 通報カード(折りたたみ) --- */
+.report-card {
+  padding: 0;
+}
+
+.report-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.report-summary::-webkit-details-marker {
+  display: none;
+}
+
+.report-summary::marker {
+  content: "";
+}
+
+.report-summary:hover {
+  background: var(--card-bg-hover);
+}
+
+.report-card[open] > .report-summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.report-summary-match {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.report-summary-date {
+  margin-left: auto;
+}
+
+.report-summary-toggle {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-summary-toggle-open {
+  display: none;
+}
+
+.report-card[open] .report-summary-toggle-open {
+  display: inline;
+}
+
+.report-card[open] .report-summary-toggle-closed {
+  display: none;
+}
+
+.report-detail {
+  padding: 0.9rem 1.1rem 1rem;
+}
+
 .section {
   margin-top: 2rem;
 }

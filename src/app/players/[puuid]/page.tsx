@@ -135,7 +135,7 @@ export default async function PlayerProfilePage({
           <span className="badge badge-unverified">通報自体は未検証</span>
         </h2>
         <p className="muted" style={{ marginBottom: "0.75rem" }}>
-          「モデレーター評価」が付いている試合は、運営が実際にリプレイ等を確認した上での判定です。付いていない試合は一般ユーザーからの未検証の通報のみです。
+          「モデレーター評価」が付いている試合は、運営が実際にリプレイ等を確認した上での判定です。付いていない試合は一般ユーザーからの未検証の通報のみです。行をクリックすると詳細が開きます。
         </p>
         {player.reports.length === 0 ? (
           <p className="muted">まだ通報はありません。</p>
@@ -143,123 +143,143 @@ export default async function PlayerProfilePage({
           player.reports.map((report) => {
             const matchDetail = matchDetailByMatchId.get(report.matchId);
             const participant = matchDetail?.participants.find((p) => p.puuid === player.puuid);
+            const latestReview = report.moderatorReviews[0];
             return (
-              <div className="card" key={report.id}>
-                <span className="badge">
-                  {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
-                </span>
-                <p
-                  style={{
-                    marginTop: "0.5rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span>
-                    対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・{" "}
-                    {report.matchId}
+              <details className="card report-card" key={report.id}>
+                <summary className="report-summary">
+                  <span className="badge">
+                    {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
                   </span>
-                  {participant && (
-                    <>
-                      <span
-                        className={`team-result ${participant.win ? "result-win" : "result-lose"}`}
-                      >
-                        {participant.win ? "勝利" : "敗北"}
-                      </span>
-                      <span className="kda">
-                        <span className="kda-kills">{participant.kills}</span>
-                        <span className="kda-sep">/</span>
-                        <span className="kda-deaths">{participant.deaths}</span>
-                        <span className="kda-sep">/</span>
-                        <span className="kda-assists">{participant.assists}</span>
-                      </span>
-                    </>
+                  <span className="report-summary-match">
+                    {report.championName} ・ {queueLabel(report.queueId)}
+                  </span>
+                  {latestReview && (
+                    <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
+                      {VERDICT_ICONS[latestReview.verdict]} {VERDICT_LABELS[latestReview.verdict]}
+                    </span>
                   )}
-                </p>
-                {matchDetail && (
-                  <MatchScoreboard
-                    participants={matchDetail.participants}
-                    ddragonVersion={ddragonVersion}
-                    highlightPuuid={player.puuid}
-                  />
-                )}
-                {report.incidentTimestampSeconds !== null && (
-                  <p style={{ marginTop: "0.5rem" }}>
-                    問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
-                  </p>
-                )}
-                {report.comment && (
-                  <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
-                )}
-                {report.referenceUrl && (
-                  <p style={{ marginTop: "0.5rem" }}>
-                    <a href={report.referenceUrl} target="_blank" rel="noopener noreferrer">
-                      添付された参考URLを見る
-                    </a>
-                  </p>
-                )}
-                <p className="muted" style={{ marginTop: "0.5rem" }}>
-                  {formatDateTime(report.createdAt)}
-                </p>
+                  <span className="muted report-summary-date">
+                    {formatDateTime(report.createdAt)}
+                  </span>
+                  <span className="report-summary-toggle" aria-hidden="true">
+                    <span className="report-summary-toggle-closed">詳細を見る ▾</span>
+                    <span className="report-summary-toggle-open">閉じる ▴</span>
+                  </span>
+                </summary>
 
-                {canEditReport({
-                  viewerDeviceId: deviceId,
-                  reportDeviceId: report.deviceId,
-                  createdAt: report.createdAt,
-                }) && (
-                  <ReportEditForm
-                    reportId={report.id}
-                    initialCategory={report.category}
-                    initialComment={report.comment}
-                    initialIncidentSeconds={report.incidentTimestampSeconds}
-                    initialReferenceUrl={report.referenceUrl}
-                  />
-                )}
-
-                <ReportVoteButtons
-                  reportId={report.id}
-                  initialLikeCount={report.votes.filter((v) => v.voteType === "LIKE").length}
-                  initialDislikeCount={report.votes.filter((v) => v.voteType === "DISLIKE").length}
-                  initialMyVote={
-                    deviceId
-                      ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
-                      : null
-                  }
-                />
-
-                {report.moderatorReviews.length > 0 && (
-                  <div
+                <div className="report-detail">
+                  <p
                     style={{
-                      marginTop: "0.75rem",
-                      paddingTop: "0.75rem",
-                      borderTop: "1px solid var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      flexWrap: "wrap",
                     }}
                   >
-                    {report.moderatorReviews.map((review) => (
-                      <div key={review.id} style={{ marginTop: "0.5rem" }}>
-                        <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                          {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
+                    <span>
+                      対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・{" "}
+                      {report.matchId}
+                    </span>
+                    {participant && (
+                      <>
+                        <span
+                          className={`team-result ${participant.win ? "result-win" : "result-lose"}`}
+                        >
+                          {participant.win ? "勝利" : "敗北"}
                         </span>
-                        <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
-                        <p className="muted" style={{ marginTop: "0.5rem" }}>
-                          {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
-                        </p>
-                        <ReviewObjectionButton
-                          reviewId={review.id}
-                          initialCount={review.objections.length}
-                          initialHasObjected={
-                            deviceId
-                              ? review.objections.some((o) => o.deviceId === deviceId)
-                              : false
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <span className="kda">
+                          <span className="kda-kills">{participant.kills}</span>
+                          <span className="kda-sep">/</span>
+                          <span className="kda-deaths">{participant.deaths}</span>
+                          <span className="kda-sep">/</span>
+                          <span className="kda-assists">{participant.assists}</span>
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  {matchDetail && (
+                    <MatchScoreboard
+                      participants={matchDetail.participants}
+                      ddragonVersion={ddragonVersion}
+                      highlightPuuid={player.puuid}
+                    />
+                  )}
+                  {report.incidentTimestampSeconds !== null && (
+                    <p style={{ marginTop: "0.5rem" }}>
+                      問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
+                    </p>
+                  )}
+                  {report.comment && (
+                    <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
+                  )}
+                  {report.referenceUrl && (
+                    <p style={{ marginTop: "0.5rem" }}>
+                      <a href={report.referenceUrl} target="_blank" rel="noopener noreferrer">
+                        添付された参考URLを見る
+                      </a>
+                    </p>
+                  )}
+                  <p className="muted" style={{ marginTop: "0.5rem" }}>
+                    {formatDateTime(report.createdAt)}
+                  </p>
+
+                  {canEditReport({
+                    viewerDeviceId: deviceId,
+                    reportDeviceId: report.deviceId,
+                    createdAt: report.createdAt,
+                  }) && (
+                    <ReportEditForm
+                      reportId={report.id}
+                      initialCategory={report.category}
+                      initialComment={report.comment}
+                      initialIncidentSeconds={report.incidentTimestampSeconds}
+                      initialReferenceUrl={report.referenceUrl}
+                    />
+                  )}
+
+                  <ReportVoteButtons
+                    reportId={report.id}
+                    initialLikeCount={report.votes.filter((v) => v.voteType === "LIKE").length}
+                    initialDislikeCount={report.votes.filter((v) => v.voteType === "DISLIKE").length}
+                    initialMyVote={
+                      deviceId
+                        ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
+                        : null
+                    }
+                  />
+
+                  {report.moderatorReviews.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: "0.75rem",
+                        paddingTop: "0.75rem",
+                        borderTop: "1px solid var(--border)",
+                      }}
+                    >
+                      {report.moderatorReviews.map((review) => (
+                        <div key={review.id} style={{ marginTop: "0.5rem" }}>
+                          <span className={VERDICT_BADGE_CLASS[review.verdict]}>
+                            {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
+                          </span>
+                          <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
+                          <p className="muted" style={{ marginTop: "0.5rem" }}>
+                            {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
+                          </p>
+                          <ReviewObjectionButton
+                            reviewId={review.id}
+                            initialCount={review.objections.length}
+                            initialHasObjected={
+                              deviceId
+                                ? review.objections.some((o) => o.deviceId === deviceId)
+                                : false
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
             );
           })
         )}
