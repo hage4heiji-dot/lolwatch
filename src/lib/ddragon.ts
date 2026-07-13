@@ -11,6 +11,9 @@ export const FALLBACK_DDRAGON_VERSION = "14.23.1";
 // ランクエンブレム画像。Riot公式のDataDragonにはランクエンブレムが含まれていないため、
 // ゲームクライアントのアセットをミラーしているCommunity Dragon(LoL関連サイトで
 // 広く使われている安定した非公式CDN)を利用する。
-export function getRankEmblemUrl(tier: string): string {
-  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${tier.toLowerCase()}.png`;
+// ranked-emblem/配下は2560x1440の大きな背景素材でアイコン用途には向かないため、
+// 正方形に切り出し済みのranked-mini-crests/を使う。
+export function getRankEmblemUrl(tier: string | null): string {
+  const name = tier ? tier.toLowerCase() : "unranked";
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-crests/${name}.png`;
 }

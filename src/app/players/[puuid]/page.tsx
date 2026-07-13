@@ -37,9 +37,15 @@ function formatDateTime(date: Date): string {
 }
 
 function TeammateRankBadge({ mate }: { mate: FrequentTeammate }) {
-  if (!mate.soloRank) return null;
+  const tier = mate.soloRank?.tier ?? null;
   return (
-    <Image src={getRankEmblemUrl(mate.soloRank.tier)} alt={mate.soloRank.tier} width={24} height={24} />
+    <Image
+      src={getRankEmblemUrl(tier)}
+      alt={tier ?? "UNRANKED"}
+      width={28}
+      height={28}
+      style={{ flexShrink: 0 }}
+    />
   );
 }
 
@@ -159,33 +165,47 @@ export default async function PlayerProfilePage({
       )}
 
       <div className="rank-card">
+        <Image
+          src={getRankEmblemUrl(soloRank?.tier ?? null)}
+          alt={soloRank?.tier ?? "UNRANKED"}
+          width={64}
+          height={64}
+          style={{ flexShrink: 0 }}
+        />
         {soloRank ? (
-          <>
-            <Image src={getRankEmblemUrl(soloRank.tier)} alt={soloRank.tier} width={56} height={56} />
-            <div>
-              <p className="rank-card-tier">{formatRank(soloRank)}</p>
-              <p className="muted">
-                ソロ/デュオ ・ {soloRank.wins}勝{soloRank.losses}敗
-                {soloRank.wins + soloRank.losses > 0 &&
-                  ` (勝率${Math.round((soloRank.wins / (soloRank.wins + soloRank.losses)) * 100)}%)`}
-              </p>
-            </div>
-          </>
+          <div>
+            <p className="rank-card-tier">{formatRank(soloRank)}</p>
+            <p className="muted">
+              ソロ/デュオ ・ {soloRank.wins}勝{soloRank.losses}敗
+              {soloRank.wins + soloRank.losses > 0 &&
+                ` (勝率${Math.round((soloRank.wins / (soloRank.wins + soloRank.losses)) * 100)}%)`}
+            </p>
+          </div>
         ) : (
-          <p className="muted">ソロ/デュオランクの情報がありません(未ランクの可能性)。</p>
+          <div>
+            <p className="rank-card-tier">ランクなし</p>
+            <p className="muted">ソロ/デュオの情報がありません(未ランクの可能性)。</p>
+          </div>
         )}
       </div>
 
       {latestRankCheck && (
-        <p className="muted" style={{ marginTop: "0.5rem" }}>
-          直近のランク参加:{" "}
-          {latestRankCheck.isActiveInRanked ? (
-            <span style={{ color: "var(--danger)" }}>あり(通報後もランク参加中の可能性)</span>
-          ) : (
-            "確認できず"
-          )}
-          {" "}
-          (最終確認: {formatDateTime(latestRankCheck.checkedAt)})
+        <p
+          className="muted"
+          style={{
+            marginTop: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <span className={latestRankCheck.isActiveInRanked ? "badge badge-verified-guilty" : "badge"}>
+            {latestRankCheck.isActiveInRanked
+              ? "⚠️ 通報後もランク参加中の可能性"
+              : "✅ 直近のランク参加は確認できず"}
+          </span>
+          <span>最終確認: {formatDateTime(latestRankCheck.checkedAt)}</span>
         </p>
       )}
 
