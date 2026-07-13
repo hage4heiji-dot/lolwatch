@@ -98,18 +98,20 @@ export default async function StatsPage({
         サイト全体の通報状況の集計です(非表示にされた通報は含みません)。
       </p>
 
-      <form className="form-row" style={{ marginBottom: "1.5rem", alignItems: "flex-end" }}>
-        <div className="form-field">
-          <label htmlFor="period">期間</label>
-          <select id="period" name="period" defaultValue={period}>
-            {Object.entries(PERIOD_FILTER_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+      <form style={{ marginBottom: "1.5rem" }}>
+        <div className="form-row" style={{ alignItems: "flex-end" }}>
+          <div className="form-field">
+            <label htmlFor="period">期間</label>
+            <select id="period" name="period" defaultValue={period}>
+              {Object.entries(PERIOD_FILTER_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className="form-actions">
           <button className="btn" type="submit">
             適用
           </button>

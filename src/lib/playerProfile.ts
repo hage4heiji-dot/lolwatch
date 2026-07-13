@@ -67,8 +67,17 @@ export async function findPlayersNeedingReview(limit = 20) {
 }
 
 export type ReportedPlayersVerdictFilter = ModeratorVerdict | "UNREVIEWED";
+export type ReportedPlayersSort = "reportCount" | "newest";
+
+export const REPORTED_PLAYERS_SORT_LABELS: Record<ReportedPlayersSort, string> = {
+  reportCount: "通報件数が多い順",
+  newest: "新しい通報順",
+};
 
 // 公開の「通報されているユーザー一覧」ページ用。非表示にされた通報のみのプレイヤーは除外する。
+// 通報件数だけでなく「最新の通報が新しい順」でも並べられるよう、まずReport.groupByで
+// 対象プレイヤーIDを絞り込み・並び替えしてからページ分のPlayerを取得する
+// (Prismaはto-many関係の_max集計でのorderByを親モデル側でサポートしないため)。
 export async function findReportedPlayers({
   page,
   pageSize,
@@ -76,6 +85,7 @@ export async function findReportedPlayers({
   category,
   verdict,
   period,
+  sort = "reportCount",
 }: {
   page: number;
   pageSize: number;
@@ -83,6 +93,7 @@ export async function findReportedPlayers({
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
   period?: PeriodFilter;
+  sort?: ReportedPlayersSort;
 }) {
   const since = period ? periodFilterSince(period) : null;
   const reportFilter: Prisma.ReportWhereInput = {
@@ -94,45 +105,59 @@ export async function findReportedPlayers({
       : verdict
         ? { moderatorReviews: { some: { verdict } } }
         : {}),
-  };
-
-  const where: Prisma.PlayerWhereInput = {
-    reports: { some: reportFilter },
     ...(query
       ? {
-          nameHistory: {
-            some: { riotIdName: { contains: query, mode: "insensitive" } },
+          player: {
+            nameHistory: { some: { riotIdName: { contains: query, mode: "insensitive" } } },
           },
         }
       : {}),
   };
 
-  const [players, totalCount] = await Promise.all([
-    prisma.player.findMany({
-      where,
-      include: {
-        nameHistory: { where: { isCurrent: true }, take: 1 },
-        // 各通報ごとの最新レビューを取得し、プレイヤーとしての最新バッジはJS側で算出する。
-        reports: {
-          where: { hiddenAt: null },
-          select: {
-            moderatorReviews: { orderBy: { createdAt: "desc" }, take: 1 },
-          },
-        },
-        _count: { select: { reports: { where: { hiddenAt: null } } } },
-      },
-      orderBy: { reports: { _count: "desc" } },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.player.count({ where }),
-  ]);
+  const grouped = await prisma.report.groupBy({
+    by: ["playerId"],
+    where: reportFilter,
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
 
-  const playersWithLatestReview = players.map((player) => {
+  const sorted = grouped.sort((a, b) =>
+    sort === "newest"
+      ? (b._max.createdAt?.getTime() ?? 0) - (a._max.createdAt?.getTime() ?? 0)
+      : b._count._all - a._count._all,
+  );
+
+  const totalCount = sorted.length;
+  const pageGroups = sorted.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+  const pageIds = pageGroups.map((g) => g.playerId);
+
+  if (pageIds.length === 0) {
+    return { players: [], totalCount };
+  }
+
+  const players = await prisma.player.findMany({
+    where: { id: { in: pageIds } },
+    include: {
+      nameHistory: { where: { isCurrent: true }, take: 1 },
+      // 各通報ごとの最新レビューを取得し、プレイヤーとしての最新バッジはJS側で算出する。
+      reports: {
+        where: { hiddenAt: null },
+        select: {
+          moderatorReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      },
+      _count: { select: { reports: { where: { hiddenAt: null } } } },
+    },
+  });
+  const playerById = new Map(players.map((p) => [p.id, p]));
+
+  const playersWithLatestReview = pageIds.flatMap((id) => {
+    const player = playerById.get(id);
+    if (!player) return [];
     const latestReview = player.reports
       .flatMap((r) => r.moderatorReviews)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-    return { ...player, latestReview };
+    return [{ ...player, latestReview }];
   });
 
   return { players: playersWithLatestReview, totalCount };
