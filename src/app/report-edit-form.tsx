@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
 import { isSafeVideoUrl } from "@/lib/videoUrl";
+import { isSafeImageUrl } from "@/lib/imageUrl";
 import type { ReportCategory } from "@/generated/prisma";
 
 export function ReportEditForm({
@@ -13,12 +14,14 @@ export function ReportEditForm({
   initialComment,
   initialIncidentSeconds,
   initialVideoUrl,
+  initialImageUrl,
 }: {
   reportId: string;
   initialCategory: ReportCategory;
   initialComment: string | null;
   initialIncidentSeconds: number | null;
   initialVideoUrl: string | null;
+  initialImageUrl: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -28,6 +31,7 @@ export function ReportEditForm({
     initialIncidentSeconds !== null ? formatMatchTime(initialIncidentSeconds) : "",
   );
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl ?? "");
+  const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -56,6 +60,10 @@ export function ReportEditForm({
       setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
       return;
     }
+    if (imageUrl.trim() && !isSafeImageUrl(imageUrl.trim())) {
+      setError("画像URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      return;
+    }
 
     setPending(true);
     try {
@@ -67,6 +75,7 @@ export function ReportEditForm({
           comment: comment.trim() || undefined,
           incidentTimestampSeconds: incidentSeconds ?? undefined,
           videoUrl: videoUrl.trim() || undefined,
+          imageUrl: imageUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -120,6 +129,32 @@ export function ReportEditForm({
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
         />
+      </div>
+      <div className="form-field">
+        <label>画像URL(任意)</label>
+        <input
+          type="url"
+          placeholder="例: https://fivemanage.com/image/..."
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+        <span className="muted">
+          スクリーンショット等の画像は、外部の画像ホスティングサービスに投稿した上でそのURLを貼ってください。
+        </span>
+        {imageUrl.trim() && isSafeImageUrl(imageUrl.trim()) && (
+          // eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない
+          <img
+            src={imageUrl.trim()}
+            alt="プレビュー"
+            style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "0.5rem", borderRadius: "6px" }}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+            onLoad={(e) => {
+              e.currentTarget.style.display = "";
+            }}
+          />
+        )}
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn" type="submit" disabled={pending}>

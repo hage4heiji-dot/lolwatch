@@ -200,6 +200,16 @@ export default async function PlayerProfilePage({
                     </a>
                   </p>
                 )}
+                {report.imageUrl && (
+                  <p style={{ marginTop: "0.5rem" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
+                    <img
+                      src={report.imageUrl}
+                      alt="通報者が添付した画像"
+                      style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "6px" }}
+                    />
+                  </p>
+                )}
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
                   {formatDateTime(report.createdAt)}
                 </p>
@@ -215,6 +225,7 @@ export default async function PlayerProfilePage({
                     initialComment={report.comment}
                     initialIncidentSeconds={report.incidentTimestampSeconds}
                     initialVideoUrl={report.videoUrl}
+                    initialImageUrl={report.imageUrl}
                   />
                 )}
 

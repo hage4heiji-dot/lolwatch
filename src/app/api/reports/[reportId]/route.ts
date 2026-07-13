@@ -6,6 +6,7 @@ import { readDeviceId } from "@/lib/deviceId";
 import { canEditReport } from "@/lib/reportEdit";
 import { ReportCategory } from "@/generated/prisma";
 import { VIDEO_URL_MAX_LENGTH, isSafeVideoUrl } from "@/lib/videoUrl";
+import { IMAGE_URL_MAX_LENGTH, isSafeImageUrl } from "@/lib/imageUrl";
 
 const patchSchema = z.object({
   category: z.enum(ReportCategory),
@@ -17,6 +18,15 @@ const patchSchema = z.object({
     .max(VIDEO_URL_MAX_LENGTH)
     .refine((v) => v === "" || isSafeVideoUrl(v), {
       message: "動画URLの形式が正しくありません(http/httpsのみ)。",
+    })
+    .optional()
+    .nullable(),
+  imageUrl: z
+    .string()
+    .trim()
+    .max(IMAGE_URL_MAX_LENGTH)
+    .refine((v) => v === "" || isSafeImageUrl(v), {
+      message: "画像URLの形式が正しくありません(http/httpsのみ)。",
     })
     .optional()
     .nullable(),
@@ -62,6 +72,7 @@ export async function PATCH(
       incidentTimestampSeconds: parsed.data.incidentTimestampSeconds ?? null,
       comment: parsed.data.comment || null,
       videoUrl: parsed.data.videoUrl || null,
+      imageUrl: parsed.data.imageUrl || null,
     },
   });
 
@@ -71,5 +82,6 @@ export async function PATCH(
     incidentTimestampSeconds: updated.incidentTimestampSeconds,
     comment: updated.comment,
     videoUrl: updated.videoUrl,
+    imageUrl: updated.imageUrl,
   });
 }

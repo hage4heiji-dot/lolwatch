@@ -214,6 +214,16 @@ export default async function AdminReportsPage({
                   </a>
                 </p>
               )}
+              {report.imageUrl && (
+                <p style={{ marginTop: "0.5rem" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
+                  <img
+                    src={report.imageUrl}
+                    alt="通報者が添付した画像"
+                    style={{ maxWidth: "100%", maxHeight: "240px", borderRadius: "6px" }}
+                  />
+                </p>
+              )}
               {report.hiddenReason && (
                 <p className="muted" style={{ marginTop: "0.5rem" }}>
                   非表示理由: {report.hiddenReason}

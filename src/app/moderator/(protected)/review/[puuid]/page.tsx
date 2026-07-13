@@ -110,6 +110,16 @@ export default async function ModeratorReviewPage({
                   動画は添付されていません(チャット等が争点の場合、リプレイのみでは確認できません)。
                 </p>
               )}
+              {report.imageUrl && (
+                <p style={{ marginTop: "0.5rem" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない */}
+                  <img
+                    src={report.imageUrl}
+                    alt="通報者が添付した画像"
+                    style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "6px" }}
+                  />
+                </p>
+              )}
 
               {moderator?.isAdmin ? (
                 <HideReportControl

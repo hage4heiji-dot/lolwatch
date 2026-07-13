@@ -9,6 +9,7 @@ import { queueLabel } from "@/lib/matchQueues";
 import { getChampionIconUrl } from "@/lib/ddragon";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
 import { isSafeVideoUrl } from "@/lib/videoUrl";
+import { isSafeImageUrl } from "@/lib/imageUrl";
 import { KillTimeline } from "./kill-timeline";
 import type { MatchDetail, MatchKillEvent, MatchParticipant } from "@/lib/riot";
 
@@ -94,6 +95,7 @@ export function MatchLookup() {
   const [incidentSeconds, setIncidentSeconds] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   const [submitPending, setSubmitPending] = useState(false);
@@ -155,6 +157,10 @@ export function MatchLookup() {
       setError("動画URLの形式が正しくありません(http/httpsのURLを入力してください)。");
       return;
     }
+    if (imageUrl.trim() && !isSafeImageUrl(imageUrl.trim())) {
+      setError("画像URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      return;
+    }
 
     setSubmitPending(true);
     try {
@@ -170,6 +176,7 @@ export function MatchLookup() {
           incidentTimestampSeconds: incidentSeconds ?? undefined,
           comment: comment.trim() || undefined,
           videoUrl: videoUrl.trim() || undefined,
+          imageUrl: imageUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -315,6 +322,35 @@ export function MatchLookup() {
         </span>
       </div>
 
+      <div className="form-field">
+        <label htmlFor="imageUrl">画像URL(任意)</label>
+        <input
+          id="imageUrl"
+          type="url"
+          placeholder="例: https://fivemanage.com/image/..."
+          autoComplete="off"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+        <span className="muted">
+          スクリーンショット等の画像は、外部の画像ホスティングサービス(fivemanage等)に投稿した上でそのURLを貼ってください。
+        </span>
+        {imageUrl.trim() && isSafeImageUrl(imageUrl.trim()) && (
+          // eslint-disable-next-line @next/next/no-img-element -- 任意の外部ホストの画像なのでnext/imageのremotePatternsに載せられない
+          <img
+            src={imageUrl.trim()}
+            alt="プレビュー"
+            style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "0.5rem", borderRadius: "6px" }}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+            onLoad={(e) => {
+              e.currentTarget.style.display = "";
+            }}
+          />
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn" type="submit" disabled={submitPending}>
           {submitPending ? "送信中…" : "選択したアカウントを通報する"}
@@ -331,6 +367,7 @@ export function MatchLookup() {
             setIncidentSeconds(null);
             setComment("");
             setVideoUrl("");
+            setImageUrl("");
           }}
         >
           別の試合IDを入力し直す
