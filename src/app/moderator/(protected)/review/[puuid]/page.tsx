@@ -116,6 +116,7 @@ export default async function ModeratorReviewPage({
                   <img
                     src={report.imageUrl}
                     alt="通報者が添付した画像"
+                    referrerPolicy="no-referrer"
                     style={{ maxWidth: "100%", maxHeight: "320px", borderRadius: "6px" }}
                   />
                 </p>

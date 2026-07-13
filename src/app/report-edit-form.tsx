@@ -146,6 +146,7 @@ export function ReportEditForm({
           <img
             src={imageUrl.trim()}
             alt="プレビュー"
+            referrerPolicy="no-referrer"
             style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "0.5rem", borderRadius: "6px" }}
             onError={(e) => {
               e.currentTarget.style.display = "none";

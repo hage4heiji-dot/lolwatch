@@ -220,6 +220,7 @@ export default async function AdminReportsPage({
                   <img
                     src={report.imageUrl}
                     alt="通報者が添付した画像"
+                    referrerPolicy="no-referrer"
                     style={{ maxWidth: "100%", maxHeight: "240px", borderRadius: "6px" }}
                   />
                 </p>

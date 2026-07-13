@@ -1,6 +1,12 @@
 # 実行例: docker compose --env-file .env up -d
 # postgresとnginxは saitama-council-watch 側の docker_default ネットワーク上の
 # 既存コンテナを共有利用する(このcomposeファイルではpostgres/nginxを持たない)。
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   app:
     build:
@@ -11,6 +17,7 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    logging: *default-logging
 
   worker:
     image: lolwatch-app:latest
@@ -21,6 +28,7 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    logging: *default-logging
 
 networks:
   default:
