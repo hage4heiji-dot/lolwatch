@@ -613,6 +613,23 @@ a.card:hover {
   font-size: 0.9rem;
 }
 
+/* 通報一覧・統計の順位表示用。watchlist-rankより控えめなトーン
+   (要注意人物の強調表示専用ではなく、単なる一覧内の順番を示すため)。 */
+.rank-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--card-bg-hover);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
 .watchlist-name {
   flex: 1;
   font-weight: 700;
@@ -964,10 +981,20 @@ a.card:hover {
   text-align: center;
 }
 
+.stat-card-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
 .stat-card-value {
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.stat-card-value-danger {
+  color: var(--danger);
 }
 
 .stat-bar-row {

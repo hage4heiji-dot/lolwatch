@@ -99,8 +99,11 @@ export default async function ReportedPlayersPage({
   return (
     <div>
       <h1>通報されているユーザー一覧</h1>
-      <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1.5rem" }}>
-        {REPORTED_PLAYERS_SORT_LABELS[sort]}に表示しています(全{totalCount}件)。「モデレーター評価」バッジは、運営が実際にリプレイ等を確認した上での判定です。バッジのない対象は一般ユーザーからの未検証の通報のみです。
+      <p className="muted" style={{ marginTop: "0.5rem" }}>
+        {REPORTED_PLAYERS_SORT_LABELS[sort]}・全{totalCount}件
+      </p>
+      <p className="muted" style={{ marginTop: "0.25rem", marginBottom: "1.5rem" }}>
+        「モデレーター評価」バッジは、運営が実際にリプレイ等を確認した上での判定です。バッジのない対象は一般ユーザーからの未検証の通報のみです。
       </p>
 
       <form style={{ marginBottom: "1.5rem" }}>
@@ -166,31 +169,36 @@ export default async function ReportedPlayersPage({
       </form>
 
       {players.length === 0 ? (
-        <p className="muted">
-          {hasFilters
-            ? "条件に一致するプレイヤーが見つかりませんでした。"
-            : "まだ通報はありません。"}
-        </p>
+        <div className="empty-state">
+          <p>
+            {hasFilters
+              ? "条件に一致するプレイヤーが見つかりませんでした。"
+              : "まだ通報はありません。"}
+          </p>
+        </div>
       ) : (
-        players.map((player) => {
+        players.map((player, i) => {
           const name = player.nameHistory[0];
           const latestReview = player.latestReview;
           return (
             <div
               className="card"
               key={player.id}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}
             >
-              <div>
-                <Link href={`/players/${player.puuid}`}>
-                  {name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid}
-                </Link>
-                <p className="muted" style={{ marginTop: "0.35rem" }}>
-                  通報件数: {player._count.reports}
-                </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
+                <div style={{ minWidth: 0 }}>
+                  <Link href={`/players/${player.puuid}`}>
+                    {name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid}
+                  </Link>
+                  <p className="muted" style={{ marginTop: "0.35rem" }}>
+                    通報件数: {player._count.reports}
+                  </p>
+                </div>
               </div>
               {latestReview && (
-                <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
+                <span className={VERDICT_BADGE_CLASS[latestReview.verdict]} style={{ flexShrink: 0 }}>
                   {VERDICT_ICONS[latestReview.verdict]} {VERDICT_LABELS[latestReview.verdict]}
                 </span>
               )}

@@ -9,6 +9,7 @@ import {
 } from "@/lib/stats";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
+import { ModeratorVerdict } from "@/generated/prisma";
 import {
   DEFAULT_PERIOD_FILTER,
   PERIOD_FILTER_LABELS,
@@ -20,13 +21,22 @@ import {
 // 「全期間」選択時は見やすさのため直近30日分に固定する。
 const DAILY_TREND_DAYS_BY_PERIOD = { week: 7, month: 30, all: 30 } as const;
 
+// モデレーター評価内訳の棒グラフ色。バッジの配色(VERDICT_BADGE_CLASS)と
+// 揃え、違反確認は危険色・未評価はニュートラルにして一目で深刻度が分かるようにする。
+const VERDICT_BAR_COLORS: Record<ModeratorVerdict | "UNREVIEWED", string> = {
+  UNREVIEWED: "var(--muted)",
+  VIOLATION_CONFIRMED: "var(--danger)",
+  NO_VIOLATION: "var(--kill-color)",
+  INSUFFICIENT_EVIDENCE: "var(--accent)",
+};
+
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
 
 function BarList({
   rows,
 }: {
-  rows: { label: string; icon?: string; count: number }[];
+  rows: { label: string; icon?: string; count: number; color?: string }[];
 }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
@@ -40,7 +50,7 @@ function BarList({
           <div className="stat-bar-track">
             <div
               className="stat-bar-fill"
-              style={{ width: `${(row.count / max) * 100}%` }}
+              style={{ width: `${(row.count / max) * 100}%`, background: row.color }}
             />
           </div>
           <span className="stat-bar-count">{row.count}</span>
@@ -95,7 +105,7 @@ export default async function StatsPage({
     <div>
       <h1>統計ダッシュボード</h1>
       <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
-        サイト全体の通報状況の集計です(非表示にされた通報は含みません)。
+        サイト全体の通報状況の集計です。
       </p>
 
       <form style={{ marginBottom: "1.5rem" }}>
@@ -124,23 +134,27 @@ export default async function StatsPage({
       </form>
 
       <p className="muted" style={{ marginBottom: "0.5rem" }}>
-        以下は{PERIOD_FILTER_LABELS[period]}の集計です。
+        以下は{PERIOD_FILTER_LABELS[period]}の集計です(非表示にされた通報は含みません)。
       </p>
       <div className="stat-grid">
         <div className="card stat-card">
+          <p className="stat-card-icon">📋</p>
           <p className="stat-card-value">{overview.totalReports}</p>
           <p className="muted">総通報件数</p>
         </div>
         <div className="card stat-card">
+          <p className="stat-card-icon">👤</p>
           <p className="stat-card-value">{overview.reportedPlayerCount}</p>
           <p className="muted">通報された人数</p>
         </div>
         <div className="card stat-card">
+          <p className="stat-card-icon">✅</p>
           <p className="stat-card-value">{overview.reviewedReportCount}</p>
           <p className="muted">モデレーター評価済み</p>
         </div>
         <div className="card stat-card">
-          <p className="stat-card-value">{overview.violationConfirmedCount}</p>
+          <p className="stat-card-icon">⚠️</p>
+          <p className="stat-card-value stat-card-value-danger">{overview.violationConfirmedCount}</p>
           <p className="muted">違反確認件数</p>
         </div>
       </div>
@@ -173,6 +187,7 @@ export default async function StatsPage({
               label: v.verdict === "UNREVIEWED" ? "未評価" : VERDICT_LABELS[v.verdict],
               icon: v.verdict === "UNREVIEWED" ? "❓" : VERDICT_ICONS[v.verdict],
               count: v.count,
+              color: VERDICT_BAR_COLORS[v.verdict],
             }))}
           />
         </div>
@@ -182,7 +197,9 @@ export default async function StatsPage({
         <h2>通報の多いチャンピオン</h2>
         <div className="card">
           {topChampions.length === 0 ? (
-            <p className="muted">まだ通報はありません。</p>
+            <div className="empty-state">
+              <p>まだ通報はありません。</p>
+            </div>
           ) : (
             <BarList rows={topChampions.map((c) => ({ label: c.name, count: c.count }))} />
           )}
@@ -192,16 +209,23 @@ export default async function StatsPage({
       <section className="section">
         <h2>通報の多いユーザー</h2>
         {topPlayers.length === 0 ? (
-          <p className="muted">まだ通報はありません。</p>
+          <div className="empty-state">
+            <p>まだ通報はありません。</p>
+          </div>
         ) : (
-          topPlayers.map((player) => (
+          topPlayers.map((player, i) => (
             <div
               className="card"
               key={player.puuid}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}
             >
-              <Link href={`/players/${player.puuid}`}>{player.displayName}</Link>
-              <span className="muted">通報件数: {player.count}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                <span className="rank-badge">{i + 1}</span>
+                <Link href={`/players/${player.puuid}`}>{player.displayName}</Link>
+              </div>
+              <span className="muted" style={{ flexShrink: 0 }}>
+                通報件数: {player.count}
+              </span>
             </div>
           ))
         )}
