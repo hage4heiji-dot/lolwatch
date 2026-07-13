@@ -340,6 +340,24 @@ a.card:hover {
   border-top: 1px solid var(--border);
 }
 
+/* --- プロフィールのランクカード --- */
+.rank-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.rank-card-tier {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
 .section {
   margin-top: 2rem;
 }

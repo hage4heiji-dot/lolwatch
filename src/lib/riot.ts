@@ -306,6 +306,40 @@ export async function getAccountByPuuid(puuid: string): Promise<RiotAccount> {
   return data;
 }
 
+export interface SummonerInfo {
+  summonerLevel: number;
+}
+
+// サモナーレベル表示用。ランク情報(league-v4)とは別APIなので追加で1回呼び出す。
+export async function getSummonerByPuuid(
+  puuid: string,
+  platform: string,
+): Promise<SummonerInfo> {
+  if (!RIOT_API_KEY) {
+    throw new Error("RIOT_API_KEY is not configured");
+  }
+
+  const url = `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(puuid)}`;
+
+  const res = await fetch(url, {
+    headers: { "X-Riot-Token": RIOT_API_KEY },
+    cache: "no-store",
+  });
+
+  if (res.status === 404) {
+    throw new RiotApiError("Summoner not found", 404);
+  }
+  if (res.status === 429) {
+    throw new RiotApiError("Riot API rate limit exceeded", 429);
+  }
+  if (!res.ok) {
+    throw new RiotApiError(`Riot API error: ${res.status}`, res.status);
+  }
+
+  const data = (await res.json()) as { summonerLevel: number };
+  return { summonerLevel: data.summonerLevel };
+}
+
 export interface LeagueEntry {
   queueType: string;
   tier: string;

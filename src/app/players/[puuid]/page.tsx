@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
@@ -7,14 +8,19 @@ import {
   getLatestDdragonVersion,
   getLeagueEntriesByPuuid,
   getMatchDetail,
+  getSummonerByPuuid,
   RiotApiError,
 } from "@/lib/riot";
-import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
-import { findFrequentTeammates, FREQUENT_TEAMMATES_MATCH_COUNT } from "@/lib/frequentTeammates";
+import { FALLBACK_DDRAGON_VERSION, getRankEmblemUrl } from "@/lib/ddragon";
+import {
+  findFrequentTeammates,
+  FrequentTeammate,
+  FREQUENT_TEAMMATES_MATCH_COUNT,
+} from "@/lib/frequentTeammates";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { queueLabel } from "@/lib/matchQueues";
-import { QUEUE_TYPE_LABELS, formatRank } from "@/lib/rankLabel";
+import { formatRank } from "@/lib/rankLabel";
 import { formatMatchTime } from "@/lib/matchTime";
 import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
 import { canEditReport } from "@/lib/reportEdit";
@@ -28,6 +34,51 @@ function formatDateTime(date: Date): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function TeammateRankBadge({ mate }: { mate: FrequentTeammate }) {
+  if (!mate.soloRank) return null;
+  return (
+    <Image src={getRankEmblemUrl(mate.soloRank.tier)} alt={mate.soloRank.tier} width={24} height={24} />
+  );
+}
+
+function TeammateMeta({ mate }: { mate: FrequentTeammate }) {
+  return (
+    <>
+      {mate.soloRank ? formatRank(mate.soloRank) : "ランク情報なし"}
+      {mate.summonerLevel !== null && ` ・ Lv.${mate.summonerLevel}`}
+    </>
+  );
+}
+
+function TeammateSummary({ mate }: { mate: FrequentTeammate }) {
+  return (
+    <span
+      className="report-summary-match"
+      style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+    >
+      <TeammateRankBadge mate={mate} />
+      {mate.displayName} ・ {mate.gamesTogether}試合
+    </span>
+  );
+}
+
+function TeammateRow({ mate }: { mate: FrequentTeammate }) {
+  return (
+    <div className="teammate-row">
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <TeammateRankBadge mate={mate} />
+        <div>
+          <Link href={`/players/${mate.puuid}`}>{mate.displayName}</Link>
+          <p className="muted" style={{ fontSize: "0.75rem" }}>
+            <TeammateMeta mate={mate} />
+          </p>
+        </div>
+      </div>
+      <span className="muted">{mate.gamesTogether}試合共にプレイ</span>
+    </div>
+  );
 }
 
 export default async function PlayerProfilePage({
@@ -58,9 +109,6 @@ export default async function PlayerProfilePage({
         <p className="muted" style={{ marginTop: "0.5rem" }}>
           このIDに対する通報はまだありません。
         </p>
-        <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/report">
-          試合IDから通報する
-        </Link>
       </div>
     );
   }
@@ -73,26 +121,33 @@ export default async function PlayerProfilePage({
   // 取得に失敗しても通報一覧自体は表示できるよう、個別にcatchしてページ全体を
   // 落とさない(api/matches/[matchId]と同じ方針)。
   const uniqueMatchIds = [...new Set(player.reports.map((r) => r.matchId))];
-  const [leagueEntries, matchDetailResults, ddragonVersion, frequentTeammates] = await Promise.all([
-    getLeagueEntriesByPuuid(player.puuid, player.platform).catch(() => []),
-    Promise.allSettled(uniqueMatchIds.map(getMatchDetail)),
-    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
-    findFrequentTeammates(player.puuid),
-  ]);
+  const [summoner, leagueEntries, matchDetailResults, ddragonVersion, frequentTeammates] =
+    await Promise.all([
+      getSummonerByPuuid(player.puuid, player.platform).catch(() => null),
+      getLeagueEntriesByPuuid(player.puuid, player.platform).catch(() => []),
+      Promise.allSettled(uniqueMatchIds.map(getMatchDetail)),
+      getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
+      findFrequentTeammates(player.puuid, player.platform),
+    ]);
   const matchDetailByMatchId = new Map<string, Awaited<ReturnType<typeof getMatchDetail>>>();
   matchDetailResults.forEach((result, i) => {
     if (result.status === "fulfilled") {
       matchDetailByMatchId.set(uniqueMatchIds[i], result.value);
     }
   });
+  const soloRank = leagueEntries.find((entry) => entry.queueType === "RANKED_SOLO_5x5") ?? null;
+  const [topTeammate, ...restTeammates] = frequentTeammates;
 
   return (
     <div>
-      <h1>
-        {currentName
-          ? `${currentName.riotIdName} #${currentName.riotIdTagLine}`
-          : "(表示名不明)"}
-      </h1>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", flexWrap: "wrap" }}>
+        <h1>
+          {currentName
+            ? `${currentName.riotIdName} #${currentName.riotIdTagLine}`
+            : "(表示名不明)"}
+        </h1>
+        {summoner && <span className="badge">Lv.{summoner.summonerLevel}</span>}
+      </div>
 
       {pastNames.length > 0 && (
         <p className="muted" style={{ marginTop: "0.5rem" }}>
@@ -103,14 +158,23 @@ export default async function PlayerProfilePage({
         </p>
       )}
 
-      {leagueEntries.length > 0 && (
-        <p className="muted" style={{ marginTop: "0.5rem" }}>
-          現在のランク:{" "}
-          {leagueEntries
-            .map((entry) => `${QUEUE_TYPE_LABELS[entry.queueType] ?? entry.queueType} ${formatRank(entry)}`)
-            .join(" ・ ")}
-        </p>
-      )}
+      <div className="rank-card">
+        {soloRank ? (
+          <>
+            <Image src={getRankEmblemUrl(soloRank.tier)} alt={soloRank.tier} width={56} height={56} />
+            <div>
+              <p className="rank-card-tier">{formatRank(soloRank)}</p>
+              <p className="muted">
+                ソロ/デュオ ・ {soloRank.wins}勝{soloRank.losses}敗
+                {soloRank.wins + soloRank.losses > 0 &&
+                  ` (勝率${Math.round((soloRank.wins / (soloRank.wins + soloRank.losses)) * 100)}%)`}
+              </p>
+            </div>
+          </>
+        ) : (
+          <p className="muted">ソロ/デュオランクの情報がありません(未ランクの可能性)。</p>
+        )}
+      </div>
 
       {latestRankCheck && (
         <p className="muted" style={{ marginTop: "0.5rem" }}>
@@ -125,22 +189,21 @@ export default async function PlayerProfilePage({
         </p>
       )}
 
-      <Link className="btn" style={{ marginTop: "1.5rem", display: "inline-block" }} href="/report">
-        試合IDから通報する
-      </Link>
-
       <section className="section">
         <h2>👥 直近一緒にプレイしていたユーザー</h2>
         <p className="muted" style={{ marginBottom: "0.75rem" }}>
           直近{FREQUENT_TEAMMATES_MATCH_COUNT}試合のうち、2試合以上同じチームだった相手をRiot
           APIから自動検出したものです。この一覧に載ること自体は通報や違反を意味しません。
         </p>
-        {frequentTeammates.length === 0 ? (
+        {!topTeammate ? (
           <p className="muted">該当する相手はいませんでした。</p>
         ) : (
           <details className="card report-card">
             <summary className="report-summary">
-              <span className="report-summary-match">{frequentTeammates.length}人</span>
+              <TeammateSummary mate={topTeammate} />
+              {restTeammates.length > 0 && (
+                <span className="muted report-summary-date">他{restTeammates.length}人</span>
+              )}
               <span className="report-summary-toggle" aria-hidden="true">
                 <span className="report-summary-toggle-closed">一覧を見る ▾</span>
                 <span className="report-summary-toggle-open">閉じる ▴</span>
@@ -148,10 +211,7 @@ export default async function PlayerProfilePage({
             </summary>
             <div className="report-detail">
               {frequentTeammates.map((mate) => (
-                <div className="teammate-row" key={mate.puuid}>
-                  <Link href={`/players/${mate.puuid}`}>{mate.displayName}</Link>
-                  <span className="muted">{mate.gamesTogether}試合共にプレイ</span>
-                </div>
+                <TeammateRow mate={mate} key={mate.puuid} />
               ))}
             </div>
           </details>
