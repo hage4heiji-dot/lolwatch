@@ -3,6 +3,12 @@ import { findReportedPlayers, ReportedPlayersVerdictFilter } from "@/lib/playerP
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
+import {
+  DEFAULT_PERIOD_FILTER,
+  PERIOD_FILTER_LABELS,
+  isPeriodFilter,
+  type PeriodFilter,
+} from "@/lib/periodFilter";
 
 const PAGE_SIZE = 20;
 const VERDICT_FILTER_VALUES: ReportedPlayersVerdictFilter[] = [
@@ -18,11 +24,15 @@ function isVerdictFilter(value: string): value is ReportedPlayersVerdictFilter {
   return (VERDICT_FILTER_VALUES as string[]).includes(value);
 }
 
-function buildPageHref(page: number, params: { q?: string; category?: string; verdict?: string }) {
+function buildPageHref(
+  page: number,
+  params: { q?: string; category?: string; verdict?: string; period: PeriodFilter },
+) {
   const search = new URLSearchParams();
   if (params.q) search.set("q", params.q);
   if (params.category) search.set("category", params.category);
   if (params.verdict) search.set("verdict", params.verdict);
+  if (params.period !== DEFAULT_PERIOD_FILTER) search.set("period", params.period);
   if (page > 1) search.set("page", String(page));
   const qs = search.toString();
   return qs ? `/players?${qs}` : "/players";
@@ -31,13 +41,26 @@ function buildPageHref(page: number, params: { q?: string; category?: string; ve
 export default async function ReportedPlayersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; category?: string; verdict?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    category?: string;
+    verdict?: string;
+    period?: string;
+  }>;
 }) {
-  const { page: pageParam, q, category: categoryParam, verdict: verdictParam } = await searchParams;
+  const {
+    page: pageParam,
+    q,
+    category: categoryParam,
+    verdict: verdictParam,
+    period: periodParam,
+  } = await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
   const query = q?.trim() || undefined;
   const category = categoryParam && isReportCategory(categoryParam) ? categoryParam : undefined;
   const verdict = verdictParam && isVerdictFilter(verdictParam) ? verdictParam : undefined;
+  const period = periodParam && isPeriodFilter(periodParam) ? periodParam : DEFAULT_PERIOD_FILTER;
 
   const { players, totalCount } = await findReportedPlayers({
     page,
@@ -45,8 +68,10 @@ export default async function ReportedPlayersPage({
     query,
     category,
     verdict,
+    period,
   });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const hasFilters = Boolean(query || category || verdict || period !== DEFAULT_PERIOD_FILTER);
 
   return (
     <div>
@@ -84,22 +109,30 @@ export default async function ReportedPlayersPage({
           </select>
         </div>
         <div className="form-field">
+          <label htmlFor="period">期間</label>
+          <select id="period" name="period" defaultValue={period}>
+            {Object.entries(PERIOD_FILTER_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="btn" type="submit">
             検索
           </button>
-        </div>
-        {(query || category || verdict) && (
-          <div className="form-field">
+          {hasFilters && (
             <Link className="btn btn-secondary" href="/players">
               条件をクリア
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </form>
 
       {players.length === 0 ? (
         <p className="muted">
-          {query || category || verdict
+          {hasFilters
             ? "条件に一致するプレイヤーが見つかりませんでした。"
             : "まだ通報はありません。"}
         </p>
@@ -141,7 +174,7 @@ export default async function ReportedPlayersPage({
           }}
         >
           {page > 1 ? (
-            <Link className="btn btn-secondary" href={buildPageHref(page - 1, { q: query, category, verdict })}>
+            <Link className="btn btn-secondary" href={buildPageHref(page - 1, { q: query, category, verdict, period })}>
               前へ
             </Link>
           ) : (
@@ -151,7 +184,7 @@ export default async function ReportedPlayersPage({
             {page} / {totalPages} ページ
           </span>
           {page < totalPages ? (
-            <Link className="btn btn-secondary" href={buildPageHref(page + 1, { q: query, category, verdict })}>
+            <Link className="btn btn-secondary" href={buildPageHref(page + 1, { q: query, category, verdict, period })}>
               次へ
             </Link>
           ) : (

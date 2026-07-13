@@ -4,6 +4,10 @@ import { CATEGORY_LABELS } from "@/lib/reportCategories";
 
 const DAILY_TREND_DAYS = 30;
 
+function createdAtFilter(since: Date | null) {
+  return since ? { createdAt: { gte: since } } : {};
+}
+
 export type CategoryCount = { category: ReportCategory; count: number };
 export type VerdictCount = { verdict: ModeratorVerdict | "UNREVIEWED"; count: number };
 export type DailyCount = { date: string; count: number };
@@ -14,17 +18,20 @@ export type TopPlayer = {
   count: number;
 };
 
-export async function getOverviewStats() {
+export async function getOverviewStats(since: Date | null = null) {
   const [totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount] =
     await Promise.all([
-      prisma.report.count({ where: { hiddenAt: null } }),
-      prisma.player.count({ where: { reports: { some: { hiddenAt: null } } } }),
+      prisma.report.count({ where: { hiddenAt: null, ...createdAtFilter(since) } }),
+      prisma.player.count({
+        where: { reports: { some: { hiddenAt: null, ...createdAtFilter(since) } } },
+      }),
       prisma.report.count({
-        where: { hiddenAt: null, moderatorReviews: { some: {} } },
+        where: { hiddenAt: null, ...createdAtFilter(since), moderatorReviews: { some: {} } },
       }),
       prisma.report.count({
         where: {
           hiddenAt: null,
+          ...createdAtFilter(since),
           moderatorReviews: { some: { verdict: ModeratorVerdict.VIOLATION_CONFIRMED } },
         },
       }),
@@ -33,10 +40,10 @@ export async function getOverviewStats() {
   return { totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount };
 }
 
-export async function getCategoryBreakdown(): Promise<CategoryCount[]> {
+export async function getCategoryBreakdown(since: Date | null = null): Promise<CategoryCount[]> {
   const grouped = await prisma.report.groupBy({
     by: ["category"],
-    where: { hiddenAt: null },
+    where: { hiddenAt: null, ...createdAtFilter(since) },
     _count: { _all: true },
   });
   const counts = new Map(grouped.map((g) => [g.category, g._count._all]));
@@ -49,9 +56,9 @@ export async function getCategoryBreakdown(): Promise<CategoryCount[]> {
 
 // 評価はReportではなくModeratorReviewに紐づくため、通報ごとの最新評価を
 // JS側で集計する(1通報に複数レビューが付き得るため)。
-export async function getVerdictBreakdown(): Promise<VerdictCount[]> {
+export async function getVerdictBreakdown(since: Date | null = null): Promise<VerdictCount[]> {
   const reports = await prisma.report.findMany({
-    where: { hiddenAt: null },
+    where: { hiddenAt: null, ...createdAtFilter(since) },
     select: {
       moderatorReviews: {
         orderBy: { createdAt: "desc" },
@@ -100,10 +107,10 @@ export async function getDailyReportCounts(days = DAILY_TREND_DAYS): Promise<Dai
   return Array.from(counts.entries()).map(([date, count]) => ({ date, count }));
 }
 
-export async function getTopChampions(limit = 10): Promise<NamedCount[]> {
+export async function getTopChampions(limit = 10, since: Date | null = null): Promise<NamedCount[]> {
   const grouped = await prisma.report.groupBy({
     by: ["championName"],
-    where: { hiddenAt: null },
+    where: { hiddenAt: null, ...createdAtFilter(since) },
     _count: { _all: true },
     orderBy: { _count: { championName: "desc" } },
     take: limit,
@@ -111,12 +118,16 @@ export async function getTopChampions(limit = 10): Promise<NamedCount[]> {
   return grouped.map((g) => ({ name: g.championName, count: g._count._all }));
 }
 
-export async function getTopReportedPlayers(limit = 10): Promise<TopPlayer[]> {
+export async function getTopReportedPlayers(
+  limit = 10,
+  since: Date | null = null,
+): Promise<TopPlayer[]> {
+  const reportFilter = { hiddenAt: null, ...createdAtFilter(since) };
   const players = await prisma.player.findMany({
-    where: { reports: { some: { hiddenAt: null } } },
+    where: { reports: { some: reportFilter } },
     include: {
       nameHistory: { where: { isCurrent: true }, take: 1 },
-      _count: { select: { reports: { where: { hiddenAt: null } } } },
+      _count: { select: { reports: { where: reportFilter } } },
     },
     orderBy: { reports: { _count: "desc" } },
     take: limit,

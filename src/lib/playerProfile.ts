@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ModeratorVerdict, Prisma, ReportCategory } from "@/generated/prisma";
+import { PeriodFilter, periodFilterSince } from "@/lib/periodFilter";
 
 // 通報のいいね/悪いね、モデレーター評価の異議件数はJS側でvotes/objections配列から
 // 集計する(種別ごとの件数はPrismaの_count.selectでは同一リレーションに複数条件を
@@ -74,15 +75,19 @@ export async function findReportedPlayers({
   query,
   category,
   verdict,
+  period,
 }: {
   page: number;
   pageSize: number;
   query?: string;
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
+  period?: PeriodFilter;
 }) {
+  const since = period ? periodFilterSince(period) : null;
   const reportFilter: Prisma.ReportWhereInput = {
     hiddenAt: null,
+    ...(since ? { createdAt: { gte: since } } : {}),
     ...(category ? { category } : {}),
     ...(verdict === "UNREVIEWED"
       ? { moderatorReviews: { none: {} } }
