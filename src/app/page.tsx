@@ -6,7 +6,7 @@ import { periodFilterSince } from "@/lib/periodFilter";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const watchedPlayers = await getMostWatchedPlayers(5, periodFilterSince("week"));
+  const watchedPlayers = await getMostWatchedPlayers(5, periodFilterSince("month"));
 
   return (
     <div>
@@ -24,12 +24,12 @@ export default async function Home() {
       </Link>
 
       <section className="section">
-        <h2>🔻 直近1週間の要注意人物</h2>
+        <h2>🔻 直近1か月の要注意人物</h2>
         <p className="muted" style={{ marginBottom: "0.75rem" }}>
-          直近1週間で通報が多く、かつ他の利用者から「この通報は妥当」と支持された数が多い順です。
+          直近1か月で通報が多く、かつ他の利用者から「この通報は妥当」と支持された数が多い順です。
         </p>
         {watchedPlayers.length === 0 ? (
-          <p className="muted">直近1週間はまだ要注意人物がいません。</p>
+          <p className="muted">直近1か月はまだ要注意人物がいません。</p>
         ) : (
           <div className="watchlist">
             {watchedPlayers.map((player, i) => (
@@ -39,6 +39,8 @@ export default async function Home() {
                 <span className="watchlist-tally">
                   <span className="watchlist-tally-item">🚩 通報 {player.reportCount}件</span>
                   <span className="watchlist-tally-item">👍 妥当 {player.validatedCount}件</span>
+                  <span className="watchlist-tally-item">👎 不当 {player.invalidCount}件</span>
+                  <span className="watchlist-tally-item">🧑‍⚖️ モデレータ評価 {player.reviewedCount}件</span>
                 </span>
               </Link>
             ))}

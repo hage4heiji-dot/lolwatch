@@ -458,6 +458,13 @@ a.card:hover {
   background: var(--danger-bg);
 }
 
+/* 「違反なし」判定用。危険色の対極として、柔らかい印象の水色で表示する。 */
+.badge-cleared {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .form-field {
   display: flex;
   flex-direction: column;

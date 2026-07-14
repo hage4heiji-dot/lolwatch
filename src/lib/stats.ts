@@ -22,6 +22,8 @@ export type WatchedPlayer = {
   displayName: string;
   reportCount: number;
   validatedCount: number;
+  invalidCount: number;
+  reviewedCount: number;
 };
 
 export async function getOverviewStats(since: Date | null = null) {
@@ -160,15 +162,26 @@ export async function getMostWatchedPlayers(
     where: { hiddenAt: null, ...createdAtFilter(since) },
     select: {
       playerId: true,
-      votes: { where: { voteType: "LIKE" }, select: { id: true } },
+      votes: { select: { voteType: true } },
+      moderatorReviews: { select: { id: true }, take: 1 },
     },
   });
 
-  const tallyByPlayerId = new Map<string, { reportCount: number; validatedCount: number }>();
+  const tallyByPlayerId = new Map<
+    string,
+    { reportCount: number; validatedCount: number; invalidCount: number; reviewedCount: number }
+  >();
   for (const report of reports) {
-    const tally = tallyByPlayerId.get(report.playerId) ?? { reportCount: 0, validatedCount: 0 };
+    const tally = tallyByPlayerId.get(report.playerId) ?? {
+      reportCount: 0,
+      validatedCount: 0,
+      invalidCount: 0,
+      reviewedCount: 0,
+    };
     tally.reportCount += 1;
-    tally.validatedCount += report.votes.length;
+    tally.validatedCount += report.votes.filter((v) => v.voteType === "LIKE").length;
+    tally.invalidCount += report.votes.filter((v) => v.voteType === "DISLIKE").length;
+    if (report.moderatorReviews.length > 0) tally.reviewedCount += 1;
     tallyByPlayerId.set(report.playerId, tally);
   }
 
@@ -195,6 +208,8 @@ export async function getMostWatchedPlayers(
         displayName: name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid,
         reportCount: tally.reportCount,
         validatedCount: tally.validatedCount,
+        invalidCount: tally.invalidCount,
+        reviewedCount: tally.reviewedCount,
       },
     ];
   });

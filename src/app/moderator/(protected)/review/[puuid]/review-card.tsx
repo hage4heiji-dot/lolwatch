@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useActionState } from "react";
 import { editReviewAction, type ReviewFormState } from "./actions";
-import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
+import { VERDICT_LABELS, VERDICT_ICONS, VERDICT_BADGE_CLASS } from "@/lib/moderatorVerdicts";
 import { ModeratorVerdict } from "@/generated/prisma";
 
 const initialState: ReviewFormState = {};
@@ -75,7 +75,7 @@ export function ModeratorReviewCard({
 
   return (
     <div style={{ marginBottom: "0.5rem" }}>
-      <span className="badge badge-verified">
+      <span className={VERDICT_BADGE_CLASS[verdict]}>
         {VERDICT_ICONS[verdict]} {VERDICT_LABELS[verdict]}
       </span>
       <p style={{ marginTop: "0.5rem" }}>{rationale}</p>

@@ -8,7 +8,7 @@ export const VERDICT_LABELS: Record<ModeratorVerdict, string> = {
 
 export const VERDICT_BADGE_CLASS: Record<ModeratorVerdict, string> = {
   VIOLATION_CONFIRMED: "badge badge-verified-guilty",
-  NO_VIOLATION: "badge badge-verified",
+  NO_VIOLATION: "badge badge-cleared",
   INSUFFICIENT_EVIDENCE: "badge",
 };
 
