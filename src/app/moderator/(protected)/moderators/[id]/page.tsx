@@ -85,6 +85,7 @@ export default async function ModeratorReviewListPage({
       <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
         {viewer.id === id ? "自分が" : `${target.displayName}が`}これまでにレビューした通報の一覧です(総件数:{" "}
         {totalCount}件)。見出しをクリックすると並び替えられます。
+        {viewer.id === id && "対象のリンクから直接編集できます。"}
       </p>
 
       {reviews.length === 0 ? (
@@ -109,7 +110,6 @@ export default async function ModeratorReviewListPage({
                     <span className="sort-arrow">{sort === "newest" ? " ▼" : " ▲"}</span>
                   </Link>
                 </th>
-                <th>アクション</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +121,13 @@ export default async function ModeratorReviewListPage({
                       <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
                     </td>
                     <td>
-                      <Link href={`/players/${review.report.player.puuid}`}>
+                      <Link
+                        href={
+                          viewer.id === review.moderatorId
+                            ? `/moderator/review/${review.report.player.puuid}`
+                            : `/players/${review.report.player.puuid}`
+                        }
+                      >
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : review.report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
@@ -133,19 +139,8 @@ export default async function ModeratorReviewListPage({
                         {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
                       </span>
                     </td>
-                    <td style={{ whiteSpace: "normal", maxWidth: "320px" }}>{review.rationale}</td>
+                    <td style={{ whiteSpace: "normal", maxWidth: "220px" }}>{review.rationale}</td>
                     <td className="muted">{formatDateTime(review.createdAt)}</td>
-                    <td>
-                      {viewer.id === review.moderatorId && (
-                        <Link
-                          className="btn btn-secondary"
-                          style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                          href={`/moderator/review/${review.report.player.puuid}`}
-                        >
-                          編集
-                        </Link>
-                      )}
-                    </td>
                   </tr>
                 );
               })}

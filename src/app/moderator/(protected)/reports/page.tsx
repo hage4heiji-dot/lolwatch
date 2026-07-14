@@ -190,10 +190,8 @@ export default async function AdminReportsPage({
                 <th>#</th>
                 <th>対象</th>
                 <th>カテゴリ</th>
-                <th>表示状態</th>
-                <th>評価状態</th>
+                <th>状態</th>
                 <SortableDateHeader label="通報日時" filters={filters} />
-                <th>アクション</th>
               </tr>
             </thead>
             <tbody>
@@ -206,7 +204,7 @@ export default async function AdminReportsPage({
                       <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
                     </td>
                     <td>
-                      <Link href={`/players/${report.player.puuid}`}>
+                      <Link href={`/moderator/review/${report.player.puuid}`}>
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
@@ -219,34 +217,25 @@ export default async function AdminReportsPage({
                       </span>
                     </td>
                     <td>
-                      {report.hiddenAt ? (
-                        <span
-                          className="badge badge-verified-guilty"
-                          title={report.hiddenReason ?? undefined}
-                        >
-                          🙈 非表示中
-                        </span>
-                      ) : (
-                        <span className="badge">👁️ 表示中</span>
-                      )}
-                    </td>
-                    <td>
-                      {isReviewed ? (
-                        <span className="badge badge-verified">✅ 評価済み</span>
-                      ) : (
-                        <span className="badge badge-unverified">⏳ 未評価</span>
-                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", alignItems: "flex-start" }}>
+                        {report.hiddenAt ? (
+                          <span
+                            className="badge badge-verified-guilty"
+                            title={report.hiddenReason ?? undefined}
+                          >
+                            🙈 非表示中
+                          </span>
+                        ) : (
+                          <span className="badge">👁️ 表示中</span>
+                        )}
+                        {isReviewed ? (
+                          <span className="badge badge-verified">✅ 評価済み</span>
+                        ) : (
+                          <span className="badge badge-unverified">⏳ 未評価</span>
+                        )}
+                      </div>
                     </td>
                     <td className="muted">{formatDateTime(report.createdAt)}</td>
-                    <td>
-                      <Link
-                        className="btn btn-secondary"
-                        style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                        href={`/moderator/review/${report.player.puuid}`}
-                      >
-                        レビューを開く
-                      </Link>
-                    </td>
                   </tr>
                 );
               })}
