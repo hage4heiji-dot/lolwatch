@@ -720,6 +720,13 @@ a.card:hover {
   color: var(--muted);
 }
 
+/* 実質通報件数が0(=モデレーターが全件「違反なし」と判断)の場合の救済表示。
+   危険色主体のwatchlist内で、この項目だけ落ち着いた水色にして印象を和らげる。 */
+.watchlist-tally-item-cleared {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 @media (max-width: 520px) {
   .watchlist-row {
     flex-wrap: wrap;

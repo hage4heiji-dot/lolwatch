@@ -40,7 +40,11 @@ export default async function Home() {
                   <span className="watchlist-tally-item">🚩 通報 {player.reportCount}件</span>
                   <span className="watchlist-tally-item">👍 妥当 {player.validatedCount}件</span>
                   <span className="watchlist-tally-item">👎 不当 {player.invalidCount}件</span>
-                  <span className="watchlist-tally-item">🧑‍⚖️ モデレータ評価 {player.reviewedCount}件</span>
+                  <span
+                    className={`watchlist-tally-item${player.netReportCount === 0 ? " watchlist-tally-item-cleared" : ""}`}
+                  >
+                    ⚖️ 実質通報 {player.netReportCount}件
+                  </span>
                 </span>
               </Link>
             ))}

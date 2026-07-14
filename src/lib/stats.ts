@@ -23,7 +23,8 @@ export type WatchedPlayer = {
   reportCount: number;
   validatedCount: number;
   invalidCount: number;
-  reviewedCount: number;
+  // 「違反なし」と判断された通報を除いた、実質的な通報件数。
+  netReportCount: number;
 };
 
 export async function getOverviewStats(since: Date | null = null) {
@@ -163,25 +164,27 @@ export async function getMostWatchedPlayers(
     select: {
       playerId: true,
       votes: { select: { voteType: true } },
-      moderatorReviews: { select: { id: true }, take: 1 },
+      moderatorReviews: { orderBy: { createdAt: "desc" }, take: 1, select: { verdict: true } },
     },
   });
 
   const tallyByPlayerId = new Map<
     string,
-    { reportCount: number; validatedCount: number; invalidCount: number; reviewedCount: number }
+    { reportCount: number; validatedCount: number; invalidCount: number; noViolationCount: number }
   >();
   for (const report of reports) {
     const tally = tallyByPlayerId.get(report.playerId) ?? {
       reportCount: 0,
       validatedCount: 0,
       invalidCount: 0,
-      reviewedCount: 0,
+      noViolationCount: 0,
     };
     tally.reportCount += 1;
     tally.validatedCount += report.votes.filter((v) => v.voteType === "LIKE").length;
     tally.invalidCount += report.votes.filter((v) => v.voteType === "DISLIKE").length;
-    if (report.moderatorReviews.length > 0) tally.reviewedCount += 1;
+    // モデレーターが実際に「違反なし」と判断した通報は、悪意ある連続通報などによる
+    // 見かけ上の件数を救済するため、実質的な通報件数から除外する。
+    if (report.moderatorReviews[0]?.verdict === "NO_VIOLATION") tally.noViolationCount += 1;
     tallyByPlayerId.set(report.playerId, tally);
   }
 
@@ -209,7 +212,7 @@ export async function getMostWatchedPlayers(
         reportCount: tally.reportCount,
         validatedCount: tally.validatedCount,
         invalidCount: tally.invalidCount,
-        reviewedCount: tally.reviewedCount,
+        netReportCount: tally.reportCount - tally.noViolationCount,
       },
     ];
   });
