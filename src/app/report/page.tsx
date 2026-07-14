@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { MatchLookup } from "../match-lookup";
+
+export const metadata: Metadata = {
+  title: "通報する",
+  description: "試合ID(Match ID)またはサモナー名から試合を検索し、暴言・チート等の迷惑行為を通報できます。",
+};
 
 export default function ReportPage() {
   return (

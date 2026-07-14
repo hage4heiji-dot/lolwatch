@@ -19,7 +19,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "lolwatch",
+  metadataBase: new URL("https://lol-watch.com"),
+  title: {
+    default: "lolwatch",
+    template: "%s | lolwatch",
+  },
   description:
     "ゲームIDへの通報状況とモデレーター評価を集約する非公式サイト",
 };

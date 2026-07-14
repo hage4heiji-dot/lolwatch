@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
 import {
   getAccountByPuuid,
@@ -34,6 +36,25 @@ function formatDateTime(date: Date): string {
     timeStyle: "short",
     timeZone: "Asia/Tokyo",
   }).format(date);
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ puuid: string }>;
+}): Promise<Metadata> {
+  const { puuid } = await params;
+  const player = await prisma.player.findUnique({
+    where: { puuid },
+    select: { nameHistory: { where: { isCurrent: true }, take: 1 } },
+  });
+  const name = player?.nameHistory[0];
+  const displayName = name ? `${name.riotIdName} #${name.riotIdTagLine}` : puuid;
+
+  return {
+    title: `${displayName} の通報履歴`,
+    description: `${displayName} に対する通報状況とモデレーター評価の履歴です。`,
+  };
 }
 
 function TeammateRankBadge({ mate }: { mate: FrequentTeammate }) {

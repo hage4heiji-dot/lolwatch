@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   getOverviewStats,
   getCategoryBreakdown,
@@ -34,6 +35,12 @@ const VERDICT_BAR_COLORS: Record<ModeratorVerdict | "UNREVIEWED", string> = {
 
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "統計ダッシュボード",
+  description:
+    "LoLの通報件数推移、カテゴリ別内訳、モデレーター評価の内訳などサイト全体の統計を確認できます。",
+};
 
 function BarList({
   rows,

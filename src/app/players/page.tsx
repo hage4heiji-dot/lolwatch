@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   findReportedPlayers,
   REPORTED_PLAYERS_SORT_LABELS,
@@ -16,6 +17,12 @@ import {
 const PAGE_SIZE = 20;
 const DEFAULT_SORT: ReportedPlayersSort = "reportCount";
 const DEFAULT_DIRECTION: SortDirection = "desc";
+
+export const metadata: Metadata = {
+  title: "ユーザー一覧",
+  description:
+    "LoLで通報されているユーザーを通報件数順・最新の通報日時順に確認できます。",
+};
 
 function isSort(value: string): value is ReportedPlayersSort {
   return value in REPORTED_PLAYERS_SORT_LABELS;

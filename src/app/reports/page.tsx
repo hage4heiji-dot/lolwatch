@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { findPublicReports, PublicReportSort } from "@/lib/reportList";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
@@ -14,6 +15,11 @@ const VERDICT_FILTER_VALUES: ReportedPlayersVerdictFilter[] = [
 
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "通報一覧",
+  description: "LoLで寄せられた個々の通報を新着順に確認できます。カテゴリやモデレーター評価で絞り込み可能です。",
+};
 
 function isReportCategory(value: string): value is ReportCategory {
   return value in CATEGORY_LABELS;
