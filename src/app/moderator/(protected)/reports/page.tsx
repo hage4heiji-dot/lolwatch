@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { requireModerator } from "@/lib/moderatorAuth";
-import { findAllReportsForAdmin } from "@/lib/reportAdmin";
-import type { HiddenFilter, ReviewedFilter } from "@/lib/reportAdmin";
+import { findAllReportsForAdmin, REPORT_ADMIN_SORT_LABELS } from "@/lib/reportAdmin";
+import type { HiddenFilter, ReviewedFilter, ReportAdminSort } from "@/lib/reportAdmin";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { getLatestDdragonVersion } from "@/lib/riot";
@@ -32,6 +32,10 @@ function toCategory(value: string | undefined): ReportCategory | undefined {
   return value && value in CATEGORY_LABELS ? (value as ReportCategory) : undefined;
 }
 
+function toSort(value: string | undefined): ReportAdminSort {
+  return value === "oldest" ? "oldest" : "newest";
+}
+
 export default async function AdminReportsPage({
   searchParams,
 }: {
@@ -41,6 +45,7 @@ export default async function AdminReportsPage({
     category?: string;
     hidden?: string;
     reviewed?: string;
+    sort?: string;
   }>;
 }) {
   const moderator = await requireModerator();
@@ -62,9 +67,10 @@ export default async function AdminReportsPage({
   const category = toCategory(params.category);
   const hidden = toHiddenFilter(params.hidden);
   const reviewed = toReviewedFilter(params.reviewed);
+  const sort = toSort(params.sort);
 
   const [{ reports, totalCount }, ddragonVersion] = await Promise.all([
-    findAllReportsForAdmin({ page, pageSize: PAGE_SIZE, filters: { category, hidden, reviewed, query } }),
+    findAllReportsForAdmin({ page, pageSize: PAGE_SIZE, filters: { category, hidden, reviewed, query }, sort }),
     getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -75,12 +81,15 @@ export default async function AdminReportsPage({
     if (category) sp.set("category", category);
     if (hidden !== "all") sp.set("hidden", hidden);
     if (reviewed !== "all") sp.set("reviewed", reviewed);
+    if (sort !== "newest") sp.set("sort", sort);
     if (targetPage > 1) sp.set("page", String(targetPage));
     const qs = sp.toString();
     return qs ? `/moderator/reports?${qs}` : "/moderator/reports";
   }
 
-  const hasFilters = Boolean(query || category || hidden !== "all" || reviewed !== "all");
+  const hasFilters = Boolean(
+    query || category || hidden !== "all" || reviewed !== "all" || sort !== "newest",
+  );
 
   return (
     <div>
@@ -134,6 +143,16 @@ export default async function AdminReportsPage({
             <option value="unreviewed">⏳ 未評価のみ</option>
           </select>
         </div>
+        <div className="form-field" style={{ marginBottom: 0 }}>
+          <label htmlFor="sort">並び替え</label>
+          <select id="sort" name="sort" defaultValue={sort}>
+            {Object.entries(REPORT_ADMIN_SORT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="btn" type="submit">
             絞り込む
@@ -153,7 +172,8 @@ export default async function AdminReportsPage({
       {reports.length === 0 ? (
         <p className="muted">条件に一致する通報はありません。</p>
       ) : (
-        reports.map((report) => {
+        <div className="card-grid">
+        {reports.map((report) => {
           const name = report.player.nameHistory[0];
           const isReviewed = report.moderatorReviews.length > 0;
           return (
@@ -225,7 +245,8 @@ export default async function AdminReportsPage({
               </p>
             </div>
           );
-        })
+        })}
+        </div>
       )}
 
       {totalPages > 1 && (

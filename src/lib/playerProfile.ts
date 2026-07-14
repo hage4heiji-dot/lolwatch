@@ -63,11 +63,13 @@ function buildReportFilter({
   since,
   category,
   verdict,
+  reviewedBy,
   query,
 }: {
   since: Date | null;
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
+  reviewedBy?: string;
   query?: string;
 }): Prisma.ReportWhereInput {
   return {
@@ -76,8 +78,15 @@ function buildReportFilter({
     ...(category ? { category } : {}),
     ...(verdict === "UNREVIEWED"
       ? { moderatorReviews: { none: {} } }
-      : verdict
-        ? { moderatorReviews: { some: { verdict } } }
+      : verdict || reviewedBy
+        ? {
+            moderatorReviews: {
+              some: {
+                ...(verdict ? { verdict } : {}),
+                ...(reviewedBy ? { moderatorId: reviewedBy } : {}),
+              },
+            },
+          }
         : {}),
     ...(query
       ? {
@@ -96,11 +105,13 @@ async function countDistinctReportedPlayers({
   since,
   category,
   verdict,
+  reviewedBy,
   query,
 }: {
   since: Date | null;
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
+  reviewedBy?: string;
   query?: string;
 }): Promise<number> {
   const conditions: Prisma.Sql[] = [Prisma.sql`r."hiddenAt" IS NULL`];
@@ -110,9 +121,16 @@ async function countDistinctReportedPlayers({
     conditions.push(
       Prisma.sql`NOT EXISTS (SELECT 1 FROM "ModeratorReview" mr WHERE mr."reportId" = r.id)`,
     );
-  } else if (verdict) {
+  } else if (verdict || reviewedBy) {
+    const reviewConditions: Prisma.Sql[] = [Prisma.sql`mr."reportId" = r.id`];
+    if (verdict) {
+      reviewConditions.push(Prisma.sql`mr."verdict" = ${verdict}::"ModeratorVerdict"`);
+    }
+    if (reviewedBy) {
+      reviewConditions.push(Prisma.sql`mr."moderatorId" = ${reviewedBy}`);
+    }
     conditions.push(
-      Prisma.sql`EXISTS (SELECT 1 FROM "ModeratorReview" mr WHERE mr."reportId" = r.id AND mr."verdict" = ${verdict}::"ModeratorVerdict")`,
+      Prisma.sql`EXISTS (SELECT 1 FROM "ModeratorReview" mr WHERE ${Prisma.join(reviewConditions, " AND ")})`,
     );
   }
   if (query) {
@@ -137,6 +155,7 @@ export async function findReportedPlayers({
   query,
   category,
   verdict,
+  reviewedBy,
   period,
   sort = "reportCount",
   direction = "desc",
@@ -146,12 +165,13 @@ export async function findReportedPlayers({
   query?: string;
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
+  reviewedBy?: string;
   period?: PeriodFilter;
   sort?: ReportedPlayersSort;
   direction?: SortDirection;
 }) {
   const since = period ? periodFilterSince(period) : null;
-  const reportFilter = buildReportFilter({ since, category, verdict, query });
+  const reportFilter = buildReportFilter({ since, category, verdict, reviewedBy, query });
 
   const [pageGroups, totalCount] = await Promise.all([
     prisma.report.groupBy({
@@ -166,7 +186,7 @@ export async function findReportedPlayers({
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    countDistinctReportedPlayers({ since, category, verdict, query }),
+    countDistinctReportedPlayers({ since, category, verdict, reviewedBy, query }),
   ]);
 
   const pageIds = pageGroups.map((g) => g.playerId);

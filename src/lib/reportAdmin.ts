@@ -3,6 +3,12 @@ import { ReportCategory, Prisma } from "@/generated/prisma";
 
 export type HiddenFilter = "all" | "hidden" | "visible";
 export type ReviewedFilter = "all" | "reviewed" | "unreviewed";
+export type ReportAdminSort = "newest" | "oldest";
+
+export const REPORT_ADMIN_SORT_LABELS: Record<ReportAdminSort, string> = {
+  newest: "新しい順",
+  oldest: "古い順",
+};
 
 export interface ReportAdminFilters {
   category?: ReportCategory;
@@ -17,10 +23,12 @@ export async function findAllReportsForAdmin({
   page,
   pageSize,
   filters,
+  sort = "newest",
 }: {
   page: number;
   pageSize: number;
   filters: ReportAdminFilters;
+  sort?: ReportAdminSort;
 }) {
   const where: Prisma.ReportWhereInput = {};
 
@@ -59,7 +67,7 @@ export async function findAllReportsForAdmin({
   const [reports, totalCount] = await Promise.all([
     prisma.report.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: sort === "oldest" ? "asc" : "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
