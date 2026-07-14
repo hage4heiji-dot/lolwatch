@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireModerator } from "@/lib/moderatorAuth";
 import { getModeratorStats } from "@/lib/moderatorStats";
 import { VERDICT_ICONS } from "@/lib/moderatorVerdicts";
@@ -9,6 +10,7 @@ function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Tokyo",
   }).format(date);
 }
 
@@ -69,7 +71,9 @@ export default async function ModeratorStatsPage() {
                 {stats.map((stat) => (
                   <tr key={stat.id}>
                     <td>
-                      ⚔️ {stat.displayName}
+                      <Link href={`/moderator/moderators/${stat.id}`}>
+                        ⚔️ {stat.displayName}
+                      </Link>
                       {stat.isAdmin && <span className="muted"> (管理者)</span>}
                     </td>
                     <td>{stat.totalReviews}</td>
