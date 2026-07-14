@@ -51,7 +51,7 @@ export default async function Home() {
           </div>
         )}
         <p className="muted" style={{ marginTop: "0.75rem" }}>
-          <Link href="/players">通報一覧をすべて見る →</Link>
+          <Link href="/players">ユーザー一覧をすべて見る →</Link>
         </p>
       </section>
     </div>

@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "ホーム" },
-  { href: "/players", label: "通報一覧" },
+  { href: "/reports", label: "通報一覧" },
+  { href: "/players", label: "ユーザー一覧" },
   { href: "/stats", label: "統計" },
   { href: "/guidelines", label: "ガイドライン" },
 ];
