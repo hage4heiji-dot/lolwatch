@@ -8,7 +8,7 @@ import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { getChampionIconUrl } from "@/lib/ddragon";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
-import { isSafeReferenceUrl } from "@/lib/referenceUrl";
+import { isSafeReferenceUrl, REFERENCE_URL_ALLOWED_DOMAINS_LABEL } from "@/lib/referenceUrl";
 import { KillTimeline } from "./kill-timeline";
 import type { MatchDetail, MatchKillEvent, MatchParticipant } from "@/lib/riot";
 
@@ -259,7 +259,7 @@ export function MatchLookup() {
       return;
     }
     if (referenceUrl.trim() && !isSafeReferenceUrl(referenceUrl.trim())) {
-      setError("参考URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      setError(`参考URLに使用できるのは${REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のURLのみです。`);
       return;
     }
 
@@ -559,7 +559,7 @@ export function MatchLookup() {
           onChange={(e) => setReferenceUrl(e.target.value)}
         />
         <span className="muted">
-          リプレイにはチャットログ等が残らないため、証跡となるURL(X投稿・動画・画像等)があれば添付してください。
+          リプレイにはチャットログ等が残らないため、証跡となるURLがあれば添付してください({REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のみ使用できます)。
         </span>
       </div>
 

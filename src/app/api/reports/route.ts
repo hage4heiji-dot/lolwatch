@@ -13,7 +13,11 @@ import {
 import { getClientIp } from "@/lib/ip";
 import { checkReportRateLimit } from "@/lib/rateLimit";
 import { ReportCategory } from "@/generated/prisma";
-import { REFERENCE_URL_MAX_LENGTH, isSafeReferenceUrl } from "@/lib/referenceUrl";
+import {
+  REFERENCE_URL_MAX_LENGTH,
+  isSafeReferenceUrl,
+  REFERENCE_URL_ALLOWED_DOMAINS_LABEL,
+} from "@/lib/referenceUrl";
 
 // 通報は必ず特定の試合(matchId)と、その試合内の対象アカウント(puuid)に紐付ける。
 // puuid/championName/queueIdは事前に GET /api/matches/[matchId] で取得した参加者一覧から選ばれたもの。
@@ -30,7 +34,7 @@ const requestSchema = z.object({
     .trim()
     .max(REFERENCE_URL_MAX_LENGTH)
     .refine((v) => v === "" || isSafeReferenceUrl(v), {
-      message: "参考URLの形式が正しくありません(http/httpsのみ)。",
+      message: `参考URLに使用できるのは${REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のURLのみです。`,
     })
     .optional()
     .nullable(),

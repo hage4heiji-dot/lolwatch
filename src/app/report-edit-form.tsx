@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
-import { isSafeReferenceUrl } from "@/lib/referenceUrl";
+import { isSafeReferenceUrl, REFERENCE_URL_ALLOWED_DOMAINS_LABEL } from "@/lib/referenceUrl";
 import type { ReportCategory } from "@/generated/prisma";
 
 export function ReportEditForm({
@@ -53,7 +53,7 @@ export function ReportEditForm({
       return;
     }
     if (referenceUrl.trim() && !isSafeReferenceUrl(referenceUrl.trim())) {
-      setError("参考URLの形式が正しくありません(http/httpsのURLを入力してください)。");
+      setError(`参考URLに使用できるのは${REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のURLのみです。`);
       return;
     }
 
@@ -120,6 +120,9 @@ export function ReportEditForm({
           value={referenceUrl}
           onChange={(e) => setReferenceUrl(e.target.value)}
         />
+        <p className="muted" style={{ marginTop: "0.35rem", fontSize: "0.8rem" }}>
+          {REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のURLのみ使用できます。
+        </p>
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn" type="submit" disabled={pending}>

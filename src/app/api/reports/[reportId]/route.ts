@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { readDeviceId } from "@/lib/deviceId";
 import { canEditReport } from "@/lib/reportEdit";
 import { ReportCategory } from "@/generated/prisma";
-import { REFERENCE_URL_MAX_LENGTH, isSafeReferenceUrl } from "@/lib/referenceUrl";
+import {
+  REFERENCE_URL_MAX_LENGTH,
+  isSafeReferenceUrl,
+  REFERENCE_URL_ALLOWED_DOMAINS_LABEL,
+} from "@/lib/referenceUrl";
 
 const patchSchema = z.object({
   category: z.enum(ReportCategory),
@@ -16,7 +20,7 @@ const patchSchema = z.object({
     .trim()
     .max(REFERENCE_URL_MAX_LENGTH)
     .refine((v) => v === "" || isSafeReferenceUrl(v), {
-      message: "参考URLの形式が正しくありません(http/httpsのみ)。",
+      message: `参考URLに使用できるのは${REFERENCE_URL_ALLOWED_DOMAINS_LABEL}のURLのみです。`,
     })
     .optional()
     .nullable(),
