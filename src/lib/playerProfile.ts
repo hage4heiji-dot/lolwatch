@@ -50,22 +50,6 @@ export async function findPlayerByPuuid(puuid: string, options?: { includeHidden
   });
 }
 
-// 未評価の通報(=試合)を少なくとも1件持つプレイヤーを、通報件数の多い順に返す。
-export async function findPlayersNeedingReview(limit = 20) {
-  const players = await prisma.player.findMany({
-    where: {
-      reports: { some: { moderatorReviews: { none: {} } } },
-    },
-    include: {
-      nameHistory: { where: { isCurrent: true }, take: 1 },
-      _count: { select: { reports: true } },
-    },
-    orderBy: { reports: { _count: "desc" } },
-    take: limit,
-  });
-  return players;
-}
-
 export type ReportedPlayersVerdictFilter = ModeratorVerdict | "UNREVIEWED";
 export type ReportedPlayersSort = "reportCount" | "newest";
 export type SortDirection = "asc" | "desc";
