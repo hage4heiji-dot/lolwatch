@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
+import { toJstDateKey, todayJstMidnightUtc } from "@/lib/jstDate";
 
 const DAILY_TREND_DAYS = 30;
 
@@ -93,9 +94,7 @@ export async function getVerdictBreakdown(since: Date | null = null): Promise<Ve
 }
 
 export async function getDailyReportCounts(days = DAILY_TREND_DAYS): Promise<DailyCount[]> {
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - (days - 1));
+  const since = new Date(todayJstMidnightUtc().getTime() - (days - 1) * 24 * 60 * 60 * 1000);
 
   const reports = await prisma.report.findMany({
     where: { hiddenAt: null, createdAt: { gte: since } },
@@ -104,12 +103,11 @@ export async function getDailyReportCounts(days = DAILY_TREND_DAYS): Promise<Dai
 
   const counts = new Map<string, number>();
   for (let i = 0; i < days; i++) {
-    const d = new Date(since);
-    d.setDate(d.getDate() + i);
-    counts.set(d.toISOString().slice(0, 10), 0);
+    const d = new Date(since.getTime() + i * 24 * 60 * 60 * 1000);
+    counts.set(toJstDateKey(d), 0);
   }
   for (const report of reports) {
-    const key = report.createdAt.toISOString().slice(0, 10);
+    const key = toJstDateKey(report.createdAt);
     if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
