@@ -58,6 +58,10 @@ model Report {
   matchId       String
   championName  String
   queueId       Int
+  // 通報された時点でのソロ/デュオランク(ソロ/デュオ未参加なら"UNRANKED")。
+  // Riot API問い合わせに失敗した場合はnull(取得できなかったという意味で、
+  // "UNRANKED"とは区別する)。統計の「通報されたユーザーのランク」集計に使う。
+  reportedTier String?
   // 問題のシーンの試合内経過時間(秒)。通報者が試合タイムラインを見て任意入力する目安。
   incidentTimestampSeconds Int?
   // 何を主張したいかの補足。即時・無検証で公開されるため短文(300字)に制限する。

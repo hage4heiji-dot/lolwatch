@@ -6,6 +6,8 @@ import {
   getDailyReportCounts,
   getTopChampions,
   getTopReportedPlayers,
+  getVoteTotals,
+  getReportedTierBreakdown,
 } from "@/lib/stats";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
@@ -92,14 +94,17 @@ export default async function StatsPage({
   const since = periodFilterSince(period);
   const dailyTrendDays = DAILY_TREND_DAYS_BY_PERIOD[period];
 
-  const [overview, categories, verdicts, daily, topChampions, topPlayers] = await Promise.all([
-    getOverviewStats(since),
-    getCategoryBreakdown(since),
-    getVerdictBreakdown(since),
-    getDailyReportCounts(dailyTrendDays),
-    getTopChampions(10, since),
-    getTopReportedPlayers(10, since),
-  ]);
+  const [overview, categories, verdicts, daily, topChampions, topPlayers, voteTotals, tierBreakdown] =
+    await Promise.all([
+      getOverviewStats(since),
+      getCategoryBreakdown(since),
+      getVerdictBreakdown(since),
+      getDailyReportCounts(dailyTrendDays),
+      getTopChampions(10, since),
+      getTopReportedPlayers(10, since),
+      getVoteTotals(since),
+      getReportedTierBreakdown(since),
+    ]);
 
   return (
     <div>
@@ -157,6 +162,13 @@ export default async function StatsPage({
           <p className="stat-card-value stat-card-value-danger">{overview.violationConfirmedCount}</p>
           <p className="muted">違反確認件数</p>
         </div>
+        <div className="card stat-card">
+          <p className="stat-card-icon">⚖️</p>
+          <p className="stat-card-value">
+            {overview.violationConfirmedRate !== null ? `${overview.violationConfirmedRate}%` : "-"}
+          </p>
+          <p className="muted">違反確認率(評価済み中)</p>
+        </div>
       </div>
 
       <section className="section">
@@ -190,6 +202,34 @@ export default async function StatsPage({
               color: VERDICT_BAR_COLORS[v.verdict],
             }))}
           />
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>コミュニティ評価(妥当/不当投票)</h2>
+        <div className="card">
+          <BarList
+            rows={[
+              { label: "妥当", icon: "👍", count: voteTotals.likeCount, color: "var(--accent)" },
+              { label: "不当", icon: "👎", count: voteTotals.dislikeCount, color: "var(--danger)" },
+            ]}
+          />
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>通報されたユーザーのランク</h2>
+        <p className="muted" style={{ marginBottom: "0.75rem" }}>
+          通報された時点のソロ/デュオランクの分布です。この機能の導入(2026年7月14日)以降に届いた通報のみ対象です。
+        </p>
+        <div className="card">
+          {tierBreakdown.every((t) => t.count === 0) ? (
+            <div className="empty-state">
+              <p>まだ集計対象の通報はありません。</p>
+            </div>
+          ) : (
+            <BarList rows={tierBreakdown.map((t) => ({ label: t.label, count: t.count }))} />
+          )}
         </div>
       </section>
 

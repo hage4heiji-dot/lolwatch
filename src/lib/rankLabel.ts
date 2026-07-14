@@ -1,4 +1,4 @@
-const TIER_LABELS: Record<string, string> = {
+export const TIER_LABELS: Record<string, string> = {
   IRON: "アイアン",
   BRONZE: "ブロンズ",
   SILVER: "シルバー",

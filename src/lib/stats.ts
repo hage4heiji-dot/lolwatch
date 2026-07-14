@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { toJstDateKey, todayJstMidnightUtc } from "@/lib/jstDate";
+import { TIER_LABELS } from "@/lib/rankLabel";
 
 const DAILY_TREND_DAYS = 30;
 
@@ -47,7 +48,53 @@ export async function getOverviewStats(since: Date | null = null) {
       }),
     ]);
 
-  return { totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount };
+  // 評価済みの通報のうち、実際に違反が確認された割合(通報全体の信頼性の目安)。
+  const violationConfirmedRate =
+    reviewedReportCount > 0 ? Math.round((violationConfirmedCount / reviewedReportCount) * 100) : null;
+
+  return {
+    totalReports,
+    reportedPlayerCount,
+    reviewedReportCount,
+    violationConfirmedCount,
+    violationConfirmedRate,
+  };
+}
+
+export type VoteTotals = { likeCount: number; dislikeCount: number };
+
+// コミュニティ投票(「この通報は妥当/不当」)の集計。
+export async function getVoteTotals(since: Date | null = null): Promise<VoteTotals> {
+  const [likeCount, dislikeCount] = await Promise.all([
+    prisma.reportVote.count({
+      where: { voteType: "LIKE", report: { hiddenAt: null, ...createdAtFilter(since) } },
+    }),
+    prisma.reportVote.count({
+      where: { voteType: "DISLIKE", report: { hiddenAt: null, ...createdAtFilter(since) } },
+    }),
+  ]);
+  return { likeCount, dislikeCount };
+}
+
+export type TierCount = { tier: string; label: string; count: number };
+
+const TIER_ORDER = [...Object.keys(TIER_LABELS), "UNRANKED"];
+
+// 通報された時点でのソロ/デュオランク層の分布。reportedTierが未取得(null)の
+// 通報(この機能の導入以前のものなど)は対象外にする。
+export async function getReportedTierBreakdown(since: Date | null = null): Promise<TierCount[]> {
+  const grouped = await prisma.report.groupBy({
+    by: ["reportedTier"],
+    where: { hiddenAt: null, ...createdAtFilter(since), reportedTier: { not: null } },
+    _count: { _all: true },
+  });
+  const counts = new Map(grouped.map((g) => [g.reportedTier as string, g._count._all]));
+
+  return TIER_ORDER.map((tier) => ({
+    tier,
+    label: tier === "UNRANKED" ? "ランクなし" : TIER_LABELS[tier],
+    count: counts.get(tier) ?? 0,
+  }));
 }
 
 export async function getCategoryBreakdown(since: Date | null = null): Promise<CategoryCount[]> {

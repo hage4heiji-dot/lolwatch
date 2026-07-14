@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAccountByPuuid, RiotApiError } from "@/lib/riot";
+import { getAccountByPuuid, getLeagueEntriesByPuuid, RiotApiError } from "@/lib/riot";
 import { upsertPlayerFromRiotAccount } from "@/lib/player";
 import {
   DEVICE_ID_COOKIE,
@@ -98,6 +98,15 @@ export async function POST(request: NextRequest) {
     return respond({ error: rateCheck.reason }, 429);
   }
 
+  // 統計の「通報されたユーザーのランク」集計用に、通報された時点のソロ/デュオランクを
+  // 記録しておく。取得に失敗しても通報自体はブロックしない(nullのまま保存する)。
+  const reportedTier = await getLeagueEntriesByPuuid(puuid, platform)
+    .then(
+      (entries) =>
+        entries.find((entry) => entry.queueType === "RANKED_SOLO_5x5")?.tier ?? "UNRANKED",
+    )
+    .catch(() => null);
+
   const report = await prisma.report.create({
     data: {
       playerId: player.id,
@@ -110,6 +119,7 @@ export async function POST(request: NextRequest) {
       queueId,
       deviceId,
       posterIp: ip,
+      reportedTier,
     },
   });
 
