@@ -170,7 +170,6 @@ export default async function ReportsPage({
                 <th>カテゴリ</th>
                 <th>モデレーター評価</th>
                 <SortableDateHeader label="通報日時" filters={filters} />
-                <th>詳細</th>
               </tr>
             </thead>
             <tbody>
@@ -183,7 +182,7 @@ export default async function ReportsPage({
                       <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
                     </td>
                     <td>
-                      <Link href={`/players/${report.player.puuid}`}>
+                      <Link href={`/players/${report.player.puuid}?report=${report.id}#report-${report.id}`}>
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
@@ -205,15 +204,6 @@ export default async function ReportsPage({
                       )}
                     </td>
                     <td className="muted">{formatDateTime(report.createdAt)}</td>
-                    <td>
-                      <Link
-                        className="btn btn-secondary"
-                        style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                        href={`/players/${report.player.puuid}?report=${report.id}#report-${report.id}`}
-                      >
-                        詳細を見る
-                      </Link>
-                    </td>
                   </tr>
                 );
               })}
