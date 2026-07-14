@@ -91,17 +91,35 @@ export default async function ModeratorReviewListPage({
           const name = review.report.player.nameHistory[0];
           return (
             <div className="card" key={review.id}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                <Image
-                  className="champion-icon"
-                  src={getChampionIconUrl(ddragonVersion, review.report.championName)}
-                  alt={review.report.championName}
-                  width={28}
-                  height={28}
-                />
-                <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                  {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
-                </span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "0.5rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <Image
+                    className="champion-icon"
+                    src={getChampionIconUrl(ddragonVersion, review.report.championName)}
+                    alt={review.report.championName}
+                    width={28}
+                    height={28}
+                  />
+                  <span className={VERDICT_BADGE_CLASS[review.verdict]}>
+                    {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
+                  </span>
+                </div>
+                {viewer.id === review.moderatorId && (
+                  <Link
+                    className="btn btn-secondary"
+                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem", flexShrink: 0 }}
+                    href={`/moderator/review/${review.report.player.puuid}`}
+                  >
+                    レビューを編集
+                  </Link>
+                )}
               </div>
               <p style={{ marginTop: "0.5rem" }}>
                 対象:{" "}

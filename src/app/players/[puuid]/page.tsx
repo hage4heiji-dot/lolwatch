@@ -212,35 +212,6 @@ export default async function PlayerProfilePage({
       )}
 
       <section className="section">
-        <h2>👥 直近一緒にプレイしていたユーザー</h2>
-        <p className="muted" style={{ marginBottom: "0.75rem" }}>
-          直近{FREQUENT_TEAMMATES_MATCH_COUNT}試合のうち、2試合以上同じチームだった相手をRiot
-          APIから自動検出したものです。この一覧に載ること自体は通報や違反を意味しません。
-        </p>
-        {!topTeammate ? (
-          <p className="muted">該当する相手はいませんでした。</p>
-        ) : (
-          <details className="card report-card">
-            <summary className="report-summary">
-              <TeammateSummary mate={topTeammate} />
-              {restTeammates.length > 0 && (
-                <span className="muted report-summary-date">他{restTeammates.length}人</span>
-              )}
-              <span className="report-summary-toggle" aria-hidden="true">
-                <span className="report-summary-toggle-closed">一覧を見る ▾</span>
-                <span className="report-summary-toggle-open">閉じる ▴</span>
-              </span>
-            </summary>
-            <div className="report-detail">
-              {frequentTeammates.map((mate) => (
-                <TeammateRow mate={mate} key={mate.puuid} />
-              ))}
-            </div>
-          </details>
-        )}
-      </section>
-
-      <section className="section">
         <h2>
           試合ごとの通報{" "}
           <span className="badge badge-unverified">通報自体は未検証</span>
@@ -393,6 +364,35 @@ export default async function PlayerProfilePage({
               </details>
             );
           })
+        )}
+      </section>
+
+      <section className="section">
+        <h2>👥 直近一緒にプレイしていたユーザー</h2>
+        <p className="muted" style={{ marginBottom: "0.75rem" }}>
+          直近{FREQUENT_TEAMMATES_MATCH_COUNT}試合のうち、2試合以上同じチームだった相手をRiot
+          APIから自動検出したものです。この一覧に載ること自体は通報や違反を意味しません。
+        </p>
+        {!topTeammate ? (
+          <p className="muted">該当する相手はいませんでした。</p>
+        ) : (
+          <details className="card report-card">
+            <summary className="report-summary">
+              <TeammateSummary mate={topTeammate} />
+              {restTeammates.length > 0 && (
+                <span className="muted report-summary-date">他{restTeammates.length}人</span>
+              )}
+              <span className="report-summary-toggle" aria-hidden="true">
+                <span className="report-summary-toggle-closed">一覧を見る ▾</span>
+                <span className="report-summary-toggle-open">閉じる ▴</span>
+              </span>
+            </summary>
+            <div className="report-detail">
+              {frequentTeammates.map((mate) => (
+                <TeammateRow mate={mate} key={mate.puuid} />
+              ))}
+            </div>
+          </details>
         )}
       </section>
     </div>
