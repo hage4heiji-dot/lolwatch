@@ -90,10 +90,13 @@ function TeammateRow({ mate }: { mate: FrequentTeammate }) {
 
 export default async function PlayerProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ puuid: string }>;
+  searchParams: Promise<{ report?: string }>;
 }) {
   const { puuid } = await params;
+  const { report: highlightedReportId } = await searchParams;
   const player = await findPlayerByPuuid(puuid);
   const cookieStore = await cookies();
   const deviceId = cookieStore.get(DEVICE_ID_COOKIE)?.value ?? null;
@@ -226,8 +229,14 @@ export default async function PlayerProfilePage({
             const matchDetail = matchDetailByMatchId.get(report.matchId);
             const participant = matchDetail?.participants.find((p) => p.puuid === player.puuid);
             const latestReview = report.moderatorReviews[0];
+            const isHighlighted = report.id === highlightedReportId;
             return (
-              <details className="card report-card" key={report.id}>
+              <details
+                className={`card report-card${isHighlighted ? " report-card-highlighted" : ""}`}
+                key={report.id}
+                id={`report-${report.id}`}
+                open={isHighlighted || undefined}
+              >
                 <summary className="report-summary">
                   <span className="badge">
                     {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}

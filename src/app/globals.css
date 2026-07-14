@@ -335,6 +335,12 @@ a.card:hover {
   padding: 0;
 }
 
+/* 通報一覧(/reports)から特定の通報にリンクされた際の目印。 */
+.report-card-highlighted {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 .report-summary {
   display: flex;
   align-items: center;
