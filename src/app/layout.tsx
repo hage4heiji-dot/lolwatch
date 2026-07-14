@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "./site-nav";
+import { getSessionModerator } from "@/lib/moderatorAuth";
 import "./globals.css";
 
 const X_PROFILE_URL = "https://x.com/lolwatch110";
@@ -23,11 +24,13 @@ export const metadata: Metadata = {
     "ゲームIDへの通報状況とモデレーター評価を集約する非公式サイト",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const moderator = await getSessionModerator();
+
   return (
     <html lang="ja" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
@@ -45,7 +48,7 @@ export default function RootLayout({
                 />
                 lolwatch
               </Link>
-              <SiteNav />
+              <SiteNav isModerator={!!moderator} />
               <a
                 href={X_PROFILE_URL}
                 target="_blank"

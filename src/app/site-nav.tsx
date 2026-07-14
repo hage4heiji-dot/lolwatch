@@ -10,7 +10,7 @@ const LINKS = [
   { href: "/guidelines", label: "ガイドライン" },
 ];
 
-export function SiteNav() {
+export function SiteNav({ isModerator = false }: { isModerator?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -26,6 +26,11 @@ export function SiteNav() {
       <Link href="/report" className={`site-nav-report${pathname.startsWith("/report") ? " active" : ""}`}>
         📢 通報する
       </Link>
+      {isModerator && (
+        <Link href="/moderator" className={pathname.startsWith("/moderator") ? "active" : ""}>
+          ⚔️ モデレーターに戻る
+        </Link>
+      )}
     </nav>
   );
 }
