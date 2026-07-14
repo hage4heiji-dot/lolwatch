@@ -68,35 +68,25 @@ export async function findPlayersNeedingReview(limit = 20) {
 
 export type ReportedPlayersVerdictFilter = ModeratorVerdict | "UNREVIEWED";
 export type ReportedPlayersSort = "reportCount" | "newest";
+export type SortDirection = "asc" | "desc";
 
 export const REPORTED_PLAYERS_SORT_LABELS: Record<ReportedPlayersSort, string> = {
-  reportCount: "通報件数が多い順",
-  newest: "新しい通報順",
+  reportCount: "通報件数",
+  newest: "最新の通報日時",
 };
 
-// 公開の「通報されているユーザー一覧」ページ用。非表示にされた通報のみのプレイヤーは除外する。
-// 通報件数だけでなく「最新の通報が新しい順」でも並べられるよう、まずReport.groupByで
-// 対象プレイヤーIDを絞り込み・並び替えしてからページ分のPlayerを取得する
-// (Prismaはto-many関係の_max集計でのorderByを親モデル側でサポートしないため)。
-export async function findReportedPlayers({
-  page,
-  pageSize,
-  query,
+function buildReportFilter({
+  since,
   category,
   verdict,
-  period,
-  sort = "reportCount",
+  query,
 }: {
-  page: number;
-  pageSize: number;
-  query?: string;
+  since: Date | null;
   category?: ReportCategory;
   verdict?: ReportedPlayersVerdictFilter;
-  period?: PeriodFilter;
-  sort?: ReportedPlayersSort;
-}) {
-  const since = period ? periodFilterSince(period) : null;
-  const reportFilter: Prisma.ReportWhereInput = {
+  query?: string;
+}): Prisma.ReportWhereInput {
+  return {
     hiddenAt: null,
     ...(since ? { createdAt: { gte: since } } : {}),
     ...(category ? { category } : {}),
@@ -113,22 +103,88 @@ export async function findReportedPlayers({
         }
       : {}),
   };
+}
 
-  const grouped = await prisma.report.groupBy({
-    by: ["playerId"],
-    where: reportFilter,
-    _count: { _all: true },
-    _max: { createdAt: true },
-  });
+// 一覧のページ件数とは別に「該当する通報対象プレイヤーの総数」が必要(ページング表示用)。
+// groupByで全件取得してJS側で数えると対象プレイヤー数に比例して重くなるため、
+// COUNT(DISTINCT ...)を生SQLでDBに計算させ、アプリ側には件数1行だけを転送する。
+async function countDistinctReportedPlayers({
+  since,
+  category,
+  verdict,
+  query,
+}: {
+  since: Date | null;
+  category?: ReportCategory;
+  verdict?: ReportedPlayersVerdictFilter;
+  query?: string;
+}): Promise<number> {
+  const conditions: Prisma.Sql[] = [Prisma.sql`r."hiddenAt" IS NULL`];
+  if (since) conditions.push(Prisma.sql`r."createdAt" >= ${since}`);
+  if (category) conditions.push(Prisma.sql`r."category" = ${category}::"ReportCategory"`);
+  if (verdict === "UNREVIEWED") {
+    conditions.push(
+      Prisma.sql`NOT EXISTS (SELECT 1 FROM "ModeratorReview" mr WHERE mr."reportId" = r.id)`,
+    );
+  } else if (verdict) {
+    conditions.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "ModeratorReview" mr WHERE mr."reportId" = r.id AND mr."verdict" = ${verdict}::"ModeratorVerdict")`,
+    );
+  }
+  if (query) {
+    conditions.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM "PlayerNameHistory" nh WHERE nh."playerId" = r."playerId" AND nh."riotIdName" ILIKE ${`%${query}%`})`,
+    );
+  }
 
-  const sorted = grouped.sort((a, b) =>
-    sort === "newest"
-      ? (b._max.createdAt?.getTime() ?? 0) - (a._max.createdAt?.getTime() ?? 0)
-      : b._count._all - a._count._all,
+  const result = await prisma.$queryRaw<{ count: bigint }[]>(
+    Prisma.sql`SELECT COUNT(DISTINCT r."playerId")::bigint AS count FROM "Report" r WHERE ${Prisma.join(conditions, " AND ")}`,
   );
+  return Number(result[0]?.count ?? 0);
+}
 
-  const totalCount = sorted.length;
-  const pageGroups = sorted.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+// 公開の「通報されているユーザー一覧」ページ用。非表示にされた通報のみのプレイヤーは除外する。
+// 通報件数・最新の通報日時どちらでも並べられるよう、Report.groupByの時点で
+// orderBy+skip/takeを指定してDB側でページ分だけ絞り込む(全件をアプリ側に転送しない)。
+// 総件数もCOUNT(DISTINCT)による別クエリでDB側で計算する。
+export async function findReportedPlayers({
+  page,
+  pageSize,
+  query,
+  category,
+  verdict,
+  period,
+  sort = "reportCount",
+  direction = "desc",
+}: {
+  page: number;
+  pageSize: number;
+  query?: string;
+  category?: ReportCategory;
+  verdict?: ReportedPlayersVerdictFilter;
+  period?: PeriodFilter;
+  sort?: ReportedPlayersSort;
+  direction?: SortDirection;
+}) {
+  const since = period ? periodFilterSince(period) : null;
+  const reportFilter = buildReportFilter({ since, category, verdict, query });
+
+  const [pageGroups, totalCount] = await Promise.all([
+    prisma.report.groupBy({
+      by: ["playerId"],
+      where: reportFilter,
+      _count: { _all: true },
+      _max: { createdAt: true },
+      orderBy:
+        sort === "newest"
+          ? { _max: { createdAt: direction } }
+          : { _count: { playerId: direction } },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    countDistinctReportedPlayers({ since, category, verdict, query }),
+  ]);
+
   const pageIds = pageGroups.map((g) => g.playerId);
 
   if (pageIds.length === 0) {
@@ -146,10 +202,11 @@ export async function findReportedPlayers({
           moderatorReviews: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
-      _count: { select: { reports: { where: { hiddenAt: null } } } },
     },
   });
   const playerById = new Map(players.map((p) => [p.id, p]));
+  const countByPlayerId = new Map(pageGroups.map((g) => [g.playerId, g._count._all]));
+  const latestReportAtByPlayerId = new Map(pageGroups.map((g) => [g.playerId, g._max.createdAt]));
 
   const playersWithLatestReview = pageIds.flatMap((id) => {
     const player = playerById.get(id);
@@ -157,7 +214,15 @@ export async function findReportedPlayers({
     const latestReview = player.reports
       .flatMap((r) => r.moderatorReviews)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-    return [{ ...player, latestReview }];
+    return [
+      {
+        ...player,
+        latestReview,
+        // 現在の絞り込み条件(カテゴリ・評価・期間・検索語)に一致する通報件数/最新日時。
+        reportCount: countByPlayerId.get(id) ?? 0,
+        latestReportAt: latestReportAtByPlayerId.get(id) ?? null,
+      },
+    ];
   });
 
   return { players: playersWithLatestReview, totalCount };

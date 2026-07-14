@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "./site-nav";
 import "./globals.css";
+
+const X_PROFILE_URL = "https://x.com/lolwatch110";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,12 +35,31 @@ export default function RootLayout({
           <header className="site-header">
             <div className="site-header-inner">
               <Link href="/" className="site-logo">
-                <span className="site-logo-mark" aria-hidden>
-                  LW
-                </span>
+                <Image
+                  src="/logo.png"
+                  alt=""
+                  aria-hidden
+                  width={26}
+                  height={26}
+                  className="site-logo-mark"
+                />
                 lolwatch
               </Link>
               <SiteNav />
+              <a
+                href={X_PROFILE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="site-x-link"
+                aria-label="lolwatch公式X(旧Twitter)アカウント"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                  />
+                </svg>
+              </a>
             </div>
           </header>
           <main className="site-main">{children}</main>

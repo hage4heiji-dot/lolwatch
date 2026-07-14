@@ -16,6 +16,7 @@
   --team-red-bg: #fceeef;
   --kill-color: #1a7a3a;
   --assist-color: #3457d5;
+  --self-highlight: #c9891a;
   --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.05);
   --shadow-md: 0 4px 16px rgba(20, 20, 30, 0.08);
   --radius: 10px;
@@ -40,6 +41,7 @@
     --team-red-bg: #331d22;
     --kill-color: #5fd68a;
     --assist-color: #7c93ff;
+    --self-highlight: #f2b636;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.45);
   }
@@ -198,16 +200,27 @@ h2 {
 
 .site-logo-mark {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--team-blue), var(--team-red));
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0;
+  object-fit: cover;
+}
+
+.site-x-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  color: var(--muted);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.site-x-link:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .site-main {
@@ -262,6 +275,59 @@ a.card:hover {
 
 .card + .card {
   margin-top: 0.75rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  background: var(--card-bg);
+  font-weight: 700;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table tbody tr + tr {
+  border-top: 1px solid var(--border);
+}
+
+.data-table tbody tr:hover {
+  background: var(--card-bg);
+}
+
+.sortable-header {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  transition: color 0.15s ease;
+}
+
+.sortable-header:hover {
+  color: var(--accent);
+}
+
+.sortable-header.active {
+  color: var(--accent);
+}
+
+.sort-arrow {
+  font-size: 0.7rem;
 }
 
 /* --- 通報カード(折りたたみ) --- */
@@ -679,6 +745,111 @@ a.card:hover {
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 1rem;
+}
+
+.lookup-mode-toggle {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.lookup-mode-toggle button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.lookup-mode-toggle button:hover {
+  color: var(--accent);
+}
+
+.lookup-mode-toggle button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.summoner-match-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  appearance: none;
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 0;
+  background: var(--background);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.summoner-match-row + .summoner-match-row {
+  border-top: 1px solid var(--border);
+}
+
+.summoner-match-row:hover:not(:disabled) {
+  background: var(--card-bg);
+  cursor: pointer;
+}
+
+.summoner-match-row:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.summoner-match-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.summoner-match-comp {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.summoner-match-team {
+  display: flex;
+  gap: 3px;
+}
+
+.summoner-match-team .champion-icon {
+  border-width: 1px;
+}
+
+.champion-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.champion-icon.self {
+  border-color: var(--self-highlight) !important;
+  border-width: 2px;
+  box-shadow: 0 0 0 2px var(--self-highlight);
+  transform: scale(1.18);
+  position: relative;
+  z-index: 1;
 }
 
 .team-banner {

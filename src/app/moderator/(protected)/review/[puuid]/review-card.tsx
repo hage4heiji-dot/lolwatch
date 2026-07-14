@@ -80,7 +80,7 @@ export function ModeratorReviewCard({
       </span>
       <p style={{ marginTop: "0.5rem" }}>{rationale}</p>
       <p className="muted" style={{ marginTop: "0.5rem" }}>
-        {moderatorDisplayName} ・ {createdAtLabel}
+        ⚔️ {moderatorDisplayName} ・ {createdAtLabel}
       </p>
       {canEdit && (
         <button

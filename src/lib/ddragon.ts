@@ -1,7 +1,15 @@
 // クライアント/サーバー両方から使う純粋関数のみを置く。
 // バージョン取得(要fetch)やRiot APIキーを扱うロジックは riot.ts 側に置く。
+
+// Match APIのchampionNameとDDragonの画像キーが一致しないチャンピオンの補正表。
+// (例: FiddlesticksはMatch APIが "FiddleSticks" を返すが、DDragonの画像キーは "Fiddlesticks")
+const CHAMPION_NAME_DDRAGON_OVERRIDES: Record<string, string> = {
+  FiddleSticks: "Fiddlesticks",
+};
+
 export function getChampionIconUrl(ddragonVersion: string, championName: string): string {
-  return `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${encodeURIComponent(championName)}.png`;
+  const normalized = CHAMPION_NAME_DDRAGON_OVERRIDES[championName] ?? championName;
+  return `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${encodeURIComponent(normalized)}.png`;
 }
 
 // DDragonバージョン取得に失敗した場合の最終手段のフォールバック(チャンピオンアイコンが

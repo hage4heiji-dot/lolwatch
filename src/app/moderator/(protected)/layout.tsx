@@ -25,6 +25,7 @@ export default async function ModeratorProtectedLayout({
           <Link href="/moderator">ダッシュボード</Link>
           <Link href="/moderator/guidelines">判断基準</Link>
           {moderator.isAdmin && <Link href="/moderator/reports">全通報一覧</Link>}
+          {moderator.isAdmin && <Link href="/moderator/moderators">モデレーター別集計</Link>}
         </nav>
         <form action={logoutAction}>
           <button className="btn btn-secondary" type="submit">

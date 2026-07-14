@@ -373,7 +373,7 @@ export default async function PlayerProfilePage({
                           </span>
                           <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
                           <p className="muted" style={{ marginTop: "0.5rem" }}>
-                            {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
+                            ⚔️ {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
                           </p>
                           <ReviewObjectionButton
                             reviewId={review.id}

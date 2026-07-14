@@ -83,3 +83,36 @@ export function checkMatchLookupRateLimit(ip: string): RateLimitResult {
 
   return { allowed: true };
 }
+
+// サモナー名から直近試合一覧を検索するAPI用。1回の呼び出しで
+// 試合ID一覧取得+試合詳細(最大20件)とRiot APIコストが大きいため、
+// 通常の試合ID検索より低いしきい値で制限する。
+const SUMMONER_MATCHES_WINDOW_MS = 60 * 1000;
+const SUMMONER_MATCHES_MAX_REQUESTS = 5;
+const summonerMatchesHistory = new Map<string, number[]>();
+
+export function checkSummonerMatchesRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - SUMMONER_MATCHES_WINDOW_MS;
+  const timestamps = (summonerMatchesHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= SUMMONER_MATCHES_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "サモナー名検索が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  summonerMatchesHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of summonerMatchesHistory) {
+      if (values.every((t) => t < since)) {
+        summonerMatchesHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
