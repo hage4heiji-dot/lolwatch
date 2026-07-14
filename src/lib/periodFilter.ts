@@ -3,7 +3,7 @@ import { todayJstMidnightUtc } from "@/lib/jstDate";
 // 通報一覧・統計ダッシュボードで共通して使う期間フィルタ。
 export type PeriodFilter = "week" | "month" | "all";
 
-export const DEFAULT_PERIOD_FILTER: PeriodFilter = "week";
+export const DEFAULT_PERIOD_FILTER: PeriodFilter = "month";
 
 export const PERIOD_FILTER_LABELS: Record<PeriodFilter, string> = {
   week: "直近1週間",
