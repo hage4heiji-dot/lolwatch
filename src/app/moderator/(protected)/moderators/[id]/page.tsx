@@ -1,15 +1,11 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requireModerator } from "@/lib/moderatorAuth";
-import { findReviewsByModerator } from "@/lib/moderatorReviewList";
+import { findReviewsByModerator, ModeratorReviewListSort } from "@/lib/moderatorReviewList";
 import { prisma } from "@/lib/prisma";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
-import { getLatestDdragonVersion } from "@/lib/riot";
-import { getChampionIconUrl } from "@/lib/ddragon";
 
 const PAGE_SIZE = 20;
-const FALLBACK_DDRAGON_VERSION = "14.23.1";
 
 // モデレーターごとの活動を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -22,12 +18,16 @@ function formatDateTime(date: Date): string {
   }).format(date);
 }
 
+function toSort(value: string | undefined): ModeratorReviewListSort {
+  return value === "oldest" ? "oldest" : "newest";
+}
+
 export default async function ModeratorReviewListPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sort?: string }>;
 }) {
   const viewer = await requireModerator();
   const { id } = await params;
@@ -54,19 +54,24 @@ export default async function ModeratorReviewListPage({
     notFound();
   }
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, sort: sortParam } = await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
+  const sort = toSort(sortParam);
 
-  const [{ reviews, totalCount }, ddragonVersion] = await Promise.all([
-    findReviewsByModerator({ moderatorId: id, page, pageSize: PAGE_SIZE }),
-    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
-  ]);
+  const { reviews, totalCount } = await findReviewsByModerator({
+    moderatorId: id,
+    page,
+    pageSize: PAGE_SIZE,
+    sort,
+  });
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  function pageHref(targetPage: number): string {
+  function buildHref({ page: targetPage, sort: targetSort }: { page?: number; sort?: ModeratorReviewListSort }): string {
     const sp = new URLSearchParams();
-    if (targetPage > 1) sp.set("page", String(targetPage));
+    const nextSort = targetSort ?? sort;
+    if (nextSort !== "newest") sp.set("sort", nextSort);
+    if (targetPage && targetPage > 1) sp.set("page", String(targetPage));
     const qs = sp.toString();
     return qs ? `/moderator/moderators/${id}?${qs}` : `/moderator/moderators/${id}`;
   }
@@ -79,7 +84,7 @@ export default async function ModeratorReviewListPage({
       </h1>
       <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
         {viewer.id === id ? "自分が" : `${target.displayName}が`}これまでにレビューした通報の一覧です(総件数:{" "}
-        {totalCount}件)。
+        {totalCount}件)。見出しをクリックすると並び替えられます。
       </p>
 
       {reviews.length === 0 ? (
@@ -87,54 +92,66 @@ export default async function ModeratorReviewListPage({
           <p>まだレビューはありません。</p>
         </div>
       ) : (
-        reviews.map((review) => {
-          const name = review.report.player.nameHistory[0];
-          return (
-            <div className="card" key={review.id}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: "0.5rem",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <Image
-                    className="champion-icon"
-                    src={getChampionIconUrl(ddragonVersion, review.report.championName)}
-                    alt={review.report.championName}
-                    width={28}
-                    height={28}
-                  />
-                  <span className={VERDICT_BADGE_CLASS[review.verdict]}>
-                    {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
-                  </span>
-                </div>
-                {viewer.id === review.moderatorId && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>対象</th>
+                <th>判定</th>
+                <th>理由</th>
+                <th>
                   <Link
-                    className="btn btn-secondary"
-                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem", flexShrink: 0 }}
-                    href={`/moderator/review/${review.report.player.puuid}`}
+                    href={buildHref({ sort: sort === "newest" ? "oldest" : "newest" })}
+                    className="sortable-header active"
                   >
-                    レビューを編集
+                    レビュー日時
+                    <span className="sort-arrow">{sort === "newest" ? " ▼" : " ▲"}</span>
                   </Link>
-                )}
-              </div>
-              <p style={{ marginTop: "0.5rem" }}>
-                対象:{" "}
-                <Link href={`/players/${review.report.player.puuid}`}>
-                  {name ? `${name.riotIdName} #${name.riotIdTagLine}` : review.report.player.puuid}
-                </Link>{" "}
-                ・ {review.report.championName} ・ {review.report.matchId}
-              </p>
-              <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                🕒 {formatDateTime(review.createdAt)}
-              </p>
-            </div>
-          );
-        })
+                </th>
+                <th>アクション</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map((review, i) => {
+                const name = review.report.player.nameHistory[0];
+                return (
+                  <tr key={review.id}>
+                    <td>
+                      <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
+                    </td>
+                    <td>
+                      <Link href={`/players/${review.report.player.puuid}`}>
+                        {name ? `${name.riotIdName} #${name.riotIdTagLine}` : review.report.player.puuid}
+                      </Link>
+                      <p className="muted" style={{ marginTop: "0.2rem" }}>
+                        {review.report.championName} ・ {review.report.matchId}
+                      </p>
+                    </td>
+                    <td>
+                      <span className={VERDICT_BADGE_CLASS[review.verdict]}>
+                        {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
+                      </span>
+                    </td>
+                    <td style={{ whiteSpace: "normal", maxWidth: "320px" }}>{review.rationale}</td>
+                    <td className="muted">{formatDateTime(review.createdAt)}</td>
+                    <td>
+                      {viewer.id === review.moderatorId && (
+                        <Link
+                          className="btn btn-secondary"
+                          style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
+                          href={`/moderator/review/${review.report.player.puuid}`}
+                        >
+                          編集
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {totalPages > 1 && (
@@ -147,7 +164,7 @@ export default async function ModeratorReviewListPage({
           }}
         >
           {page > 1 ? (
-            <Link className="btn btn-secondary" href={pageHref(page - 1)}>
+            <Link className="btn btn-secondary" href={buildHref({ page: page - 1 })}>
               前へ
             </Link>
           ) : (
@@ -157,7 +174,7 @@ export default async function ModeratorReviewListPage({
             {page} / {totalPages} ページ
           </span>
           {page < totalPages ? (
-            <Link className="btn btn-secondary" href={pageHref(page + 1)}>
+            <Link className="btn btn-secondary" href={buildHref({ page: page + 1 })}>
               次へ
             </Link>
           ) : (

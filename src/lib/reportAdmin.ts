@@ -5,11 +5,6 @@ export type HiddenFilter = "all" | "hidden" | "visible";
 export type ReviewedFilter = "all" | "reviewed" | "unreviewed";
 export type ReportAdminSort = "newest" | "oldest";
 
-export const REPORT_ADMIN_SORT_LABELS: Record<ReportAdminSort, string> = {
-  newest: "新しい順",
-  oldest: "古い順",
-};
-
 export interface ReportAdminFilters {
   category?: ReportCategory;
   hidden: HiddenFilter;

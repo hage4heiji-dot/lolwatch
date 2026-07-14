@@ -1,16 +1,12 @@
 import Link from "next/link";
-import Image from "next/image";
 import { requireModerator } from "@/lib/moderatorAuth";
-import { findAllReportsForAdmin, REPORT_ADMIN_SORT_LABELS } from "@/lib/reportAdmin";
+import { findAllReportsForAdmin } from "@/lib/reportAdmin";
 import type { HiddenFilter, ReviewedFilter, ReportAdminSort } from "@/lib/reportAdmin";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
-import { getLatestDdragonVersion } from "@/lib/riot";
-import { getChampionIconUrl } from "@/lib/ddragon";
 import { ReportCategory } from "@/generated/prisma";
 
 const PAGE_SIZE = 30;
-const FALLBACK_DDRAGON_VERSION = "14.23.1";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -34,6 +30,40 @@ function toCategory(value: string | undefined): ReportCategory | undefined {
 
 function toSort(value: string | undefined): ReportAdminSort {
   return value === "oldest" ? "oldest" : "newest";
+}
+
+interface FilterParams {
+  query?: string;
+  category?: ReportCategory;
+  hidden: HiddenFilter;
+  reviewed: ReviewedFilter;
+  sort: ReportAdminSort;
+}
+
+function buildHref(params: FilterParams & { page?: number }): string {
+  const sp = new URLSearchParams();
+  if (params.query) sp.set("q", params.query);
+  if (params.category) sp.set("category", params.category);
+  if (params.hidden !== "all") sp.set("hidden", params.hidden);
+  if (params.reviewed !== "all") sp.set("reviewed", params.reviewed);
+  if (params.sort !== "newest") sp.set("sort", params.sort);
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
+  const qs = sp.toString();
+  return qs ? `/moderator/reports?${qs}` : "/moderator/reports";
+}
+
+function SortableDateHeader({ label, filters }: { label: string; filters: FilterParams }) {
+  const nextSort: ReportAdminSort = filters.sort === "newest" ? "oldest" : "newest";
+  const href = buildHref({ ...filters, sort: nextSort });
+
+  return (
+    <th>
+      <Link href={href} className="sortable-header active">
+        {label}
+        <span className="sort-arrow">{filters.sort === "newest" ? " ▼" : " ▲"}</span>
+      </Link>
+    </th>
+  );
 }
 
 export default async function AdminReportsPage({
@@ -69,33 +99,21 @@ export default async function AdminReportsPage({
   const reviewed = toReviewedFilter(params.reviewed);
   const sort = toSort(params.sort);
 
-  const [{ reports, totalCount }, ddragonVersion] = await Promise.all([
-    findAllReportsForAdmin({ page, pageSize: PAGE_SIZE, filters: { category, hidden, reviewed, query }, sort }),
-    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
-  ]);
+  const { reports, totalCount } = await findAllReportsForAdmin({
+    page,
+    pageSize: PAGE_SIZE,
+    filters: { category, hidden, reviewed, query },
+    sort,
+  });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  function pageHref(targetPage: number): string {
-    const sp = new URLSearchParams();
-    if (query) sp.set("q", query);
-    if (category) sp.set("category", category);
-    if (hidden !== "all") sp.set("hidden", hidden);
-    if (reviewed !== "all") sp.set("reviewed", reviewed);
-    if (sort !== "newest") sp.set("sort", sort);
-    if (targetPage > 1) sp.set("page", String(targetPage));
-    const qs = sp.toString();
-    return qs ? `/moderator/reports?${qs}` : "/moderator/reports";
-  }
-
-  const hasFilters = Boolean(
-    query || category || hidden !== "all" || reviewed !== "all" || sort !== "newest",
-  );
+  const hasFilters = Boolean(query || category || hidden !== "all" || reviewed !== "all");
+  const filters: FilterParams = { query, category, hidden, reviewed, sort };
 
   return (
     <div>
       <h1>全通報一覧(管理者)</h1>
       <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
-        非表示にされた通報も含め、新しい順に表示しています。
+        非表示にされた通報も含めて表示しています。見出しをクリックすると並び替えられます。
       </p>
 
       <form
@@ -143,16 +161,7 @@ export default async function AdminReportsPage({
             <option value="unreviewed">⏳ 未評価のみ</option>
           </select>
         </div>
-        <div className="form-field" style={{ marginBottom: 0 }}>
-          <label htmlFor="sort">並び替え</label>
-          <select id="sort" name="sort" defaultValue={sort}>
-            {Object.entries(REPORT_ADMIN_SORT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <input type="hidden" name="sort" value={sort} />
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button className="btn" type="submit">
             絞り込む
@@ -170,82 +179,79 @@ export default async function AdminReportsPage({
       </p>
 
       {reports.length === 0 ? (
-        <p className="muted">条件に一致する通報はありません。</p>
+        <div className="empty-state">
+          <p>条件に一致する通報はありません。</p>
+        </div>
       ) : (
-        <div className="card-grid">
-        {reports.map((report) => {
-          const name = report.player.nameHistory[0];
-          const isReviewed = report.moderatorReviews.length > 0;
-          return (
-            <div
-              className="card"
-              key={report.id}
-              style={report.hiddenAt ? { opacity: 0.6 } : undefined}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: "0.5rem",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <Image
-                    className="champion-icon"
-                    src={getChampionIconUrl(ddragonVersion, report.championName)}
-                    alt={report.championName}
-                    width={28}
-                    height={28}
-                  />
-                  <span className="badge">
-                    {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
-                  </span>
-                  {report.hiddenAt && (
-                    <span className="badge badge-verified-guilty">🙈 非表示中</span>
-                  )}
-                  {isReviewed ? (
-                    <span className="badge badge-verified">✅ 評価済み</span>
-                  ) : (
-                    <span className="badge badge-unverified">⏳ 未評価</span>
-                  )}
-                </div>
-                <Link
-                  className="btn btn-secondary"
-                  style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem", flexShrink: 0 }}
-                  href={`/moderator/review/${report.player.puuid}`}
-                >
-                  レビューを開く
-                </Link>
-              </div>
-              <p style={{ marginTop: "0.5rem" }}>
-                対象:{" "}
-                <Link href={`/players/${report.player.puuid}`}>
-                  {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
-                </Link>{" "}
-                ・ {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
-              </p>
-              {report.comment && (
-                <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
-              )}
-              {report.referenceUrl && (
-                <p style={{ marginTop: "0.5rem" }}>
-                  <a href={report.referenceUrl} target="_blank" rel="noopener noreferrer">
-                    🔗 添付された参考URLを見る
-                  </a>
-                </p>
-              )}
-              {report.hiddenReason && (
-                <p className="muted" style={{ marginTop: "0.5rem" }}>
-                  非表示理由: {report.hiddenReason}
-                </p>
-              )}
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                🕒 {formatDateTime(report.createdAt)}
-              </p>
-            </div>
-          );
-        })}
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>対象</th>
+                <th>カテゴリ</th>
+                <th>表示状態</th>
+                <th>評価状態</th>
+                <SortableDateHeader label="通報日時" filters={filters} />
+                <th>アクション</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reports.map((report, i) => {
+                const name = report.player.nameHistory[0];
+                const isReviewed = report.moderatorReviews.length > 0;
+                return (
+                  <tr key={report.id} style={report.hiddenAt ? { opacity: 0.6 } : undefined}>
+                    <td>
+                      <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
+                    </td>
+                    <td>
+                      <Link href={`/players/${report.player.puuid}`}>
+                        {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
+                      </Link>
+                      <p className="muted" style={{ marginTop: "0.2rem" }}>
+                        {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
+                      </p>
+                    </td>
+                    <td>
+                      <span className="badge">
+                        {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
+                      </span>
+                    </td>
+                    <td>
+                      {report.hiddenAt ? (
+                        <span
+                          className="badge badge-verified-guilty"
+                          title={report.hiddenReason ?? undefined}
+                        >
+                          🙈 非表示中
+                        </span>
+                      ) : (
+                        <span className="badge">👁️ 表示中</span>
+                      )}
+                    </td>
+                    <td>
+                      {isReviewed ? (
+                        <span className="badge badge-verified">✅ 評価済み</span>
+                      ) : (
+                        <span className="badge badge-unverified">⏳ 未評価</span>
+                      )}
+                    </td>
+                    <td className="muted">{formatDateTime(report.createdAt)}</td>
+                    <td>
+                      <Link
+                        className="btn btn-secondary"
+                        style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
+                        href={`/moderator/review/${report.player.puuid}`}
+                      >
+                        レビューを開く
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -259,7 +265,7 @@ export default async function AdminReportsPage({
           }}
         >
           {page > 1 ? (
-            <Link className="btn btn-secondary" href={pageHref(page - 1)}>
+            <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page - 1 })}>
               前へ
             </Link>
           ) : (
@@ -269,7 +275,7 @@ export default async function AdminReportsPage({
             {page} / {totalPages} ページ
           </span>
           {page < totalPages ? (
-            <Link className="btn btn-secondary" href={pageHref(page + 1)}>
+            <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page + 1 })}>
               次へ
             </Link>
           ) : (

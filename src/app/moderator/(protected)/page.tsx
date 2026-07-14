@@ -12,18 +12,12 @@ import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
 
 const PAGE_SIZE = 20;
 const DEFAULT_VERDICT_FILTER: ReportedPlayersVerdictFilter = "UNREVIEWED";
+const DEFAULT_SORT: ReportedPlayersSort = "reportCount";
+const DEFAULT_DIRECTION: SortDirection = "desc";
 const VERDICT_FILTER_VALUES: ReportedPlayersVerdictFilter[] = [
   "UNREVIEWED",
   ...(Object.keys(VERDICT_LABELS) as ModeratorVerdict[]),
 ];
-
-const SORT_OPTIONS: { value: string; label: string; sort: ReportedPlayersSort; direction: SortDirection }[] = [
-  { value: "reportCount:desc", label: "通報件数が多い順", sort: "reportCount", direction: "desc" },
-  { value: "reportCount:asc", label: "通報件数が少ない順", sort: "reportCount", direction: "asc" },
-  { value: "newest:desc", label: "新しい通報順", sort: "newest", direction: "desc" },
-  { value: "newest:asc", label: "古い通報順", sort: "newest", direction: "asc" },
-];
-const DEFAULT_SORT_VALUE = SORT_OPTIONS[0].value;
 
 // 通報状況を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -36,12 +30,67 @@ function isVerdictFilter(value: string): value is ReportedPlayersVerdictFilter {
   return (VERDICT_FILTER_VALUES as string[]).includes(value);
 }
 
+function isSort(value: string): value is ReportedPlayersSort {
+  return value === "reportCount" || value === "newest";
+}
+
+function isDirection(value: string): value is SortDirection {
+  return value === "asc" || value === "desc";
+}
+
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Tokyo",
   }).format(date);
+}
+
+interface FilterParams {
+  q?: string;
+  category?: ReportCategory;
+  // "すべて"の明示的な選択(空文字)とパラメータ省略(デフォルト)を区別するため、
+  // パース済みのverdictではなく生のクエリ文字列を保持する。
+  verdictParam?: string;
+  moderatorId?: string;
+  sort: ReportedPlayersSort;
+  direction: SortDirection;
+}
+
+function buildHref(params: FilterParams & { page?: number }): string {
+  const sp = new URLSearchParams();
+  if (params.q) sp.set("q", params.q);
+  if (params.category) sp.set("category", params.category);
+  if (params.verdictParam !== undefined) sp.set("verdict", params.verdictParam);
+  if (params.moderatorId) sp.set("moderatorId", params.moderatorId);
+  if (params.sort !== DEFAULT_SORT) sp.set("sort", params.sort);
+  if (params.direction !== DEFAULT_DIRECTION) sp.set("dir", params.direction);
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
+  const qs = sp.toString();
+  return qs ? `/moderator?${qs}` : "/moderator";
+}
+
+function SortableHeader({
+  label,
+  column,
+  filters,
+}: {
+  label: string;
+  column: ReportedPlayersSort;
+  filters: FilterParams;
+}) {
+  const isActive = filters.sort === column;
+  const nextDirection: SortDirection = isActive && filters.direction === "desc" ? "asc" : "desc";
+  const href = buildHref({ ...filters, sort: column, direction: nextDirection });
+
+  return (
+    <th>
+      <Link href={href} className={`sortable-header${isActive ? " active" : ""}`}>
+        {label}
+        {isActive && <span className="sort-arrow">{filters.direction === "desc" ? " ▼" : " ▲"}</span>}
+      </Link>
+    </th>
+  );
 }
 
 export default async function ModeratorDashboardPage({
@@ -54,6 +103,7 @@ export default async function ModeratorDashboardPage({
     verdict?: string;
     moderatorId?: string;
     sort?: string;
+    dir?: string;
   }>;
 }) {
   const {
@@ -63,6 +113,7 @@ export default async function ModeratorDashboardPage({
     verdict: verdictParam,
     moderatorId: moderatorIdParam,
     sort: sortParam,
+    dir: dirParam,
   } = await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
   const query = q?.trim() || undefined;
@@ -76,9 +127,8 @@ export default async function ModeratorDashboardPage({
         ? verdictParam
         : undefined;
   const reviewedBy = moderatorIdParam || undefined;
-  const sortOption =
-    SORT_OPTIONS.find((option) => option.value === sortParam) ??
-    SORT_OPTIONS.find((option) => option.value === DEFAULT_SORT_VALUE)!;
+  const sort = sortParam && isSort(sortParam) ? sortParam : DEFAULT_SORT;
+  const direction = dirParam && isDirection(dirParam) ? dirParam : DEFAULT_DIRECTION;
 
   const [{ players, totalCount }, moderators] = await Promise.all([
     findReportedPlayers({
@@ -88,8 +138,8 @@ export default async function ModeratorDashboardPage({
       category,
       verdict,
       reviewedBy,
-      sort: sortOption.sort,
-      direction: sortOption.direction,
+      sort,
+      direction,
     }),
     prisma.moderator.findMany({
       select: { id: true, displayName: true },
@@ -98,20 +148,21 @@ export default async function ModeratorDashboardPage({
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const hasFilters = Boolean(
-    query || category || verdict !== DEFAULT_VERDICT_FILTER || reviewedBy || sortOption.value !== DEFAULT_SORT_VALUE,
+    query ||
+      category ||
+      verdict !== DEFAULT_VERDICT_FILTER ||
+      reviewedBy ||
+      sort !== DEFAULT_SORT ||
+      direction !== DEFAULT_DIRECTION,
   );
-
-  function pageHref(targetPage: number): string {
-    const sp = new URLSearchParams();
-    if (query) sp.set("q", query);
-    if (category) sp.set("category", category);
-    if (verdictParam !== undefined) sp.set("verdict", verdictParam);
-    if (reviewedBy) sp.set("moderatorId", reviewedBy);
-    if (sortOption.value !== DEFAULT_SORT_VALUE) sp.set("sort", sortOption.value);
-    if (targetPage > 1) sp.set("page", String(targetPage));
-    const qs = sp.toString();
-    return qs ? `/moderator?${qs}` : "/moderator";
-  }
+  const filters: FilterParams = {
+    q: query,
+    category,
+    verdictParam,
+    moderatorId: reviewedBy,
+    sort,
+    direction,
+  };
 
   return (
     <div>
@@ -163,17 +214,9 @@ export default async function ModeratorDashboardPage({
                 ))}
               </select>
             </div>
-            <div className="form-field">
-              <label htmlFor="sort">並び替え</label>
-              <select id="sort" name="sort" defaultValue={sortOption.value}>
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
+          <input type="hidden" name="sort" value={sort} />
+          <input type="hidden" name="dir" value={direction} />
           <div className="form-actions">
             <button className="btn" type="submit">
               絞り込む
@@ -187,42 +230,57 @@ export default async function ModeratorDashboardPage({
         </form>
 
         <p className="muted" style={{ marginBottom: "0.75rem" }}>
-          全{totalCount}件({sortOption.label})
+          全{totalCount}件
         </p>
 
         {players.length === 0 ? (
-          <p className="muted">該当する対象はありません。</p>
+          <div className="empty-state">
+            <p>該当する対象はありません。</p>
+          </div>
         ) : (
-          <div className="card-grid">
-            {players.map((player) => {
-              const name = player.nameHistory[0];
-              return (
-                <div className="card" key={player.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "0.5rem",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Link href={`/moderator/review/${player.puuid}`}>
-                      {name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid}
-                    </Link>
-                    {player.latestReview && (
-                      <span className={VERDICT_BADGE_CLASS[player.latestReview.verdict]}>
-                        {VERDICT_ICONS[player.latestReview.verdict]} {VERDICT_LABELS[player.latestReview.verdict]}
-                      </span>
-                    )}
-                  </div>
-                  <p className="muted" style={{ marginTop: "0.35rem" }}>
-                    通報件数: {player.reportCount}
-                    {player.latestReportAt && ` ・ 最新: ${formatDateTime(player.latestReportAt)}`}
-                  </p>
-                </div>
-              );
-            })}
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Riot ID</th>
+                  <SortableHeader label="通報件数" column="reportCount" filters={filters} />
+                  <SortableHeader label="最新の通報日時" column="newest" filters={filters} />
+                  <th>モデレーター評価</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player, i) => {
+                  const name = player.nameHistory[0];
+                  const latestReview = player.latestReview;
+                  return (
+                    <tr key={player.id}>
+                      <td>
+                        <span className="rank-badge">{(page - 1) * PAGE_SIZE + i + 1}</span>
+                      </td>
+                      <td>
+                        <Link href={`/moderator/review/${player.puuid}`}>
+                          {name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid}
+                        </Link>
+                      </td>
+                      <td>{player.reportCount}</td>
+                      <td className="muted">
+                        {player.latestReportAt ? formatDateTime(player.latestReportAt) : "-"}
+                      </td>
+                      <td>
+                        {latestReview ? (
+                          <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
+                            {VERDICT_ICONS[latestReview.verdict]} {VERDICT_LABELS[latestReview.verdict]}
+                          </span>
+                        ) : (
+                          <span className="muted">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
@@ -236,7 +294,7 @@ export default async function ModeratorDashboardPage({
             }}
           >
             {page > 1 ? (
-              <Link className="btn btn-secondary" href={pageHref(page - 1)}>
+              <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page - 1 })}>
                 前へ
               </Link>
             ) : (
@@ -246,7 +304,7 @@ export default async function ModeratorDashboardPage({
               {page} / {totalPages} ページ
             </span>
             {page < totalPages ? (
-              <Link className="btn btn-secondary" href={pageHref(page + 1)}>
+              <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page + 1 })}>
                 次へ
               </Link>
             ) : (
