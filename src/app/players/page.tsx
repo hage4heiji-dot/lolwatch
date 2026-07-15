@@ -6,7 +6,6 @@ import {
   ReportedPlayersSort,
   SortDirection,
 } from "@/lib/playerProfile";
-import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import {
   DEFAULT_PERIOD_FILTER,
   PERIOD_FILTER_LABELS,
@@ -120,7 +119,7 @@ export default async function ReportedPlayersPage({
         {REPORTED_PLAYERS_SORT_LABELS[sort]}({direction === "desc" ? "降順" : "昇順"})・全{totalCount}件
       </p>
       <p className="muted" style={{ marginTop: "0.25rem", marginBottom: "1.5rem" }}>
-        「モデレーター評価」バッジは、運営が実際にリプレイ等を確認した上での判定です。バッジのない対象は一般ユーザーからの未検証の通報のみです。列見出しをクリックすると並び替えられます。カテゴリや評価状態で絞り込みたい場合は
+        「実質通報」は、通報件数からモデレーターが「証拠不十分」「違反なしと判断」と判定した通報を除いた件数です。「妥当」「不当」は一般ユーザーによる投票数です。列見出しをクリックすると並び替えられます。カテゴリや評価状態で絞り込みたい場合は
         <Link href="/reports">通報一覧</Link>
         をご利用ください。
       </p>
@@ -173,13 +172,12 @@ export default async function ReportedPlayersPage({
                 <th>Riot ID</th>
                 <SortableHeader label="通報件数" column="reportCount" filters={filters} />
                 <SortableHeader label="最新の通報日時" column="newest" filters={filters} />
-                <th>モデレーター評価</th>
+                <th>評価内訳</th>
               </tr>
             </thead>
             <tbody>
               {players.map((player, i) => {
                 const name = player.nameHistory[0];
-                const latestReview = player.latestReview;
                 return (
                   <tr key={player.id}>
                     <td>
@@ -195,13 +193,17 @@ export default async function ReportedPlayersPage({
                       {player.latestReportAt ? formatDateTime(player.latestReportAt) : "-"}
                     </td>
                     <td>
-                      {latestReview ? (
-                        <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
-                          {VERDICT_ICONS[latestReview.verdict]} {VERDICT_LABELS[latestReview.verdict]}
+                      <div className="watchlist-tally" style={{ flexWrap: "wrap" }}>
+                        <span className="watchlist-tally-item">🚩 通報 {player.reportCount}件</span>
+                        <span className="watchlist-tally-item">👍 妥当 {player.validatedCount}件</span>
+                        <span className="watchlist-tally-item">👎 不当 {player.invalidCount}件</span>
+                        <span
+                          className={`watchlist-tally-item${player.netReportCount === 0 ? " watchlist-tally-item-cleared" : ""}`}
+                          title="通報件数から「証拠不十分」「違反なしと判断」の通報を除いた件数です。"
+                        >
+                          ⚖️ 実質通報 {player.netReportCount}件
                         </span>
-                      ) : (
-                        <span className="muted">-</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );

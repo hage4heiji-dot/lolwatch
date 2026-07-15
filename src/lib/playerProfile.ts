@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ModeratorVerdict, Prisma, ReportCategory } from "@/generated/prisma";
 import { PeriodFilter, periodFilterSince } from "@/lib/periodFilter";
+import { tallyReportOutcomes } from "@/lib/stats";
 
 // 通報のいいね/悪いね、モデレーター評価の異議件数はJS側でvotes/objections配列から
 // 集計する(種別ごとの件数はPrismaの_count.selectでは同一リレーションに複数条件を
@@ -212,19 +213,35 @@ export async function findReportedPlayers({
   const countByPlayerId = new Map(pageGroups.map((g) => [g.playerId, g._count._all]));
   const latestReportAtByPlayerId = new Map(pageGroups.map((g) => [g.playerId, g._max.createdAt]));
 
+  // 妥当/不当票数・実質通報件数は、現在の絞り込み条件(カテゴリ・評価・期間・検索語)に
+  // 一致する通報だけを対象に、通報件数と同じ集合から算出する。
+  const filteredReports = await prisma.report.findMany({
+    where: { ...reportFilter, playerId: { in: pageIds } },
+    select: {
+      playerId: true,
+      votes: { select: { voteType: true } },
+      moderatorReviews: { orderBy: { createdAt: "desc" }, take: 1, select: { verdict: true } },
+    },
+  });
+  const outcomeTallyByPlayerId = tallyReportOutcomes(filteredReports);
+
   const playersWithLatestReview = pageIds.flatMap((id) => {
     const player = playerById.get(id);
     if (!player) return [];
     const latestReview = player.reports
       .flatMap((r) => r.moderatorReviews)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+    const reportCount = countByPlayerId.get(id) ?? 0;
+    const outcomeTally = outcomeTallyByPlayerId.get(id);
     return [
       {
         ...player,
         latestReview,
-        // 現在の絞り込み条件(カテゴリ・評価・期間・検索語)に一致する通報件数/最新日時。
-        reportCount: countByPlayerId.get(id) ?? 0,
+        reportCount,
         latestReportAt: latestReportAtByPlayerId.get(id) ?? null,
+        validatedCount: outcomeTally?.validatedCount ?? 0,
+        invalidCount: outcomeTally?.invalidCount ?? 0,
+        netReportCount: outcomeTally?.netReportCount ?? reportCount,
       },
     ];
   });

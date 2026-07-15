@@ -24,12 +24,12 @@ export default async function Home() {
       </Link>
 
       <section className="section">
-        <h2>🔻 直近1か月の要注意人物</h2>
+        <h2>🔻 直近1か月の注目ユーザー</h2>
         <p className="muted" style={{ marginBottom: "0.75rem" }}>
-          直近1か月で通報が多く、かつ他の利用者から「この通報は妥当」と支持された数が多い順です。
+          直近1か月で通報が多く、かつ他の利用者から「この通報は妥当」と支持された数が多い順です。「実質通報」は、通報件数からモデレーターが「証拠不十分」「違反なしと判断」と判定した通報を除いた件数です。
         </p>
         {watchedPlayers.length === 0 ? (
-          <p className="muted">直近1か月はまだ要注意人物がいません。</p>
+          <p className="muted">直近1か月はまだ注目ユーザーがいません。</p>
         ) : (
           <div className="watchlist">
             {watchedPlayers.map((player, i) => (
@@ -42,6 +42,7 @@ export default async function Home() {
                   <span className="watchlist-tally-item">👎 不当 {player.invalidCount}件</span>
                   <span
                     className={`watchlist-tally-item${player.netReportCount === 0 ? " watchlist-tally-item-cleared" : ""}`}
+                    title="通報件数から「証拠不十分」「違反なしと判断」の通報を除いた件数です。"
                   >
                     ⚖️ 実質通報 {player.netReportCount}件
                   </span>

@@ -654,7 +654,7 @@ a.card:hover {
   }
 }
 
-/* --- ホーム: 要注意人物 --- */
+/* --- ホーム: 注目ユーザー --- */
 .watchlist {
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
   border-radius: var(--radius);
@@ -693,7 +693,7 @@ a.card:hover {
 }
 
 /* 通報一覧・統計の順位表示用。watchlist-rankより控えめなトーン
-   (要注意人物の強調表示専用ではなく、単なる一覧内の順番を示すため)。 */
+   (注目ユーザーの強調表示専用ではなく、単なる一覧内の順番を示すため)。 */
 .rank-badge {
   flex-shrink: 0;
   display: inline-flex;

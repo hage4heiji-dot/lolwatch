@@ -25,9 +25,65 @@ export type WatchedPlayer = {
   reportCount: number;
   validatedCount: number;
   invalidCount: number;
-  // 「違反なし」と判断された通報を除いた、実質的な通報件数。
+  // 「証拠不十分」「違反なしと判断」を除いた、実質的な通報件数。
   netReportCount: number;
 };
+
+export type ReportOutcomeTally = {
+  reportCount: number;
+  validatedCount: number;
+  invalidCount: number;
+  netReportCount: number;
+};
+
+// モデレーターが「証拠不十分」または「違反なしと判断」とした通報は、悪意ある連続通報
+// などによる見かけ上の件数を救済するため、実質的な通報件数から除外する。
+const EXCLUDED_FROM_NET_COUNT: ModeratorVerdict[] = [
+  ModeratorVerdict.NO_VIOLATION,
+  ModeratorVerdict.INSUFFICIENT_EVIDENCE,
+];
+
+// 通報一覧(votes/moderatorReviewsを含む)をプレイヤー単位で集計し、通報件数・
+// 妥当/不当票数・実質通報件数を算出する。ホームの「注目ユーザー」と
+// ユーザー一覧の内訳表示の両方で共通して使う。
+export function tallyReportOutcomes(
+  reports: {
+    playerId: string;
+    votes: { voteType: string }[];
+    moderatorReviews: { verdict: ModeratorVerdict }[];
+  }[],
+): Map<string, ReportOutcomeTally> {
+  const tallyByPlayerId = new Map<
+    string,
+    { reportCount: number; validatedCount: number; invalidCount: number; excludedCount: number }
+  >();
+  for (const report of reports) {
+    const tally = tallyByPlayerId.get(report.playerId) ?? {
+      reportCount: 0,
+      validatedCount: 0,
+      invalidCount: 0,
+      excludedCount: 0,
+    };
+    tally.reportCount += 1;
+    tally.validatedCount += report.votes.filter((v) => v.voteType === "LIKE").length;
+    tally.invalidCount += report.votes.filter((v) => v.voteType === "DISLIKE").length;
+    const verdict = report.moderatorReviews[0]?.verdict;
+    if (verdict && EXCLUDED_FROM_NET_COUNT.includes(verdict)) tally.excludedCount += 1;
+    tallyByPlayerId.set(report.playerId, tally);
+  }
+
+  return new Map(
+    Array.from(tallyByPlayerId.entries()).map(([playerId, tally]) => [
+      playerId,
+      {
+        reportCount: tally.reportCount,
+        validatedCount: tally.validatedCount,
+        invalidCount: tally.invalidCount,
+        netReportCount: tally.reportCount - tally.excludedCount,
+      },
+    ]),
+  );
+}
 
 export async function getOverviewStats(since: Date | null = null) {
   const [totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount] =
@@ -197,7 +253,7 @@ export async function getTopReportedPlayers(
   });
 }
 
-// ホーム画面の「要注意人物」用。指定期間内の通報について、一般ユーザーから
+// ホーム画面の「注目ユーザー」用。指定期間内の通報について、一般ユーザーから
 // 「妥当」票(LIKE)を多く集めた順に並べる(同数の場合は通報件数で補完)。
 // 単純な通報件数だけだと逆恨みの連投に弱いため、コミュニティの support を優先する。
 export async function getMostWatchedPlayers(
@@ -213,25 +269,7 @@ export async function getMostWatchedPlayers(
     },
   });
 
-  const tallyByPlayerId = new Map<
-    string,
-    { reportCount: number; validatedCount: number; invalidCount: number; noViolationCount: number }
-  >();
-  for (const report of reports) {
-    const tally = tallyByPlayerId.get(report.playerId) ?? {
-      reportCount: 0,
-      validatedCount: 0,
-      invalidCount: 0,
-      noViolationCount: 0,
-    };
-    tally.reportCount += 1;
-    tally.validatedCount += report.votes.filter((v) => v.voteType === "LIKE").length;
-    tally.invalidCount += report.votes.filter((v) => v.voteType === "DISLIKE").length;
-    // モデレーターが実際に「違反なし」と判断した通報は、悪意ある連続通報などによる
-    // 見かけ上の件数を救済するため、実質的な通報件数から除外する。
-    if (report.moderatorReviews[0]?.verdict === "NO_VIOLATION") tally.noViolationCount += 1;
-    tallyByPlayerId.set(report.playerId, tally);
-  }
+  const tallyByPlayerId = tallyReportOutcomes(reports);
 
   const topPlayerIds = Array.from(tallyByPlayerId.entries())
     .sort(([, a], [, b]) => b.validatedCount - a.validatedCount || b.reportCount - a.reportCount)
@@ -254,10 +292,7 @@ export async function getMostWatchedPlayers(
       {
         puuid: player.puuid,
         displayName: name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid,
-        reportCount: tally.reportCount,
-        validatedCount: tally.validatedCount,
-        invalidCount: tally.invalidCount,
-        netReportCount: tally.reportCount - tally.noViolationCount,
+        ...tally,
       },
     ];
   });
