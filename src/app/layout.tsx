@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   },
   description:
     "ゲームIDへの通報状況とモデレーター評価を集約する非公式サイト",
+  verification: {
+    google: "JOny4sfQwPbtIOyFL_bvSChSV-RTbXsSlDKVrTsPXOA",
+  },
 };
 
 export default async function RootLayout({
