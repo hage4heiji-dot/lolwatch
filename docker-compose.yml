@@ -24,7 +24,12 @@ services:
     container_name: lolwatch-worker
     env_file:
       - .env
-    command: ["sh", "-c", "while true; do npx tsx scripts/check-rank-activity.ts; sleep 21600; done"]
+    command:
+      [
+        "sh",
+        "-c",
+        "(while true; do npx tsx scripts/check-rank-activity.ts; sleep 21600; done) & (while true; do npx tsx scripts/post-daily-violations.ts; sleep 86400; done) & wait",
+      ]
     depends_on:
       - app
     restart: unless-stopped
