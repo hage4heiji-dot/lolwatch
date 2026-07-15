@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { SiteNav } from "./site-nav";
 import { getSessionModerator } from "@/lib/moderatorAuth";
 import "./globals.css";
 
 const X_PROFILE_URL = "https://x.com/lolwatch110";
+const GA_MEASUREMENT_ID = "G-ZLD5Q06PE5";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +43,18 @@ export default async function RootLayout({
   return (
     <html lang="ja" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
         <div className="site-shell">
           <header className="site-header">
             <div className="site-header-inner">
