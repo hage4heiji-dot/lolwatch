@@ -125,7 +125,7 @@ export default async function ReportedPlayersPage({
       </p>
 
       <form style={{ marginBottom: "1.5rem" }}>
-        <div className="form-row" style={{ alignItems: "flex-end" }}>
+        <div className="form-row">
           <div className="form-field">
             <label htmlFor="q">Riot ID(名前)で検索</label>
             <input type="text" id="q" name="q" defaultValue={query ?? ""} placeholder="例: Faker" />

@@ -120,7 +120,7 @@ export default async function ReportsPage({
       </p>
 
       <form style={{ marginBottom: "1.5rem" }}>
-        <div className="form-row" style={{ alignItems: "flex-end" }}>
+        <div className="form-row">
           <div className="form-field">
             <label htmlFor="q">Riot ID・試合IDで検索</label>
             <input type="text" id="q" name="q" defaultValue={query ?? ""} placeholder="例: Faker" />

@@ -175,7 +175,7 @@ export default async function ModeratorDashboardPage({
         </p>
 
         <form style={{ marginBottom: "1.5rem" }}>
-          <div className="form-row" style={{ alignItems: "flex-end" }}>
+          <div className="form-row">
             <div className="form-field">
               <label htmlFor="q">サモナー名</label>
               <input type="text" id="q" name="q" defaultValue={query ?? ""} placeholder="例: Faker" />
