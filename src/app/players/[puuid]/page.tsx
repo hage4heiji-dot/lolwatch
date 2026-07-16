@@ -29,6 +29,9 @@ import { ReportVoteButtons } from "@/app/report-vote-buttons";
 import { ReviewObjectionButton } from "@/app/review-objection-button";
 import { ReportEditForm } from "@/app/report-edit-form";
 import { MatchScoreboard } from "@/app/match-scoreboard";
+import { ShareButtons } from "@/app/share-buttons";
+
+const SITE_URL = "https://lol-watch.com";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -178,6 +181,15 @@ export default async function PlayerProfilePage({
             : "(表示名不明)"}
         </h1>
         {summoner && <span className="badge">Lv.{summoner.summonerLevel}</span>}
+      </div>
+
+      <div style={{ marginTop: "0.75rem" }}>
+        <ShareButtons
+          url={`${SITE_URL}/players/${player.puuid}`}
+          text={`${
+            currentName ? `${currentName.riotIdName} #${currentName.riotIdTagLine}` : "プレイヤー"
+          }の通報履歴 | lolwatch`}
+        />
       </div>
 
       {pastNames.length > 0 && (
