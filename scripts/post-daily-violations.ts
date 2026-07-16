@@ -19,6 +19,15 @@ async function main() {
     return;
   }
 
+  // workerはコンテナ起動直後に必ず1回実行される(while true; sleep 86400のループ)ため、
+  // デプロイ等でのコンテナ再作成のたびに同じ日を二重投稿してしまう。dateKey単位で
+  // 投稿済みかを記録し、二重実行時はここでスキップする。
+  const alreadyPosted = await prisma.dailyXPost.findUnique({ where: { dateKey: dateLabel } });
+  if (alreadyPosted) {
+    console.log(`${dateLabel}分は投稿済みのためスキップします。`);
+    return;
+  }
+
   // 「違反確認」となった通報を対象に、プレイヤーごとの最新レビューを取得する。
   // 最新レビューがVIOLATION_CONFIRMEDかつ、その判定が対象期間内に行われた場合のみ集計する
   // (その後の再審査で判定が覆っている場合は対象から除く)。
@@ -57,6 +66,7 @@ async function main() {
 
   const text = buildDailyViolationDigest({ dateLabel, entries });
   await postToX(text);
+  await prisma.dailyXPost.create({ data: { dateKey: dateLabel } });
 
   if (entries.length === 0) {
     console.log(`${dateLabel}: 違反確認されたユーザーはいませんでした。自己紹介を投稿しました。`);

@@ -170,6 +170,15 @@ model ReviewObjection {
   @@index([moderatorReviewId])
 }
 
+// scripts/post-daily-violations.tsの実行記録。dateKeyで一意にし、コンテナ再起動
+// (デプロイ・クラッシュ復帰等)で同じ日に二重実行されても再投稿しないようにする
+// (workerはwhile true; sleep 86400のループで、起動直後に必ず1回実行されるため)。
+model DailyXPost {
+  id        String   @id @default(uuid())
+  dateKey   String   @unique
+  postedAt  DateTime @default(now())
+}
+
 // 「通報がちゃんと機能してランク参加できなくなっているか」の監視。
 // 直近のランク参加有無をバッチで定期確認して記録する。
 model RankActivityCheck {
