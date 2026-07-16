@@ -8,12 +8,19 @@ import {
   readDeviceId,
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
+import { checkObjectionRateLimit } from "@/lib/rateLimit";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ reviewId: string }> },
 ) {
   const { reviewId } = await params;
+
+  const ip = getClientIp(request);
+  const rateCheck = checkObjectionRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json({ error: rateCheck.reason }, { status: 429 });
+  }
 
   const review = await prisma.moderatorReview.findUnique({ where: { id: reviewId } });
   if (!review) {
@@ -22,7 +29,6 @@ export async function POST(
 
   const existingDeviceId = readDeviceId(request);
   const deviceId = existingDeviceId ?? generateDeviceId();
-  const ip = getClientIp(request);
 
   const existing = await prisma.reviewObjection.findUnique({
     where: { moderatorReviewId_deviceId: { moderatorReviewId: reviewId, deviceId } },

@@ -84,6 +84,72 @@ export function checkMatchLookupRateLimit(ip: string): RateLimitResult {
   return { allowed: true };
 }
 
+// 通報への「妥当/不当」投票API用。deviceIdクッキーは送らなければ毎回新規発行されて
+// しまい重複防止(unique制約)をすり抜けられるため、クッキーに依存しないIP単位の
+// 頻度制限で歯止めをかける。
+const VOTE_WINDOW_MS = 60 * 1000;
+const VOTE_MAX_REQUESTS = 20;
+const voteHistory = new Map<string, number[]>();
+
+export function checkVoteRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - VOTE_WINDOW_MS;
+  const timestamps = (voteHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= VOTE_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "投票が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  voteHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of voteHistory) {
+      if (values.every((t) => t < since)) {
+        voteHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
+// モデレーター評価への異議申し立てAPI用。理由はcheckVoteRateLimitと同じ
+// (deviceIdクッキーに依存しないIP単位の頻度制限)。投票より頻度が低い操作なので
+// 閾値も低めにする。
+const OBJECTION_WINDOW_MS = 60 * 1000;
+const OBJECTION_MAX_REQUESTS = 10;
+const objectionHistory = new Map<string, number[]>();
+
+export function checkObjectionRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - OBJECTION_WINDOW_MS;
+  const timestamps = (objectionHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= OBJECTION_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "操作が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  objectionHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of objectionHistory) {
+      if (values.every((t) => t < since)) {
+        objectionHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
 // サモナー名から直近試合一覧を検索するAPI用。1回の呼び出しで
 // 試合ID一覧取得+試合詳細(最大20件)とRiot APIコストが大きいため、
 // 通常の試合ID検索より低いしきい値で制限する。

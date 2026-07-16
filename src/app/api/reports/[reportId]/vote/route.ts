@@ -9,6 +9,7 @@ import {
   readDeviceId,
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
+import { checkVoteRateLimit } from "@/lib/rateLimit";
 
 const bodySchema = z.object({ voteType: z.enum(["LIKE", "DISLIKE"]) });
 
@@ -23,6 +24,12 @@ export async function POST(
     return NextResponse.json({ error: "入力内容が不正です。" }, { status: 400 });
   }
 
+  const ip = getClientIp(request);
+  const rateCheck = checkVoteRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json({ error: rateCheck.reason }, { status: 429 });
+  }
+
   const report = await prisma.report.findUnique({ where: { id: reportId } });
   if (!report) {
     return NextResponse.json({ error: "対象の通報が見つかりません。" }, { status: 404 });
@@ -30,7 +37,6 @@ export async function POST(
 
   const existingDeviceId = readDeviceId(request);
   const deviceId = existingDeviceId ?? generateDeviceId();
-  const ip = getClientIp(request);
 
   const existingVote = await prisma.reportVote.findUnique({
     where: { reportId_deviceId: { reportId, deviceId } },
