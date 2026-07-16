@@ -78,7 +78,7 @@ export function ModeratorReviewCard({
       <span className={VERDICT_BADGE_CLASS[verdict]}>
         {VERDICT_ICONS[verdict]} {VERDICT_LABELS[verdict]}
       </span>
-      <p style={{ marginTop: "0.5rem" }}>{rationale}</p>
+      <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{rationale}</p>
       <p className="muted" style={{ marginTop: "0.5rem" }}>
         ⚔️ {moderatorDisplayName} ・ {createdAtLabel}
       </p>

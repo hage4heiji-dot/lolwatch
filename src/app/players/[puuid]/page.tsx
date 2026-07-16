@@ -373,7 +373,7 @@ export default async function PlayerProfilePage({
                           <span className={VERDICT_BADGE_CLASS[review.verdict]}>
                             {VERDICT_ICONS[review.verdict]} {VERDICT_LABELS[review.verdict]}
                           </span>
-                          <p style={{ marginTop: "0.5rem" }}>{review.rationale}</p>
+                          <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{review.rationale}</p>
                           <p className="muted" style={{ marginTop: "0.5rem" }}>
                             ⚔️ {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
                           </p>
