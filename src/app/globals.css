@@ -608,6 +608,107 @@ a.card:hover {
   font-size: 0.85rem;
 }
 
+/* --- ホーム: ヒーロー(tk-lab.tech風のダーク背景+金アクセントを、独自アセットのみで再現) --- */
+.hero {
+  margin-bottom: 2rem;
+  padding: 2.75rem 1.5rem 2.25rem;
+  border-radius: var(--radius);
+  background-color: #08080d;
+  background-size: cover;
+  background-position: center 18%;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  color: #f2ede0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* スプラッシュアートの上に敷く、文字を読ませるためのダークオーバーレイ
+   (下ほど濃くして本文を確実に読める濃度にしつつ、上部はアートワークを見せる) */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 8, 13, 0.35) 0%, rgba(8, 8, 13, 0.82) 55%, rgba(8, 8, 13, 0.95) 100%),
+    radial-gradient(closest-side, rgba(200, 170, 110, 0.15), transparent);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #c8aa6e;
+  margin-bottom: 0.9rem;
+  position: relative;
+}
+
+.hero-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin-bottom: 1rem;
+  color: #f5f0e6;
+  position: relative;
+}
+
+.hero-title-accent {
+  color: #ff6b5b;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0 auto 1.4rem;
+  max-width: 260px;
+  position: relative;
+}
+
+.hero-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200, 170, 110, 0.6), transparent);
+}
+
+.hero-divider-mark {
+  color: #c8aa6e;
+  font-size: 0.7rem;
+}
+
+.hero-desc {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: rgba(245, 240, 230, 0.78);
+  max-width: 560px;
+  margin: 0 auto;
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 2rem 1.25rem 1.75rem;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-desc {
+    font-size: 0.85rem;
+  }
+}
+
 /* --- ホーム: 通報CTA --- */
 .report-cta {
   display: flex;

@@ -1,20 +1,32 @@
 import Link from "next/link";
 import { getMostWatchedPlayers } from "@/lib/stats";
 import { periodFilterSince } from "@/lib/periodFilter";
+import { getSplashArtUrl, pickRandomMisunderstoodTrollChampion } from "@/lib/ddragon";
 
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const watchedPlayers = await getMostWatchedPlayers(5, periodFilterSince("month"));
+  const heroChampion = pickRandomMisunderstoodTrollChampion();
 
   return (
     <div>
-      <h1>⚠️ lolwatchとは</h1>
-      <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
-        LoLの試合中に暴言・チート・意図的な敗北行為などをした相手を、試合IDから誰でも通報できる非公式の監視サイトです。通報は検証なしで即座に公開され、モデレーターが実際にリプレイや証跡を確認した上で「違反」を判定します。相手のRiot
-        IDが分かれば、あなたを傷つけた相手が何度通報されているか誰でも確認できます。
-      </p>
+      <section className="hero" style={{ backgroundImage: `url(${getSplashArtUrl(heroChampion)})` }}>
+        <p className="hero-eyebrow">LOLWATCH ｜ LoL 非公式監視サイト</p>
+        <h1 className="hero-title">
+          トロールを、<span className="hero-title-accent">可視化する。</span>
+        </h1>
+        <div className="hero-divider">
+          <span className="hero-divider-line"></span>
+          <span className="hero-divider-mark">◆</span>
+          <span className="hero-divider-line"></span>
+        </div>
+        <p className="hero-desc">
+          LoLの試合中に暴言・チート・意図的な敗北行為などをした相手を、試合IDから誰でも通報できる非公式の監視サイトです。通報は検証なしで即座に公開され、モデレーターが実際にリプレイや証跡を確認した上で「違反」を判定します。相手のRiot
+          IDが分かれば、あなたを傷つけた相手が何度通報されているか誰でも確認できます。
+        </p>
+      </section>
 
       <Link href="/report" className="report-cta">
         <span className="report-cta-title">🚨 通報はここから</span>
