@@ -1,7 +1,10 @@
+import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { CalibrationQuiz } from "./calibration-quiz";
 import { CALIBRATION_SCENARIOS } from "@/lib/calibrationScenarios";
-import { getCalibrationOverview } from "@/lib/calibrationStats";
+import { getCalibrationOverview, getLatestCalibrationAttemptIdForDevice } from "@/lib/calibrationStats";
+import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
 
 // 受験のたびに全体平均が変わるため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -13,7 +16,13 @@ export const metadata: Metadata = {
 };
 
 export default async function CalibrationPage() {
-  const overview = await getCalibrationOverview();
+  const cookieStore = await cookies();
+  const deviceId = cookieStore.get(DEVICE_ID_COOKIE)?.value ?? null;
+
+  const [overview, latestAttemptId] = await Promise.all([
+    getCalibrationOverview(),
+    deviceId ? getLatestCalibrationAttemptIdForDevice(deviceId) : Promise.resolve(null),
+  ]);
 
   return (
     <div>
@@ -28,6 +37,14 @@ export default async function CalibrationPage() {
           これまでの受験者数: {overview.attemptCount}人 / 全体平均スコア:{" "}
           {overview.overallAverage !== null ? overview.overallAverage.toFixed(1) : "-"}(1=違反 〜
           5=問題なし)
+        </p>
+      )}
+
+      {latestAttemptId && (
+        <p style={{ marginBottom: "1.5rem" }}>
+          <Link href={`/calibration/result/${latestAttemptId}`} className="btn btn-secondary">
+            前回の結果を見る
+          </Link>
         </p>
       )}
 
