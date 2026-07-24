@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -12,7 +13,9 @@ import {
   getCalibrationOverview,
   describeCalibrationTendency,
 } from "@/lib/calibrationStats";
-import { getCalibrationAnimalResult } from "@/lib/calibrationAnimalDiagnosis";
+import { getCalibrationChampionResult } from "@/lib/calibrationChampionDiagnosis";
+import { getChampionIconUrl, FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
+import { getLatestDdragonVersion } from "@/lib/riot";
 import { ShareButtons } from "@/app/share-buttons";
 
 const SITE_URL = "https://lol-watch.com";
@@ -38,10 +41,10 @@ export async function generateMetadata({
   if (!attempt) return { title: "判定基準診断の結果" };
 
   const yourAverage = average(Array.from(attempt.answersByKey.values()));
-  const animalResult = getCalibrationAnimalResult(yourAverage);
+  const champion = getCalibrationChampionResult(yourAverage);
   return {
-    title: `判定基準診断の結果 | あなたは${animalResult.animal}タイプ`,
-    description: `私の判定基準診断は「${animalResult.animal}タイプ(${animalResult.title})」、平均${yourAverage.toFixed(1)}(1=違反〜5=問題なし)でした。あなたも診断してみませんか?`,
+    title: `判定基準診断の結果 | あなたは${champion.displayName}タイプ`,
+    description: `私の判定基準診断は「${champion.displayName}タイプ(${champion.title})」、平均${yourAverage.toFixed(1)}(1=違反〜5=問題なし)でした。あなたも診断してみませんか?`,
   };
 }
 
@@ -54,27 +57,36 @@ export default async function CalibrationResultPage({
   const attempt = await getCalibrationAttempt(attemptId);
   if (!attempt) notFound();
 
-  const [stats, overview] = await Promise.all([
+  const [stats, overview, ddragonVersion] = await Promise.all([
     getCalibrationScenarioStats(),
     getCalibrationOverview(),
+    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
   ]);
 
   const yourAverage = average(Array.from(attempt.answersByKey.values()));
   const communityAverage = overview.overallAverage;
   const tendencyText = describeCalibrationTendency(yourAverage, communityAverage);
-  const animalResult = getCalibrationAnimalResult(yourAverage);
+  const champion = getCalibrationChampionResult(yourAverage);
 
   return (
     <div>
       <h1>判定基準診断の結果</h1>
 
-      <div className="card calibration-animal-card">
-        <p className="calibration-animal-emoji">{animalResult.emoji}</p>
-        <p className="muted">あなたの判定基準は…</p>
-        <p className="calibration-animal-title">
-          {animalResult.animal}タイプ「{animalResult.title}」
+      <div className="card calibration-champion-card">
+        <Image
+          className="calibration-champion-icon"
+          src={getChampionIconUrl(ddragonVersion, champion.championName)}
+          alt={champion.displayName}
+          width={96}
+          height={96}
+        />
+        <p className="muted" style={{ marginTop: "0.5rem" }}>
+          あなたの判定基準は…
         </p>
-        <p style={{ marginTop: "0.5rem" }}>{animalResult.description}</p>
+        <p className="calibration-champion-title">
+          {champion.displayName}タイプ「{champion.title}」
+        </p>
+        <p style={{ marginTop: "0.5rem" }}>{champion.description}</p>
       </div>
 
       <div className="card" style={{ textAlign: "center", margin: "1rem 0 1.5rem" }}>
@@ -90,7 +102,7 @@ export default async function CalibrationResultPage({
 
       <ShareButtons
         url={`${SITE_URL}/calibration/result/${attempt.id}`}
-        text={`判定基準診断をやってみたら「${animalResult.animal}タイプ(${animalResult.title})」でした(平均${yourAverage.toFixed(1)})。あなたは何タイプ? | lolwatch`}
+        text={`判定基準診断をやってみたら「${champion.displayName}タイプ(${champion.title})」でした(平均${yourAverage.toFixed(1)})。あなたは何タイプ? | lolwatch`}
       />
 
       <section className="section">

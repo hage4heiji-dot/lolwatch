@@ -1381,20 +1381,19 @@ a.card:hover {
   margin-top: 0.75rem;
 }
 
-.calibration-animal-card {
+.calibration-champion-card {
   text-align: center;
   margin: 1rem 0;
   background: var(--accent-soft);
   border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
 }
 
-.calibration-animal-emoji {
-  font-size: 3rem;
-  line-height: 1;
-  margin-bottom: 0.4rem;
+.calibration-champion-icon {
+  border-radius: 999px;
+  border: 2px solid var(--accent);
 }
 
-.calibration-animal-title {
+.calibration-champion-title {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--accent);
