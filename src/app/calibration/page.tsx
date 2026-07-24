@@ -1,10 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CalibrationQuiz } from "./calibration-quiz";
 import { CALIBRATION_SCENARIOS } from "@/lib/calibrationScenarios";
 import { getCalibrationOverview, getLatestCalibrationAttemptIdForDevice } from "@/lib/calibrationStats";
 import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
+import banner from "./banner.png";
 
 // 受験のたびに全体平均が変わるため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -26,6 +28,14 @@ export default async function CalibrationPage() {
 
   return (
     <div>
+      <Image
+        src={banner}
+        alt="あなたならどう判定する? 判定基準診断 | LoLのグレーゾーン9問。あなたの判定をみんなと比較!"
+        className="calibration-banner"
+        priority
+        sizes="(max-width: 640px) 100vw, 720px"
+      />
+
       <h1>判定基準診断</h1>
       <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1rem" }}>
         LoLでよくある「トロールっぽいけど断定はできない」グレーな場面を{CALIBRATION_SCENARIOS.length}

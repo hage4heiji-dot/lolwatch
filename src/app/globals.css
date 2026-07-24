@@ -1332,6 +1332,15 @@ a.card:hover {
 
 /* --- 判定基準診断 --- */
 
+.calibration-banner {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-md);
+}
+
 .calibration-progress-track {
   height: 0.4rem;
   border-radius: 999px;
