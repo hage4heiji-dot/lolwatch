@@ -69,17 +69,17 @@ const DECISIVE_RESULT: CalibrationChampionResult = {
     "ハンマー(近接)とキャノン(遠距離)を場面で完全に切り替えるように、「これは違反」「これは問題なし」を中間を置かずはっきり言い切るタイプ。平均すると中間的に見えますが、実際は場面ごとに判定が両極端に振れています。",
 };
 
-// 全回答のうちこの割合以上が極端(1か5)なら「はっきり言い切っている」とみなす。
-const DECISIVE_EXTREME_RATIO = 0.5;
 // 1・5のどちらか一方だけが多い場合はそもそも平均が中間にならず通常のtierに落ちるため、
 // 両端に最低これだけの回答がある(=本当に両方に振れている)ことも条件にする。
 const DECISIVE_MIN_EACH_EXTREME = 2;
+// 全9問中これ以上が極端(1か5)なら「ほぼ全問はっきり言い切っている」とみなす。
+const DECISIVE_MIN_TOTAL_EXTREME = 8;
 
 function isDecisivePattern(scores: number[]): boolean {
   const count1 = scores.filter((s) => s === 1).length;
   const count5 = scores.filter((s) => s === 5).length;
   if (count1 < DECISIVE_MIN_EACH_EXTREME || count5 < DECISIVE_MIN_EACH_EXTREME) return false;
-  return (count1 + count5) / scores.length >= DECISIVE_EXTREME_RATIO;
+  return count1 + count5 >= DECISIVE_MIN_TOTAL_EXTREME;
 }
 
 export function getCalibrationChampionResult(scores: number[]): CalibrationChampionResult {
@@ -90,3 +90,14 @@ export function getCalibrationChampionResult(scores: number[]): CalibrationChamp
   }
   return CHAMPION_RESULTS[tier];
 }
+
+// 結果ページで「ほかにどんなタイプがあるか」を一覧表示するための全タイプ一覧。
+// 厳しめ→緩めの順に並べ、ジェイスは特殊枠として末尾に置く。
+export const ALL_CALIBRATION_CHAMPION_RESULTS: CalibrationChampionResult[] = [
+  CHAMPION_RESULTS[1],
+  CHAMPION_RESULTS[2],
+  CHAMPION_RESULTS[3],
+  CHAMPION_RESULTS[4],
+  CHAMPION_RESULTS[5],
+  DECISIVE_RESULT,
+];

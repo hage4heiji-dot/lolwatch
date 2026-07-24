@@ -13,7 +13,10 @@ import {
   getCalibrationOverview,
   describeCalibrationTendency,
 } from "@/lib/calibrationStats";
-import { getCalibrationChampionResult } from "@/lib/calibrationChampionDiagnosis";
+import {
+  getCalibrationChampionResult,
+  ALL_CALIBRATION_CHAMPION_RESULTS,
+} from "@/lib/calibrationChampionDiagnosis";
 import { getChampionIconUrl, FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
 import { getLatestDdragonVersion } from "@/lib/riot";
 import { ShareButtons } from "@/app/share-buttons";
@@ -106,6 +109,32 @@ export default async function CalibrationResultPage({
         url={`${SITE_URL}/calibration/result/${attempt.id}`}
         text={`判定基準診断をやってみたら「${champion.displayName}タイプ(${champion.title})」でした(平均${yourAverage.toFixed(1)})。あなたは何タイプ? | lolwatch`}
       />
+
+      <section className="section">
+        <h2>ほかのタイプ</h2>
+        <div className="calibration-type-grid">
+          {ALL_CALIBRATION_CHAMPION_RESULTS.map((c) => (
+            <div
+              key={c.championName}
+              className={`calibration-type-item${c.championName === champion.championName ? " calibration-type-item-active" : ""}`}
+            >
+              <Image
+                className="calibration-type-icon"
+                src={getChampionIconUrl(ddragonVersion, c.championName)}
+                alt={c.displayName}
+                width={40}
+                height={40}
+              />
+              <div>
+                <p style={{ fontWeight: 600 }}>
+                  {c.displayName}タイプ{c.championName === champion.championName && " (あなた)"}
+                </p>
+                <p className="muted">{c.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="section">
         <h2>シナリオ別の回答</h2>

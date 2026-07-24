@@ -1414,6 +1414,32 @@ a:has(> .calibration-banner):hover .calibration-banner {
   margin-top: 0.2rem;
 }
 
+.calibration-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem;
+}
+
+.calibration-type-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+}
+
+.calibration-type-icon {
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.calibration-type-item-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* トラック自体は「みんなの平均」の塗りつぶし、marker(縦線)が「あなたの回答」の位置。
    両方を同じ1〜5スケールの横位置で重ねて表示し、ズレを一目で見比べられるようにする。 */
 .calibration-compare-track {
