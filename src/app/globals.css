@@ -1330,6 +1330,92 @@ a.card:hover {
   font-weight: 700;
 }
 
+/* --- 判定基準診断 --- */
+
+.calibration-progress-track {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.calibration-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.calibration-scale {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.calibration-scale-option {
+  flex: 1 1 8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  background: var(--background);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.calibration-scale-option:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.calibration-scale-option.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.calibration-result-card + .calibration-result-card {
+  margin-top: 0.75rem;
+}
+
+/* トラック自体は「みんなの平均」の塗りつぶし、marker(縦線)が「あなたの回答」の位置。
+   両方を同じ1〜5スケールの横位置で重ねて表示し、ズレを一目で見比べられるようにする。 */
+.calibration-compare-track {
+  position: relative;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--border);
+  margin: 0.5rem 0 0.4rem;
+}
+
+.calibration-compare-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.calibration-compare-marker {
+  position: absolute;
+  top: -0.3rem;
+  width: 3px;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: var(--danger);
+  transform: translateX(-1.5px);
+}
+
+.calibration-compare-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
 .stat-trend {
   display: flex;
   align-items: flex-end;

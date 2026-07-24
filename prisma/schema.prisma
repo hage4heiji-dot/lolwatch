@@ -191,3 +191,31 @@ model RankActivityCheck {
 
   @@index([playerId, checkedAt])
 }
+
+// 一般ユーザー向け「判定基準診断」の1回分の受験。シナリオ本体は
+// src/lib/calibrationScenarios.ts にハードコードしており、DBでは持たない
+// (ガイドライン文言と同じ方針。運用しながらコードで調整する前提のデータのため)。
+model CalibrationAttempt {
+  id        String   @id @default(uuid())
+  deviceId  String
+  posterIp  String
+  createdAt DateTime @default(now())
+
+  answers CalibrationAnswer[]
+
+  @@index([deviceId, createdAt])
+}
+
+// 各シナリオへの回答。scoreは1(違反)〜5(問題なし)の5段階。
+// scenarioKeyはcalibrationScenarios.tsのSCENARIOSのkeyと対応させる(DB外部キーではない)。
+model CalibrationAnswer {
+  id          String             @id @default(uuid())
+  attemptId   String
+  attempt     CalibrationAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  scenarioKey String
+  score       Int
+  createdAt   DateTime           @default(now())
+
+  @@unique([attemptId, scenarioKey])
+  @@index([scenarioKey])
+}

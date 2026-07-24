@@ -9,6 +9,31 @@ export type RateLimitResult =
   | { allowed: true }
   | { allowed: false; reason: string };
 
+// 判定基準診断の連続受験によって平均値が水増しされるのを防ぐクールダウン。
+const CALIBRATION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+export async function checkCalibrationRateLimit(params: {
+  deviceId: string;
+  ip: string;
+}): Promise<RateLimitResult> {
+  const { deviceId, ip } = params;
+  const since = new Date(Date.now() - CALIBRATION_COOLDOWN_MS);
+  const recent = await prisma.calibrationAttempt.findFirst({
+    where: {
+      OR: [{ deviceId }, { posterIp: ip }],
+      createdAt: { gte: since },
+    },
+    select: { id: true },
+  });
+  if (recent) {
+    return {
+      allowed: false,
+      reason: "診断は24時間に1回まで受験できます。しばらくしてから再度お試しください。",
+    };
+  }
+  return { allowed: true };
+}
+
 export async function checkReportRateLimit(params: {
   deviceId: string;
   ip: string;

@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/reports", label: "通報一覧" },
   { href: "/players", label: "ユーザー一覧" },
   { href: "/stats", label: "統計" },
+  { href: "/calibration", label: "判定基準診断" },
   { href: "/guidelines", label: "ガイドライン" },
 ];
 
