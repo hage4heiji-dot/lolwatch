@@ -57,6 +57,36 @@ const CHAMPION_RESULTS: Record<Tier, CalibrationChampionResult> = {
   },
 };
 
-export function getCalibrationChampionResult(average: number): CalibrationChampionResult {
-  return CHAMPION_RESULTS[tierFromAverage(average)];
+// ヴァイ/エコー/レナータ(tier 2〜4)は平均が中間になるタイプだが、
+// 「毎回1か5かをはっきり言い切った結果、平均するとたまたま中間になった」人と
+// 「そもそも毎回3寄りで様子見する」人を同じキャラ扱いするのはおかしいため、
+// 前者だけ専用の判定に振り分ける。
+const DECISIVE_RESULT: CalibrationChampionResult = {
+  championName: "Jayce",
+  displayName: "ジェイス",
+  title: "白黒はっきりタイプ",
+  description:
+    "ハンマー(近接)とキャノン(遠距離)を場面で完全に切り替えるように、「これは違反」「これは問題なし」を中間を置かずはっきり言い切るタイプ。平均すると中間的に見えますが、実際は場面ごとに判定が両極端に振れています。",
+};
+
+// 全回答のうちこの割合以上が極端(1か5)なら「はっきり言い切っている」とみなす。
+const DECISIVE_EXTREME_RATIO = 0.5;
+// 1・5のどちらか一方だけが多い場合はそもそも平均が中間にならず通常のtierに落ちるため、
+// 両端に最低これだけの回答がある(=本当に両方に振れている)ことも条件にする。
+const DECISIVE_MIN_EACH_EXTREME = 2;
+
+function isDecisivePattern(scores: number[]): boolean {
+  const count1 = scores.filter((s) => s === 1).length;
+  const count5 = scores.filter((s) => s === 5).length;
+  if (count1 < DECISIVE_MIN_EACH_EXTREME || count5 < DECISIVE_MIN_EACH_EXTREME) return false;
+  return (count1 + count5) / scores.length >= DECISIVE_EXTREME_RATIO;
+}
+
+export function getCalibrationChampionResult(scores: number[]): CalibrationChampionResult {
+  const total = scores.reduce((a, b) => a + b, 0);
+  const tier = tierFromAverage(total / scores.length);
+  if ((tier === 2 || tier === 3 || tier === 4) && isDecisivePattern(scores)) {
+    return DECISIVE_RESULT;
+  }
+  return CHAMPION_RESULTS[tier];
 }

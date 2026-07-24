@@ -40,8 +40,9 @@ export async function generateMetadata({
   const attempt = await getCalibrationAttempt(attemptId);
   if (!attempt) return { title: "判定基準診断の結果" };
 
-  const yourAverage = average(Array.from(attempt.answersByKey.values()));
-  const champion = getCalibrationChampionResult(yourAverage);
+  const scores = Array.from(attempt.answersByKey.values());
+  const yourAverage = average(scores);
+  const champion = getCalibrationChampionResult(scores);
   return {
     title: `判定基準診断の結果 | あなたは${champion.displayName}タイプ`,
     description: `私の判定基準診断は「${champion.displayName}タイプ(${champion.title})」、平均${yourAverage.toFixed(1)}(1=違反〜5=問題なし)でした。あなたも診断してみませんか?`,
@@ -63,10 +64,11 @@ export default async function CalibrationResultPage({
     getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
   ]);
 
-  const yourAverage = average(Array.from(attempt.answersByKey.values()));
+  const scores = Array.from(attempt.answersByKey.values());
+  const yourAverage = average(scores);
   const communityAverage = overview.overallAverage;
   const tendencyText = describeCalibrationTendency(yourAverage, communityAverage);
-  const champion = getCalibrationChampionResult(yourAverage);
+  const champion = getCalibrationChampionResult(scores);
 
   return (
     <div>
