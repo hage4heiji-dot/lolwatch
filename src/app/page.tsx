@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getMostWatchedPlayers } from "@/lib/stats";
 import { periodFilterSince } from "@/lib/periodFilter";
 import { getSplashArtUrl, pickRandomMisunderstoodTrollChampion } from "@/lib/ddragon";
+import calibrationBanner from "./calibration/banner.png";
 
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -67,6 +69,15 @@ export default async function Home() {
           <Link href="/players">ユーザー一覧をすべて見る →</Link>
         </p>
       </section>
+
+      <Link href="/calibration">
+        <Image
+          src={calibrationBanner}
+          alt="あなたならどう判定する? 判定基準診断 | LoLのグレーゾーン9問。あなたの判定をみんなと比較!"
+          className="calibration-banner"
+          sizes="(max-width: 640px) 100vw, 720px"
+        />
+      </Link>
     </div>
   );
 }

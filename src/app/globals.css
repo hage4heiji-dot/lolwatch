@@ -1337,8 +1337,13 @@ a.card:hover {
   width: 100%;
   height: auto;
   border-radius: var(--radius);
-  margin-bottom: 1.25rem;
+  margin: 1.5rem 0 1.25rem;
   box-shadow: var(--shadow-md);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+a:has(> .calibration-banner):hover .calibration-banner {
+  transform: translateY(-2px);
 }
 
 .calibration-progress-track {
