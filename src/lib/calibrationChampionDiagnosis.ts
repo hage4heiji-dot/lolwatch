@@ -23,9 +23,9 @@ const CHAMPION_RESULTS: Record<Tier, CalibrationChampionResult> = {
   1: {
     championName: "Caitlyn",
     displayName: "ケイトリン",
-    title: "ピルトーヴァーの保安官タイプ",
+    title: "疑わしきは罰するタイプ",
     description:
-      "疑わしきは罰する主義。グレーな場面でも証拠と手順を重視し、ルール違反には容赦なく踏み込みます。",
+      "グレーな場面でも証拠と手順を重視し、少しでも怪しければ違反寄りに判定する、杓子定規なほど厳格なジャッジタイプ。",
   },
   2: {
     championName: "Vi",
