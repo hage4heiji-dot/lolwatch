@@ -3,12 +3,26 @@ import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { toJstDateKey, todayJstMidnightUtc } from "@/lib/jstDate";
 import { TIER_LABELS } from "@/lib/rankLabel";
+import { memoizeWithTtlByKey } from "@/lib/ttlCache";
 
 const DAILY_TREND_DAYS = 30;
 
 function createdAtFilter(since: Date | null) {
   return since ? { createdAt: { gte: since } } : {};
 }
+
+// periodFilterSinceはJST日付境界(todayJstMidnightUtc)基準で計算されるため、
+// 同じ期間フィルタ("week"/"month"/"all")なら同日中は同じミリ秒値になり、
+// キャッシュキーとして安定して使える(Date.now()基準の相対計算だと
+// リクエストごとに値がずれてキャッシュが効かなくなってしまう)。
+function sinceKey(since: Date | null | undefined): string {
+  return since ? String(since.getTime()) : "all";
+}
+
+// 統計ダッシュボードは通報件数等をDBから毎回集計し直すコストが大きく、
+// 期間フィルタごとに短時間キャッシュして使い回す(calibrationStatsの
+// 集計キャッシュ・プレイヤーページのRiot APIキャッシュと同じ方針)。
+const DASHBOARD_STATS_CACHE_TTL_MS = 30 * 1000;
 
 export type CategoryCount = { category: ReportCategory; count: number };
 export type VerdictCount = { verdict: ModeratorVerdict | "UNREVIEWED"; count: number };
@@ -85,7 +99,7 @@ export function tallyReportOutcomes(
   );
 }
 
-export async function getOverviewStats(since: Date | null = null) {
+async function computeOverviewStats(since: Date | null = null) {
   const [totalReports, reportedPlayerCount, reviewedReportCount, violationConfirmedCount] =
     await Promise.all([
       prisma.report.count({ where: { hiddenAt: null, ...createdAtFilter(since) } }),
@@ -117,10 +131,16 @@ export async function getOverviewStats(since: Date | null = null) {
   };
 }
 
+export const getOverviewStats = memoizeWithTtlByKey(
+  computeOverviewStats,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (since) => sinceKey(since),
+);
+
 export type VoteTotals = { likeCount: number; dislikeCount: number };
 
 // コミュニティ投票(「この通報は妥当/不当」)の集計。
-export async function getVoteTotals(since: Date | null = null): Promise<VoteTotals> {
+async function computeVoteTotals(since: Date | null = null): Promise<VoteTotals> {
   const [likeCount, dislikeCount] = await Promise.all([
     prisma.reportVote.count({
       where: { voteType: "LIKE", report: { hiddenAt: null, ...createdAtFilter(since) } },
@@ -132,13 +152,19 @@ export async function getVoteTotals(since: Date | null = null): Promise<VoteTota
   return { likeCount, dislikeCount };
 }
 
+export const getVoteTotals = memoizeWithTtlByKey(
+  computeVoteTotals,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (since) => sinceKey(since),
+);
+
 export type TierCount = { tier: string; label: string; count: number };
 
 const TIER_ORDER = [...Object.keys(TIER_LABELS), "UNRANKED"];
 
 // 通報された時点でのソロ/デュオランク層の分布。reportedTierが未取得(null)の
 // 通報(この機能の導入以前のものなど)は対象外にする。
-export async function getReportedTierBreakdown(since: Date | null = null): Promise<TierCount[]> {
+async function computeReportedTierBreakdown(since: Date | null = null): Promise<TierCount[]> {
   const grouped = await prisma.report.groupBy({
     by: ["reportedTier"],
     where: { hiddenAt: null, ...createdAtFilter(since), reportedTier: { not: null } },
@@ -153,7 +179,13 @@ export async function getReportedTierBreakdown(since: Date | null = null): Promi
   }));
 }
 
-export async function getCategoryBreakdown(since: Date | null = null): Promise<CategoryCount[]> {
+export const getReportedTierBreakdown = memoizeWithTtlByKey(
+  computeReportedTierBreakdown,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (since) => sinceKey(since),
+);
+
+async function computeCategoryBreakdown(since: Date | null = null): Promise<CategoryCount[]> {
   const grouped = await prisma.report.groupBy({
     by: ["category"],
     where: { hiddenAt: null, ...createdAtFilter(since) },
@@ -167,9 +199,15 @@ export async function getCategoryBreakdown(since: Date | null = null): Promise<C
   }));
 }
 
+export const getCategoryBreakdown = memoizeWithTtlByKey(
+  computeCategoryBreakdown,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (since) => sinceKey(since),
+);
+
 // 評価はReportではなくModeratorReviewに紐づくため、通報ごとの最新評価を
 // JS側で集計する(1通報に複数レビューが付き得るため)。
-export async function getVerdictBreakdown(since: Date | null = null): Promise<VerdictCount[]> {
+async function computeVerdictBreakdown(since: Date | null = null): Promise<VerdictCount[]> {
   const reports = await prisma.report.findMany({
     where: { hiddenAt: null, ...createdAtFilter(since) },
     select: {
@@ -196,7 +234,13 @@ export async function getVerdictBreakdown(since: Date | null = null): Promise<Ve
   return order.map((verdict) => ({ verdict, count: counts.get(verdict) ?? 0 }));
 }
 
-export async function getDailyReportCounts(days = DAILY_TREND_DAYS): Promise<DailyCount[]> {
+export const getVerdictBreakdown = memoizeWithTtlByKey(
+  computeVerdictBreakdown,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (since) => sinceKey(since),
+);
+
+async function computeDailyReportCounts(days = DAILY_TREND_DAYS): Promise<DailyCount[]> {
   const since = new Date(todayJstMidnightUtc().getTime() - (days - 1) * 24 * 60 * 60 * 1000);
 
   const reports = await prisma.report.findMany({
@@ -217,7 +261,16 @@ export async function getDailyReportCounts(days = DAILY_TREND_DAYS): Promise<Dai
   return Array.from(counts.entries()).map(([date, count]) => ({ date, count }));
 }
 
-export async function getTopChampions(limit = 10, since: Date | null = null): Promise<NamedCount[]> {
+export const getDailyReportCounts = memoizeWithTtlByKey(
+  computeDailyReportCounts,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (days = DAILY_TREND_DAYS) => String(days),
+);
+
+async function computeTopChampions(
+  limit = 10,
+  since: Date | null = null,
+): Promise<NamedCount[]> {
   const grouped = await prisma.report.groupBy({
     by: ["championName"],
     where: { hiddenAt: null, ...createdAtFilter(since) },
@@ -228,7 +281,13 @@ export async function getTopChampions(limit = 10, since: Date | null = null): Pr
   return grouped.map((g) => ({ name: g.championName, count: g._count._all }));
 }
 
-export async function getTopReportedPlayers(
+export const getTopChampions = memoizeWithTtlByKey(
+  computeTopChampions,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (limit = 10, since = null) => `${limit}:${sinceKey(since)}`,
+);
+
+async function computeTopReportedPlayers(
   limit = 10,
   since: Date | null = null,
 ): Promise<TopPlayer[]> {
@@ -252,6 +311,12 @@ export async function getTopReportedPlayers(
     };
   });
 }
+
+export const getTopReportedPlayers = memoizeWithTtlByKey(
+  computeTopReportedPlayers,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (limit = 10, since = null) => `${limit}:${sinceKey(since)}`,
+);
 
 // ホーム画面の「注目ユーザー」用。指定期間内の通報について、一般ユーザーから
 // 「妥当」票(LIKE)を多く集めた順に並べる(同数の場合は通報件数で補完)。
