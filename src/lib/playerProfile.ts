@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ModeratorVerdict, Prisma, ReportCategory } from "@/generated/prisma";
 import { PeriodFilter, periodFilterSince } from "@/lib/periodFilter";
 import { tallyReportOutcomes } from "@/lib/stats";
+import { memoizeWithTtlByKey } from "@/lib/ttlCache";
 
 // 通報のいいね/悪いね、モデレーター評価の異議件数、通報自体への削除申請件数は
 // JS側でvotes/objections/deletionRequests配列から集計する(種別ごとの件数はPrismaの
@@ -250,6 +251,28 @@ export async function findReportedPlayers({
 
   return { players: playersWithLatestReview, totalCount };
 }
+
+// 公開の一覧ページ(/players)はアクセスが集中しうる(検索エンジンや外部リンク経由も含む)ため、
+// 絞り込み条件ごとに短時間キャッシュした版を用意する。モデレーター管理画面
+// (src/app/moderator/(protected)/page.tsx)はレビュー操作の直後に最新の一覧を
+// 確認する必要があるため、こちらは使わず素のfindReportedPlayersを直接呼ぶこと。
+const REPORTED_PLAYERS_CACHE_TTL_MS = 30 * 1000;
+export const findReportedPlayersCached = memoizeWithTtlByKey(
+  findReportedPlayers,
+  REPORTED_PLAYERS_CACHE_TTL_MS,
+  (params) =>
+    [
+      params.page,
+      params.pageSize,
+      params.query ?? "",
+      params.category ?? "",
+      params.verdict ?? "",
+      params.reviewedBy ?? "",
+      params.period ?? "",
+      params.sort ?? "",
+      params.direction ?? "",
+    ].join(":"),
+);
 
 export async function findPlayerByRiotId(riotIdName: string, riotIdTagLine: string) {
   const nameHistory = await prisma.playerNameHistory.findFirst({

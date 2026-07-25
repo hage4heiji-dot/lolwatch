@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  findReportedPlayers,
+  findReportedPlayersCached,
   REPORTED_PLAYERS_SORT_LABELS,
   ReportedPlayersSort,
   SortDirection,
@@ -100,7 +100,7 @@ export default async function ReportedPlayersPage({
   const sort = sortParam && isSort(sortParam) ? sortParam : DEFAULT_SORT;
   const direction = dirParam && isDirection(dirParam) ? dirParam : DEFAULT_DIRECTION;
 
-  const { players, totalCount } = await findReportedPlayers({
+  const { players, totalCount } = await findReportedPlayersCached({
     page,
     pageSize: PAGE_SIZE,
     query,
