@@ -6,7 +6,11 @@ declare global {
 }
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  // node-postgresのデフォルト(max: 10)のままだとアクセス集中時に
+  // コネクション待ちで詰まりやすいため、余裕を持たせて増やしておく
+  // (Postgres側のmax_connectionsは100で、saitama-council-watchと共用のため
+  // 増やしすぎないよう注意すること)。
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL, max: 20 });
   return new PrismaClient({ adapter });
 }
 

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, ReportCategory } from "@/generated/prisma";
 import type { ReportedPlayersVerdictFilter } from "@/lib/playerProfile";
+import { memoizeWithTtlByKey } from "@/lib/ttlCache";
 
 export type PublicReportSort = "newest" | "oldest";
 
@@ -84,3 +85,20 @@ export async function findPublicReports({
 
   return { reports, totalCount };
 }
+
+// 公開の一覧ページ(/reports)はアクセスが集中しうるため、他の公開一覧
+// (findReportedPlayersCached等)と同じ方針で絞り込み条件ごとに短時間キャッシュする。
+const PUBLIC_REPORTS_CACHE_TTL_MS = 30 * 1000;
+export const findPublicReportsCached = memoizeWithTtlByKey(
+  findPublicReports,
+  PUBLIC_REPORTS_CACHE_TTL_MS,
+  (params) =>
+    [
+      params.page,
+      params.pageSize,
+      params.category ?? "",
+      params.verdict ?? "",
+      params.query ?? "",
+      params.sort ?? "",
+    ].join(":"),
+);

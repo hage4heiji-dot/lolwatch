@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { findPublicReports, PublicReportSort } from "@/lib/reportList";
+import { findPublicReportsCached, PublicReportSort } from "@/lib/reportList";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
@@ -97,7 +97,7 @@ export default async function ReportsPage({
   const verdict = verdictParam && isVerdictFilter(verdictParam) ? verdictParam : undefined;
   const sort = sortParam && isSort(sortParam) ? sortParam : "newest";
 
-  const { reports, totalCount } = await findPublicReports({
+  const { reports, totalCount } = await findPublicReportsCached({
     page,
     pageSize: PAGE_SIZE,
     category,
