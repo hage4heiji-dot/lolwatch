@@ -321,7 +321,8 @@ export const getTopReportedPlayers = memoizeWithTtlByKey(
 // ホーム画面の「注目ユーザー」用。指定期間内の通報について、一般ユーザーから
 // 「妥当」票(LIKE)を多く集めた順に並べる(同数の場合は通報件数で補完)。
 // 単純な通報件数だけだと逆恨みの連投に弱いため、コミュニティの support を優先する。
-export async function getMostWatchedPlayers(
+// ホームは最もアクセスが集中するページのため、他の集計と同様に短時間キャッシュする。
+async function computeMostWatchedPlayers(
   limit = 5,
   since: Date | null = null,
 ): Promise<WatchedPlayer[]> {
@@ -362,3 +363,9 @@ export async function getMostWatchedPlayers(
     ];
   });
 }
+
+export const getMostWatchedPlayers = memoizeWithTtlByKey(
+  computeMostWatchedPlayers,
+  DASHBOARD_STATS_CACHE_TTL_MS,
+  (limit = 5, since = null) => `${limit}:${sinceKey(since)}`,
+);
