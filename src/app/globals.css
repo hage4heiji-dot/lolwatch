@@ -1440,6 +1440,12 @@ a:has(> .calibration-banner):hover .calibration-banner {
   background: var(--accent-soft);
 }
 
+.calibration-type-percentage {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 /* トラック自体は「みんなの平均」の塗りつぶし、marker(縦線)が「あなたの回答」の位置。
    両方を同じ1〜5スケールの横位置で重ねて表示し、ズレを一目で見比べられるようにする。 */
 .calibration-compare-track {

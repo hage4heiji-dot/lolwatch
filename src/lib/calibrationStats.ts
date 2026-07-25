@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { CALIBRATION_SCENARIOS } from "@/lib/calibrationScenarios";
+import {
+  getCalibrationChampionResult,
+  ALL_CALIBRATION_CHAMPION_RESULTS,
+} from "@/lib/calibrationChampionDiagnosis";
 
 export type ScenarioAverage = {
   key: string;
@@ -84,6 +88,42 @@ export async function getLatestCalibrationAttemptIdForDevice(
     select: { id: true },
   });
   return attempt?.id ?? null;
+}
+
+export type ChampionTypeDistribution = {
+  championName: string;
+  count: number;
+  // 受験者が誰もいない場合はnull(0%と区別する)。
+  percentage: number | null;
+};
+
+// チャンピオンタイプ(getCalibrationChampionResult)はDBの列ではなく9問の回答から
+// 都度計算する値のため、SQLのgroupByでは集計できない。受験数がまだ少ない前提で
+// 全件をJSに読み込んで診断ロジックを再適用し、タイプ別の人数・割合を出す。
+export async function getCalibrationChampionDistribution(): Promise<ChampionTypeDistribution[]> {
+  const attempts = await prisma.calibrationAttempt.findMany({
+    select: { answers: { select: { score: true } } },
+  });
+
+  const counts = new Map<string, number>(
+    ALL_CALIBRATION_CHAMPION_RESULTS.map((c) => [c.championName, 0]),
+  );
+  for (const attempt of attempts) {
+    const scores = attempt.answers.map((a) => a.score);
+    if (scores.length === 0) continue;
+    const champion = getCalibrationChampionResult(scores);
+    counts.set(champion.championName, (counts.get(champion.championName) ?? 0) + 1);
+  }
+
+  const total = attempts.length;
+  return ALL_CALIBRATION_CHAMPION_RESULTS.map((c) => {
+    const count = counts.get(c.championName) ?? 0;
+    return {
+      championName: c.championName,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : null,
+    };
+  });
 }
 
 // 平均スコアの差から「厳しめ/緩め/平均的」の一言コメントを作る。

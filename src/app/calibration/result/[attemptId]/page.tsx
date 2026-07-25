@@ -11,6 +11,7 @@ import {
   getCalibrationAttempt,
   getCalibrationScenarioStats,
   getCalibrationOverview,
+  getCalibrationChampionDistribution,
   describeCalibrationTendency,
 } from "@/lib/calibrationStats";
 import {
@@ -61,9 +62,10 @@ export default async function CalibrationResultPage({
   const attempt = await getCalibrationAttempt(attemptId);
   if (!attempt) notFound();
 
-  const [stats, overview, ddragonVersion] = await Promise.all([
+  const [stats, overview, championDistribution, ddragonVersion] = await Promise.all([
     getCalibrationScenarioStats(),
     getCalibrationOverview(),
+    getCalibrationChampionDistribution(),
     getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
   ]);
 
@@ -113,27 +115,38 @@ export default async function CalibrationResultPage({
       <section className="section">
         <h2>ほかのタイプ</h2>
         <div className="calibration-type-grid">
-          {ALL_CALIBRATION_CHAMPION_RESULTS.map((c) => (
-            <div
-              key={c.championName}
-              className={`calibration-type-item${c.championName === champion.championName ? " calibration-type-item-active" : ""}`}
-            >
-              <Image
-                className="calibration-type-icon"
-                src={getChampionIconUrl(ddragonVersion, c.championName)}
-                alt={c.displayName}
-                width={40}
-                height={40}
-              />
-              <div>
-                <p style={{ fontWeight: 600 }}>
-                  {c.displayName}タイプ{c.championName === champion.championName && " (あなた)"}
-                </p>
-                <p className="muted">{c.title}</p>
+          {ALL_CALIBRATION_CHAMPION_RESULTS.map((c) => {
+            const dist = championDistribution.find((d) => d.championName === c.championName);
+            return (
+              <div
+                key={c.championName}
+                className={`calibration-type-item${c.championName === champion.championName ? " calibration-type-item-active" : ""}`}
+              >
+                <Image
+                  className="calibration-type-icon"
+                  src={getChampionIconUrl(ddragonVersion, c.championName)}
+                  alt={c.displayName}
+                  width={40}
+                  height={40}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 600 }}>
+                    {c.displayName}タイプ{c.championName === champion.championName && " (あなた)"}
+                  </p>
+                  <p className="muted">{c.title}</p>
+                </div>
+                <span className="calibration-type-percentage muted">
+                  {dist?.percentage !== null && dist?.percentage !== undefined
+                    ? `${Math.round(dist.percentage)}%`
+                    : "-"}
+                </span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+        <p className="muted" style={{ marginTop: "0.5rem" }}>
+          受験者{overview.attemptCount}人のうち、それぞれのタイプに判定された割合です。
+        </p>
       </section>
 
       <section className="section">
