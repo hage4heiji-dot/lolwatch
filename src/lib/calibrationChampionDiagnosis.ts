@@ -43,7 +43,7 @@ const CHAMPION_RESULTS: Record<Tier, CalibrationChampionResult> = {
   },
   4: {
     championName: "Warwick",
-    displayName: "ウォーウィック",
+    displayName: "ワーウィック",
     title: "温情と豹変のタイプ",
     description:
       "ゾウンの弱者を陰から見守る、元治療師の獣人。グレーな行為は基本大目に見ますが、本当に誰かを傷つけた相手には一転して牙を剥く、条件付きの寛容さの持ち主です。",
