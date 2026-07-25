@@ -189,7 +189,7 @@ export default async function PlayerProfilePage({
           url={`${SITE_URL}/players/${player.puuid}`}
           text={`${
             currentName ? `${currentName.riotIdName} #${currentName.riotIdTagLine}` : "プレイヤー"
-          }の通報履歴 | lolwatch`}
+          }の通報履歴 #LoL | lolwatch`}
         />
       </div>
 

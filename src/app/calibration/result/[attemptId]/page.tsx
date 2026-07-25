@@ -109,7 +109,7 @@ export default async function CalibrationResultPage({
 
       <ShareButtons
         url={`${SITE_URL}/calibration/result/${attempt.id}`}
-        text={`判定基準診断をやってみたら「${champion.displayName}タイプ(${champion.title})」でした(平均${yourAverage.toFixed(1)})。あなたは何タイプ? | lolwatch`}
+        text={`判定基準診断をやってみたら「${champion.displayName}タイプ(${champion.title})」でした(平均${yourAverage.toFixed(1)})。あなたは何タイプ? #LoL #判定基準診断 | lolwatch`}
       />
 
       <section className="section">
