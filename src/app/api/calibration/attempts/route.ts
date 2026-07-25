@@ -9,7 +9,7 @@ import {
   readDeviceId,
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
-import { checkCalibrationRateLimit } from "@/lib/rateLimit";
+import { checkCalibrationRateLimit, acquireInFlightLock, releaseInFlightLock } from "@/lib/rateLimit";
 import { CALIBRATION_SCENARIO_KEYS } from "@/lib/calibrationScenarios";
 import { getCalibrationScenarioStats, getCalibrationOverview } from "@/lib/calibrationStats";
 
@@ -58,27 +58,39 @@ export async function POST(request: NextRequest) {
     return res;
   }
 
-  const rateCheck = await checkCalibrationRateLimit({ deviceId, ip });
-  if (!rateCheck.allowed) {
-    return respond({ error: rateCheck.reason }, 429);
+  // レート制限チェックと作成の間に同一IPからのリクエストが重ならないようにする
+  // (チェック→作成の間にawaitを挟むため、極端に短い間隔の二重送信だと両方が
+  // チェックを通過して二重に受験扱いになってしまう可能性があるため)。
+  const lockKey = `calibration:${ip}`;
+  if (!acquireInFlightLock(lockKey)) {
+    return respond({ error: "処理中です。しばらくしてから再度お試しください。" }, 429);
   }
 
-  const attempt = await prisma.calibrationAttempt.create({
-    data: {
-      deviceId,
-      posterIp: ip,
-      answers: {
-        createMany: {
-          data: answers.map((a) => ({ scenarioKey: a.scenarioKey, score: a.score })),
+  try {
+    const rateCheck = await checkCalibrationRateLimit({ deviceId, ip });
+    if (!rateCheck.allowed) {
+      return respond({ error: rateCheck.reason }, 429);
+    }
+
+    const attempt = await prisma.calibrationAttempt.create({
+      data: {
+        deviceId,
+        posterIp: ip,
+        answers: {
+          createMany: {
+            data: answers.map((a) => ({ scenarioKey: a.scenarioKey, score: a.score })),
+          },
         },
       },
-    },
-  });
+    });
 
-  const [stats, overview] = await Promise.all([
-    getCalibrationScenarioStats(),
-    getCalibrationOverview(),
-  ]);
+    const [stats, overview] = await Promise.all([
+      getCalibrationScenarioStats(),
+      getCalibrationOverview(),
+    ]);
 
-  return respond({ ok: true, attemptId: attempt.id, stats, overview }, 201);
+    return respond({ ok: true, attemptId: attempt.id, stats, overview }, 201);
+  } finally {
+    releaseInFlightLock(lockKey);
+  }
 }

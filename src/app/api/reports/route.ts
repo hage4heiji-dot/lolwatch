@@ -11,7 +11,7 @@ import {
   readDeviceId,
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
-import { checkReportRateLimit } from "@/lib/rateLimit";
+import { checkReportRateLimit, acquireInFlightLock, releaseInFlightLock } from "@/lib/rateLimit";
 import { ReportCategory } from "@/generated/prisma";
 import {
   REFERENCE_URL_MAX_LENGTH,
@@ -93,43 +93,55 @@ export async function POST(request: NextRequest) {
   const platform = process.env.RIOT_PLATFORM ?? "jp1";
   const player = await upsertPlayerFromRiotAccount(account, platform);
 
-  const rateCheck = await checkReportRateLimit({ deviceId, ip, playerId: player.id });
-  if (!rateCheck.allowed) {
-    return respond({ error: rateCheck.reason }, 429);
+  // レート制限チェックと作成の間に同一IPからのリクエストが重ならないようにする
+  // (チェック→作成の間にawaitを挟むため、極端に短い間隔の二重送信だと両方が
+  // チェックを通過して同じ試合への通報が二重に作成されてしまう可能性があるため)。
+  const lockKey = `report:${ip}`;
+  if (!acquireInFlightLock(lockKey)) {
+    return respond({ error: "処理中です。しばらくしてから再度お試しください。" }, 429);
   }
 
-  // 統計の「通報されたユーザーのランク」集計用に、通報された時点のソロ/デュオランクを
-  // 記録しておく。取得に失敗しても通報自体はブロックしない(nullのまま保存する)。
-  const reportedTier = await getLeagueEntriesByPuuid(puuid, platform)
-    .then(
-      (entries) =>
-        entries.find((entry) => entry.queueType === "RANKED_SOLO_5x5")?.tier ?? "UNRANKED",
-    )
-    .catch(() => null);
+  try {
+    const rateCheck = await checkReportRateLimit({ deviceId, ip, playerId: player.id });
+    if (!rateCheck.allowed) {
+      return respond({ error: rateCheck.reason }, 429);
+    }
 
-  const report = await prisma.report.create({
-    data: {
-      playerId: player.id,
-      category,
-      incidentTimestampSeconds: incidentTimestampSeconds ?? null,
-      comment: comment || null,
-      referenceUrl: referenceUrl || null,
-      matchId,
-      championName,
-      queueId,
-      deviceId,
-      posterIp: ip,
-      reportedTier,
-    },
-  });
+    // 統計の「通報されたユーザーのランク」集計用に、通報された時点のソロ/デュオランクを
+    // 記録しておく。取得に失敗しても通報自体はブロックしない(nullのまま保存する)。
+    const reportedTier = await getLeagueEntriesByPuuid(puuid, platform)
+      .then(
+        (entries) =>
+          entries.find((entry) => entry.queueType === "RANKED_SOLO_5x5")?.tier ?? "UNRANKED",
+      )
+      .catch(() => null);
 
-  return respond(
-    {
-      ok: true,
-      reportId: report.id,
-      playerId: player.id,
-      riotId: `${account.gameName}#${account.tagLine}`,
-    },
-    201,
-  );
+    const report = await prisma.report.create({
+      data: {
+        playerId: player.id,
+        category,
+        incidentTimestampSeconds: incidentTimestampSeconds ?? null,
+        comment: comment || null,
+        referenceUrl: referenceUrl || null,
+        matchId,
+        championName,
+        queueId,
+        deviceId,
+        posterIp: ip,
+        reportedTier,
+      },
+    });
+
+    return respond(
+      {
+        ok: true,
+        reportId: report.id,
+        playerId: player.id,
+        riotId: `${account.gameName}#${account.tagLine}`,
+      },
+      201,
+    );
+  } finally {
+    releaseInFlightLock(lockKey);
+  }
 }

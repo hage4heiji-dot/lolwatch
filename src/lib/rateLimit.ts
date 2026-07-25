@@ -9,6 +9,25 @@ export type RateLimitResult =
   | { allowed: true }
   | { allowed: false; reason: string };
 
+// レート制限チェックと作成処理の間には「チェック→作成」のawaitを挟むため、
+// 極端に短い間隔で同一キーからのリクエストが重なると、両方がチェックを通過して
+// 二重作成されてしまう可能性がある(通報の投稿・判定基準診断の受験など)。
+// Node.jsはシングルスレッドで、awaitを挟まない同期区間は割り込まれないため、
+// このSetへのhas/addをawaitなしで行うだけで排他制御になる。
+const inFlightKeys = new Set<string>();
+
+// 取得できればtrueを返し、以後同じキーでの取得はfalseになる。
+// 呼び出し側は処理完了後(成功・失敗問わず)に必ずreleaseInFlightLockを呼ぶこと。
+export function acquireInFlightLock(key: string): boolean {
+  if (inFlightKeys.has(key)) return false;
+  inFlightKeys.add(key);
+  return true;
+}
+
+export function releaseInFlightLock(key: string): void {
+  inFlightKeys.delete(key);
+}
+
 // 判定基準診断の連続受験によって平均値が水増しされるのを防ぐクールダウン。
 const CALIBRATION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 

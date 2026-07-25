@@ -242,6 +242,7 @@ export function MatchLookup() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitPending) return;
     setError(null);
     if (!match) return;
 
