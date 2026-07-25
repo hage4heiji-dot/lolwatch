@@ -1,3 +1,5 @@
+import { memoizeWithTtlByKey } from "@/lib/ttlCache";
+
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
 const RIOT_REGION = process.env.RIOT_REGION ?? "asia";
 
@@ -101,7 +103,7 @@ export interface MatchDetail {
 // LoLクライアント上でユーザー自身が特定できる試合ID(matchId)から、
 // その試合の参加者一覧(10人)を1回のAPI呼び出しで取得する。
 // 通報対象のアカウントはこの一覧から選ばせる(APIコストを抑えるため試合検索は行わない)。
-export async function getMatchDetail(matchId: string): Promise<MatchDetail> {
+async function fetchMatchDetail(matchId: string): Promise<MatchDetail> {
   if (!RIOT_API_KEY) {
     throw new Error("RIOT_API_KEY is not configured");
   }
@@ -170,8 +172,18 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail> {
   };
 }
 
+// 試合の内容は終了後は変わらないため、プレイヤーページ(通報一覧+頻出チームメイト検出)で
+// 同じ試合IDが繰り返し参照されてもRiot APIを叩き直さずに済むよう長めにキャッシュする
+// (calibrationStatsの集計キャッシュと同じ方針だが、こちらはデータ自体が不変なのでTTLを長めに取る)。
+const MATCH_DETAIL_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const getMatchDetail = memoizeWithTtlByKey(
+  fetchMatchDetail,
+  MATCH_DETAIL_CACHE_TTL_MS,
+  (matchId) => matchId,
+);
+
 // 直近試合ID一覧(ゲームモード問わず)。「一緒にプレイした人」の検出に使う。
-export async function getRecentMatchIds(puuid: string, count = 20): Promise<string[]> {
+async function fetchRecentMatchIds(puuid: string, count = 20): Promise<string[]> {
   if (!RIOT_API_KEY) {
     throw new Error("RIOT_API_KEY is not configured");
   }
@@ -195,6 +207,15 @@ export async function getRecentMatchIds(puuid: string, count = 20): Promise<stri
 
   return (await res.json()) as string[];
 }
+
+// プレイヤーページが短時間に連続で開かれても直近試合一覧を毎回取り直さないよう
+// 短時間キャッシュする(頻出チームメイト検出のRiot API呼び出しの起点になっているため)。
+const RECENT_MATCH_IDS_CACHE_TTL_MS = 60 * 1000;
+export const getRecentMatchIds = memoizeWithTtlByKey(
+  fetchRecentMatchIds,
+  RECENT_MATCH_IDS_CACHE_TTL_MS,
+  (puuid, count = 20) => `${puuid}:${count}`,
+);
 
 export interface MatchKillEvent {
   timestampSeconds: number;
@@ -311,7 +332,7 @@ export interface SummonerInfo {
 }
 
 // サモナーレベル表示用。ランク情報(league-v4)とは別APIなので追加で1回呼び出す。
-export async function getSummonerByPuuid(
+async function fetchSummonerByPuuid(
   puuid: string,
   platform: string,
 ): Promise<SummonerInfo> {
@@ -340,6 +361,16 @@ export async function getSummonerByPuuid(
   return { summonerLevel: data.summonerLevel };
 }
 
+// プレイヤーページはシェアされて短時間に同じpuuidへアクセスが集中しうるため、
+// サモナーレベル・ランクは短時間キャッシュして使い回す(頻出チームメイトの
+// 表示分も含めて同じキーで効くので、1人あたりのRiot API呼び出し回数を抑えられる)。
+const PLAYER_INFO_CACHE_TTL_MS = 60 * 1000;
+export const getSummonerByPuuid = memoizeWithTtlByKey(
+  fetchSummonerByPuuid,
+  PLAYER_INFO_CACHE_TTL_MS,
+  (puuid, platform) => `${puuid}:${platform}`,
+);
+
 export interface LeagueEntry {
   queueType: string;
   tier: string;
@@ -350,7 +381,7 @@ export interface LeagueEntry {
 }
 
 // ランク情報はmatch-v5等と違いplatform routing(jp1等、Player.platformに保存済みの値)で問い合わせる。
-export async function getLeagueEntriesByPuuid(
+async function fetchLeagueEntriesByPuuid(
   puuid: string,
   platform: string,
 ): Promise<LeagueEntry[]> {
@@ -377,3 +408,9 @@ export async function getLeagueEntriesByPuuid(
 
   return (await res.json()) as LeagueEntry[];
 }
+
+export const getLeagueEntriesByPuuid = memoizeWithTtlByKey(
+  fetchLeagueEntriesByPuuid,
+  PLAYER_INFO_CACHE_TTL_MS,
+  (puuid, platform) => `${puuid}:${platform}`,
+);

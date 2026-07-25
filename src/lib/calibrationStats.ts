@@ -4,23 +4,12 @@ import {
   getCalibrationChampionResult,
   ALL_CALIBRATION_CHAMPION_RESULTS,
 } from "@/lib/calibrationChampionDiagnosis";
+import { memoizeWithTtl } from "@/lib/ttlCache";
 
 // 集計系(シナリオ別平均・全体平均・タイプ別分布)は結果ページ(シェアされて
 // 大量に閲覧される想定)を開くたびに毎回DBへ問い合わせるとアクセス集中時に重くなるため、
 // 短時間キャッシュして使い回す(ddragonバージョンのキャッシュと同じ方針)。
 const STATS_CACHE_TTL_MS = 30 * 1000;
-
-function memoizeWithTtl<T>(fn: () => Promise<T>, ttlMs: number): () => Promise<T> {
-  let cached: { value: T; fetchedAt: number } | null = null;
-  return async () => {
-    if (cached && Date.now() - cached.fetchedAt < ttlMs) {
-      return cached.value;
-    }
-    const value = await fn();
-    cached = { value, fetchedAt: Date.now() };
-    return value;
-  };
-}
 
 export type ScenarioAverage = {
   key: string;
