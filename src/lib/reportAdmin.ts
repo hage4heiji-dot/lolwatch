@@ -3,12 +3,14 @@ import { ReportCategory, Prisma } from "@/generated/prisma";
 
 export type HiddenFilter = "all" | "hidden" | "visible";
 export type ReviewedFilter = "all" | "reviewed" | "unreviewed";
+export type DeletionRequestFilter = "all" | "requested" | "none";
 export type ReportAdminSort = "newest" | "oldest";
 
 export interface ReportAdminFilters {
   category?: ReportCategory;
   hidden: HiddenFilter;
   reviewed: ReviewedFilter;
+  deletionRequested: DeletionRequestFilter;
   query?: string;
 }
 
@@ -39,6 +41,11 @@ export async function findAllReportsForAdmin({
     where.moderatorReviews = { some: {} };
   } else if (filters.reviewed === "unreviewed") {
     where.moderatorReviews = { none: {} };
+  }
+  if (filters.deletionRequested === "requested") {
+    where.deletionRequests = { some: {} };
+  } else if (filters.deletionRequested === "none") {
+    where.deletionRequests = { none: {} };
   }
   if (filters.query) {
     where.OR = [
@@ -73,6 +80,7 @@ export async function findAllReportsForAdmin({
           },
         },
         moderatorReviews: { select: { id: true }, take: 1 },
+        _count: { select: { deletionRequests: true } },
       },
     }),
     prisma.report.count({ where }),

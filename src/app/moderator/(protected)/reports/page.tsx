@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { requireModerator } from "@/lib/moderatorAuth";
 import { findAllReportsForAdmin } from "@/lib/reportAdmin";
-import type { HiddenFilter, ReviewedFilter, ReportAdminSort } from "@/lib/reportAdmin";
+import type {
+  HiddenFilter,
+  ReviewedFilter,
+  DeletionRequestFilter,
+  ReportAdminSort,
+} from "@/lib/reportAdmin";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { ReportCategory } from "@/generated/prisma";
@@ -24,6 +29,10 @@ function toReviewedFilter(value: string | undefined): ReviewedFilter {
   return value === "reviewed" || value === "unreviewed" ? value : "all";
 }
 
+function toDeletionRequestFilter(value: string | undefined): DeletionRequestFilter {
+  return value === "requested" || value === "none" ? value : "all";
+}
+
 function toCategory(value: string | undefined): ReportCategory | undefined {
   return value && value in CATEGORY_LABELS ? (value as ReportCategory) : undefined;
 }
@@ -37,6 +46,7 @@ interface FilterParams {
   category?: ReportCategory;
   hidden: HiddenFilter;
   reviewed: ReviewedFilter;
+  deletionRequested: DeletionRequestFilter;
   sort: ReportAdminSort;
 }
 
@@ -46,6 +56,7 @@ function buildHref(params: FilterParams & { page?: number }): string {
   if (params.category) sp.set("category", params.category);
   if (params.hidden !== "all") sp.set("hidden", params.hidden);
   if (params.reviewed !== "all") sp.set("reviewed", params.reviewed);
+  if (params.deletionRequested !== "all") sp.set("deletionRequested", params.deletionRequested);
   if (params.sort !== "newest") sp.set("sort", params.sort);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   const qs = sp.toString();
@@ -75,6 +86,7 @@ export default async function AdminReportsPage({
     category?: string;
     hidden?: string;
     reviewed?: string;
+    deletionRequested?: string;
     sort?: string;
   }>;
 }) {
@@ -97,17 +109,20 @@ export default async function AdminReportsPage({
   const category = toCategory(params.category);
   const hidden = toHiddenFilter(params.hidden);
   const reviewed = toReviewedFilter(params.reviewed);
+  const deletionRequested = toDeletionRequestFilter(params.deletionRequested);
   const sort = toSort(params.sort);
 
   const { reports, totalCount } = await findAllReportsForAdmin({
     page,
     pageSize: PAGE_SIZE,
-    filters: { category, hidden, reviewed, query },
+    filters: { category, hidden, reviewed, deletionRequested, query },
     sort,
   });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasFilters = Boolean(query || category || hidden !== "all" || reviewed !== "all");
-  const filters: FilterParams = { query, category, hidden, reviewed, sort };
+  const hasFilters = Boolean(
+    query || category || hidden !== "all" || reviewed !== "all" || deletionRequested !== "all",
+  );
+  const filters: FilterParams = { query, category, hidden, reviewed, deletionRequested, sort };
 
   return (
     <div>
@@ -159,6 +174,14 @@ export default async function AdminReportsPage({
             <option value="all">すべて</option>
             <option value="reviewed">✅ 評価済みのみ</option>
             <option value="unreviewed">⏳ 未評価のみ</option>
+          </select>
+        </div>
+        <div className="form-field" style={{ marginBottom: 0 }}>
+          <label htmlFor="deletionRequested">削除申請</label>
+          <select id="deletionRequested" name="deletionRequested" defaultValue={deletionRequested}>
+            <option value="all">すべて</option>
+            <option value="requested">🗑️ 申請ありのみ</option>
+            <option value="none">申請なしのみ</option>
           </select>
         </div>
         <input type="hidden" name="sort" value={sort} />
@@ -232,6 +255,11 @@ export default async function AdminReportsPage({
                           <span className="badge badge-verified">✅ 評価済み</span>
                         ) : (
                           <span className="badge badge-unverified">⏳ 未評価</span>
+                        )}
+                        {report._count.deletionRequests > 0 && (
+                          <span className="badge badge-verified-guilty">
+                            🗑️ 削除申請あり ({report._count.deletionRequests})
+                          </span>
                         )}
                       </div>
                     </td>

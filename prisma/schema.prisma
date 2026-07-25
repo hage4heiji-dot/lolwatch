@@ -79,10 +79,28 @@ model Report {
 
   moderatorReviews ModeratorReview[]
   votes            ReportVote[]
+  deletionRequests ReportDeletionRequest[]
 
   @@index([playerId, createdAt])
   @@index([deviceId, createdAt])
   @@index([posterIp, createdAt])
+}
+
+// 通報自体への「削除してほしい」という一般ユーザーからの申請。異議申立(ReviewObjection)
+// と同様、申請=即削除ではなくモデレーターへの再確認シグナルとして扱う。
+// 承認された場合はReportの非表示(hiddenAt/hiddenReason)機能を使う想定で、
+// この申請自体がReportを削除・非表示にする効力を持つわけではない。
+model ReportDeletionRequest {
+  id        String   @id @default(uuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  deviceId  String
+  posterIp  String
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@unique([reportId, deviceId])
+  @@index([reportId])
 }
 
 enum VoteType {

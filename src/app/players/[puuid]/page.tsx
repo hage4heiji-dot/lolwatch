@@ -26,6 +26,7 @@ import { formatMatchTime } from "@/lib/matchTime";
 import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
 import { canEditReport } from "@/lib/reportEdit";
 import { ReportVoteButtons } from "@/app/report-vote-buttons";
+import { ReportDeletionRequestButton } from "@/app/report-deletion-request-button";
 import { ReviewObjectionButton } from "@/app/review-objection-button";
 import { ReportEditForm } from "@/app/report-edit-form";
 import { MatchScoreboard } from "@/app/match-scoreboard";
@@ -369,6 +370,16 @@ export default async function PlayerProfilePage({
                       deviceId
                         ? (report.votes.find((v) => v.deviceId === deviceId)?.voteType ?? null)
                         : null
+                    }
+                  />
+
+                  <ReportDeletionRequestButton
+                    reportId={report.id}
+                    initialCount={report.deletionRequests.length}
+                    initialHasRequested={
+                      deviceId
+                        ? report.deletionRequests.some((d) => d.deviceId === deviceId)
+                        : false
                     }
                   />
 

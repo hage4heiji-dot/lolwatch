@@ -175,6 +175,38 @@ export function checkObjectionRateLimit(ip: string): RateLimitResult {
   return { allowed: true };
 }
 
+// 通報への削除申請API用。理由はcheckObjectionRateLimitと同じ
+// (deviceIdクッキーに依存しないIP単位の頻度制限)。
+const DELETION_REQUEST_WINDOW_MS = 60 * 1000;
+const DELETION_REQUEST_MAX_REQUESTS = 10;
+const deletionRequestHistory = new Map<string, number[]>();
+
+export function checkDeletionRequestRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - DELETION_REQUEST_WINDOW_MS;
+  const timestamps = (deletionRequestHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= DELETION_REQUEST_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "操作が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  deletionRequestHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of deletionRequestHistory) {
+      if (values.every((t) => t < since)) {
+        deletionRequestHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
 // サモナー名から直近試合一覧を検索するAPI用。1回の呼び出しで
 // 試合ID一覧取得+試合詳細(最大20件)とRiot APIコストが大きいため、
 // 通常の試合ID検索より低いしきい値で制限する。

@@ -3,9 +3,10 @@ import { ModeratorVerdict, Prisma, ReportCategory } from "@/generated/prisma";
 import { PeriodFilter, periodFilterSince } from "@/lib/periodFilter";
 import { tallyReportOutcomes } from "@/lib/stats";
 
-// 通報のいいね/悪いね、モデレーター評価の異議件数はJS側でvotes/objections配列から
-// 集計する(種別ごとの件数はPrismaの_count.selectでは同一リレーションに複数条件を
-// 持たせられないため)。件数的に多くならない想定なので全件取得で十分。
+// 通報のいいね/悪いね、モデレーター評価の異議件数、通報自体への削除申請件数は
+// JS側でvotes/objections/deletionRequests配列から集計する(種別ごとの件数はPrismaの
+// _count.selectでは同一リレーションに複数条件を持たせられないため)。
+// 件数的に多くならない想定なので全件取得で十分。
 //
 // includeHidden: モデレーター画面用。非表示にされた通報も含めて取得する
 // (公開プレイヤーページでは絶対にtrueにしないこと)。
@@ -34,6 +35,7 @@ export async function findPlayerByPuuid(puuid: string, options?: { includeHidden
           // クライアントには絶対に渡さないこと。
           deviceId: true,
           votes: true,
+          deletionRequests: true,
           moderatorReviews: {
             orderBy: { createdAt: "desc" },
             include: {

@@ -112,6 +112,21 @@ export default async function ModeratorReviewPage({
                 </p>
               )}
 
+              {report.deletionRequests.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <span className="badge badge-verified-guilty">
+                    🗑️ 削除申請 {report.deletionRequests.length}件
+                  </span>
+                  <ul style={{ marginTop: "0.35rem", paddingLeft: "1.2rem" }}>
+                    {report.deletionRequests.map((d) => (
+                      <li key={d.id} className="muted" style={{ marginTop: "0.2rem" }}>
+                        {d.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {moderator?.isAdmin ? (
                 <HideReportControl
                   reportId={report.id}
