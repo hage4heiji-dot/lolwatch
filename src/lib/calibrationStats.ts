@@ -5,6 +5,23 @@ import {
   ALL_CALIBRATION_CHAMPION_RESULTS,
 } from "@/lib/calibrationChampionDiagnosis";
 
+// 集計系(シナリオ別平均・全体平均・タイプ別分布)は結果ページ(シェアされて
+// 大量に閲覧される想定)を開くたびに毎回DBへ問い合わせるとアクセス集中時に重くなるため、
+// 短時間キャッシュして使い回す(ddragonバージョンのキャッシュと同じ方針)。
+const STATS_CACHE_TTL_MS = 30 * 1000;
+
+function memoizeWithTtl<T>(fn: () => Promise<T>, ttlMs: number): () => Promise<T> {
+  let cached: { value: T; fetchedAt: number } | null = null;
+  return async () => {
+    if (cached && Date.now() - cached.fetchedAt < ttlMs) {
+      return cached.value;
+    }
+    const value = await fn();
+    cached = { value, fetchedAt: Date.now() };
+    return value;
+  };
+}
+
 export type ScenarioAverage = {
   key: string;
   title: string;
@@ -14,7 +31,7 @@ export type ScenarioAverage = {
 
 // シナリオごとの平均スコア(1=違反〜5=問題なし)と回答数。
 // まだ誰も回答していないシナリオはaverage: null, count: 0として返す。
-export async function getCalibrationScenarioStats(): Promise<ScenarioAverage[]> {
+async function computeCalibrationScenarioStats(): Promise<ScenarioAverage[]> {
   const grouped = await prisma.calibrationAnswer.groupBy({
     by: ["scenarioKey"],
     _avg: { score: true },
@@ -32,6 +49,10 @@ export async function getCalibrationScenarioStats(): Promise<ScenarioAverage[]> 
     };
   });
 }
+export const getCalibrationScenarioStats = memoizeWithTtl(
+  computeCalibrationScenarioStats,
+  STATS_CACHE_TTL_MS,
+);
 
 export type CalibrationOverview = {
   attemptCount: number;
@@ -39,7 +60,7 @@ export type CalibrationOverview = {
 };
 
 // 全シナリオ・全受験者を通じた総受験数と全体平均(「コミュニティ全体は厳しめか緩めか」の目安)。
-export async function getCalibrationOverview(): Promise<CalibrationOverview> {
+async function computeCalibrationOverview(): Promise<CalibrationOverview> {
   const [attemptCount, aggregate] = await Promise.all([
     prisma.calibrationAttempt.count(),
     prisma.calibrationAnswer.aggregate({ _avg: { score: true } }),
@@ -49,6 +70,7 @@ export async function getCalibrationOverview(): Promise<CalibrationOverview> {
     overallAverage: aggregate._avg.score ?? null,
   };
 }
+export const getCalibrationOverview = memoizeWithTtl(computeCalibrationOverview, STATS_CACHE_TTL_MS);
 
 export type CalibrationAttemptDetail = {
   id: string;
@@ -99,8 +121,9 @@ export type ChampionTypeDistribution = {
 
 // チャンピオンタイプ(getCalibrationChampionResult)はDBの列ではなく9問の回答から
 // 都度計算する値のため、SQLのgroupByでは集計できない。受験数がまだ少ない前提で
-// 全件をJSに読み込んで診断ロジックを再適用し、タイプ別の人数・割合を出す。
-export async function getCalibrationChampionDistribution(): Promise<ChampionTypeDistribution[]> {
+// 全件をJSに読み込んで診断ロジックを再適用し、タイプ別の人数・割合を出す
+// (全件スキャン+JS集計のため、これも上記のキャッシュ対象に含める)。
+async function computeCalibrationChampionDistribution(): Promise<ChampionTypeDistribution[]> {
   const attempts = await prisma.calibrationAttempt.findMany({
     select: { answers: { select: { score: true } } },
   });
@@ -125,6 +148,10 @@ export async function getCalibrationChampionDistribution(): Promise<ChampionType
     };
   });
 }
+export const getCalibrationChampionDistribution = memoizeWithTtl(
+  computeCalibrationChampionDistribution,
+  STATS_CACHE_TTL_MS,
+);
 
 // 平均スコアの差から「厳しめ/緩め/平均的」の一言コメントを作る。
 // 結果ページと(将来的な)埋め込み表示の両方で使う想定の共通ロジック。
