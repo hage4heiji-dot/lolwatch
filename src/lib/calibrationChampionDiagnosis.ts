@@ -42,11 +42,11 @@ const CHAMPION_RESULTS: Record<Tier, CalibrationChampionResult> = {
       "白黒つけるより、状況に応じて落としどころを探すタイプ。同じ行為でも文脈次第で判定が変わります。",
   },
   4: {
-    championName: "Renata",
-    displayName: "レナータ・グラスク",
-    title: "実利重視の温情タイプ",
+    championName: "Warwick",
+    displayName: "ウォーウィック",
+    title: "温情と豹変のタイプ",
     description:
-      "大きな実害がなければ多少のグレーは大目に見る、ビジネスライクな寛容さの持ち主。関係が壊れない範囲なら目をつむります。",
+      "ゾウンの弱者を陰から見守る、元治療師の獣人。グレーな行為は基本大目に見ますが、本当に誰かを傷つけた相手には一転して牙を剥く、条件付きの寛容さの持ち主です。",
   },
   5: {
     championName: "Jinx",
