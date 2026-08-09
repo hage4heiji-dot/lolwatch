@@ -78,6 +78,13 @@ export default async function Home() {
           sizes="(max-width: 640px) 100vw, 720px"
         />
       </Link>
+
+      <Link href="/game" className="game-cta">
+        <span className="game-cta-title">🎮 トロール討伐ゲームで遊ぶ</span>
+        <span className="game-cta-sub">
+          ビートに乗って動き回るトロールを狩ろう。最大4人でリアルタイム協力プレイもできるミニゲーム。
+        </span>
+      </Link>
     </div>
   );
 }

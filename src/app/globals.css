@@ -756,6 +756,35 @@ a.card:hover {
   }
 }
 
+.game-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 1.5rem 0;
+  padding: 1.1rem 1.4rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover) 60%, var(--accent));
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(52, 87, 213, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.game-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(52, 87, 213, 0.45);
+}
+
+.game-cta-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.game-cta-sub {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* --- ホーム: 注目ユーザー --- */
 .watchlist {
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
@@ -1566,5 +1595,476 @@ a:has(> .calibration-banner):hover .calibration-banner {
 
   .stat-card-value {
     font-size: 1.4rem;
+  }
+}
+
+.troll-game {
+  margin-top: 1rem;
+}
+
+.troll-game-hud {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.troll-game-stat {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+}
+
+.troll-game-stat-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+
+.troll-game-stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.troll-game-stage {
+  position: relative;
+}
+
+.troll-game-board {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--accent-soft), var(--card-bg));
+}
+
+.troll-game-board.is-playing {
+  animation: troll-board-pulse var(--beat-ms, 469ms) ease-in-out infinite;
+}
+
+@keyframes troll-board-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.07);
+  }
+}
+
+@media (hover: hover) {
+  .troll-game-board.is-playing {
+    cursor: none;
+  }
+}
+
+.troll-game-target {
+  position: absolute;
+  translate: -50% -50%;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 2.1rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  animation:
+    troll-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    troll-bob var(--beat-ms, 469ms) ease-in-out infinite;
+}
+
+@keyframes troll-pop {
+  from {
+    scale: 0.3;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.15;
+    opacity: 1;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes troll-bob {
+  0%,
+  100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.12;
+  }
+}
+
+.troll-game-reticle {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.troll-game-reticle::before,
+.troll-game-reticle::after {
+  content: "";
+  position: absolute;
+  background: var(--accent);
+}
+
+.troll-game-reticle::before {
+  left: 50%;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.troll-game-reticle::after {
+  top: 50%;
+  left: -6px;
+  right: -6px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.troll-game-float {
+  position: absolute;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  animation: troll-float-up 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.troll-game-float small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.troll-game-float-perfect {
+  color: var(--self-highlight);
+}
+
+.troll-game-float-good {
+  color: var(--kill-color);
+}
+
+.troll-game-float-miss {
+  color: var(--foreground);
+}
+
+.troll-game-float-penalty {
+  color: var(--danger);
+}
+
+@keyframes troll-float-up {
+  0% {
+    translate: -50% -50%;
+    scale: 0.3;
+    opacity: 0;
+  }
+  20% {
+    scale: 1.3;
+    opacity: 1;
+  }
+  35% {
+    scale: 1;
+  }
+  100% {
+    translate: -50% -170%;
+    scale: 1;
+    opacity: 0;
+  }
+}
+
+.troll-game-beat-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: troll-beat-pulse 0.45s ease-out;
+}
+
+@keyframes troll-beat-pulse {
+  from {
+    transform: scale(0.4);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.troll-game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius);
+}
+
+.troll-game-overlay .btn {
+  margin-top: 0.5rem;
+}
+
+.troll-game-result-score {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.troll-game-new-best {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.troll-game-result-list {
+  list-style: none;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.troll-game-result-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+
+.troll-game-result-list li.is-me {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.troll-game-result-rank {
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 2.4em;
+}
+
+.troll-game-result-points {
+  margin-left: auto;
+  font-weight: 700;
+}
+
+.troll-game-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.troll-game-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.troll-game-field input {
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  background: var(--background);
+  color: inherit;
+}
+
+.troll-game-menu-actions {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.troll-game-menu-card {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+  background: var(--background);
+}
+
+.troll-game-menu-card-title {
+  font-weight: 700;
+}
+
+.troll-game-code-input {
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  background: var(--background);
+  color: inherit;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.troll-game-menu-best {
+  text-align: center;
+}
+
+.troll-game-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.troll-game-room-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.troll-game-room-code-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+}
+
+.troll-game-share-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 360px;
+}
+
+.troll-game-share-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  background: var(--background);
+  color: var(--muted);
+}
+
+.troll-game-player-list {
+  list-style: none;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.troll-game-player-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+}
+
+.troll-game-host-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+}
+
+.troll-game-party-scoreboard {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.troll-game-party-scoreboard li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--card-bg);
+}
+
+.troll-game-party-scoreboard li.is-me {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.troll-game-party-score {
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .troll-game-board {
+    height: 280px;
+  }
+
+  .troll-game-target {
+    width: 36px;
+    height: 36px;
+    font-size: 1.6rem;
+  }
+
+  .troll-game-menu-actions {
+    flex-direction: column;
+  }
+
+  .troll-game-room-code-value {
+    font-size: 1.7rem;
   }
 }
