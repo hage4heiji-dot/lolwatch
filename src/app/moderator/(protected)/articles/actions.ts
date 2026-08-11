@@ -143,6 +143,28 @@ export async function unpublishArticleAction(
   redirect(`/moderator/articles/${articleId}`);
 }
 
+// 下書き(非公開)のみ削除可能とする。公開済みの記事は読者のコメント・投票が
+// 付いている可能性があるため、削除する前に一度非公開に戻すひと手間を挟む。
+export async function deleteArticleAction(
+  articleId: string,
+  _prevState: ArticleFormState,
+  _formData: FormData,
+): Promise<ArticleFormState> {
+  const moderator = await requireModerator();
+
+  const article = await findEditableArticle(articleId, moderator.id, moderator.isAdmin);
+  if (!article) {
+    return { error: "対象の記事が見つかりません。" };
+  }
+  if (article.publishedAt) {
+    return { error: "公開中の記事は削除できません。先に非公開に戻してください。" };
+  }
+
+  await prisma.article.delete({ where: { id: articleId } });
+
+  redirect("/moderator/articles");
+}
+
 const hideCommentSchema = z.object({ reason: z.string().trim().min(3).max(200) });
 
 // コメントの非表示化はReportのhideReportActionと同じく管理者権限を必須とする。
