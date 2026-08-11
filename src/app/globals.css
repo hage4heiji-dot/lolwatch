@@ -259,6 +259,10 @@ h2 {
 }
 
 .card {
+  /* <a class="card">(記事一覧など)に付けた場合、aのデフォルトdisplay:inlineのままだと
+     中の block/flex 要素がうまく箱化されず崩れるため明示しておく。divに付けた
+     既存の使用箇所ではもともとblockなので影響はない。 */
+  display: block;
   border: 1px solid var(--border);
   background: var(--card-bg);
   border-radius: var(--radius);

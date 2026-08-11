@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CALIBRATION_SCALE_LABELS, type CalibrationScore } from "@/lib/calibrationScenarios";
+import { VoteRateBar } from "../vote-rate-bar";
 
 const SCALE: CalibrationScore[] = [1, 2, 3, 4, 5];
 
@@ -47,24 +48,7 @@ export function ArticleVoteBar({
         判定基準診断と同じ1〜5段階で読者の意見を集計する参考シグナルです(モデレーター評価ではありません)。
       </p>
 
-      <div className="violation-bar-track">
-        {SCALE.map((score) => {
-          const count = scoreCounts[score] ?? 0;
-          const percent = total === 0 ? 20 : (count / total) * 100;
-          return (
-            <div
-              key={score}
-              className={`violation-bar-segment-${score}`}
-              style={{ width: `${percent}%` }}
-              title={`${CALIBRATION_SCALE_LABELS[score]}: ${count}票`}
-            />
-          );
-        })}
-      </div>
-      <div className="violation-bar-labels">
-        <span>⚠️ 違反</span>
-        <span>✅ 問題なし</span>
-      </div>
+      <VoteRateBar scoreCounts={scoreCounts} />
       <p className="muted" style={{ marginTop: "0.35rem", fontSize: "0.8rem" }}>
         {total > 0 ? `${total}票` : "まだ投票はありません"}
       </p>

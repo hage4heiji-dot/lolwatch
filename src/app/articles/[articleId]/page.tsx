@@ -8,6 +8,7 @@ import { ArticleBody } from "@/app/article-body";
 import { ArticleVoteBar } from "./article-vote-bar";
 import { CommentSection } from "./comment-section";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
+import { computeScoreCounts } from "@/lib/articleList";
 
 export const dynamic = "force-dynamic";
 
@@ -72,10 +73,7 @@ export default async function ArticlePage({
   const myVote = deviceId
     ? (article.votes.find((v) => v.deviceId === deviceId)?.score ?? null)
     : null;
-  const scoreCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  for (const vote of article.votes) {
-    scoreCounts[vote.score] = (scoreCounts[vote.score] ?? 0) + 1;
-  }
+  const scoreCounts = computeScoreCounts(article.votes);
 
   return (
     <div>

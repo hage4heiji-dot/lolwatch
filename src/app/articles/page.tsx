@@ -1,9 +1,25 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { findPublicArticlesCached, extractFirstImageUrl } from "@/lib/articleList";
+import {
+  findPublicArticlesCached,
+  findPublicArticleTagsCached,
+  extractFirstImageUrl,
+  computeScoreCounts,
+  type PublicArticleSort,
+} from "@/lib/articleList";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
+import { VoteRateBar } from "./vote-rate-bar";
 
 const PAGE_SIZE = 20;
+
+const SORT_LABELS: Record<PublicArticleSort, string> = {
+  incidentDate_desc: "炎上日が新しい順",
+  incidentDate_asc: "炎上日が古い順",
+  severity_desc: "炎上度合いが高い順",
+  severity_asc: "炎上度合いが低い順",
+};
+const SORT_VALUES = Object.keys(SORT_LABELS) as PublicArticleSort[];
+const DEFAULT_SORT: PublicArticleSort = "incidentDate_desc";
 
 // DB記事件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -25,10 +41,22 @@ function excerpt(body: string, maxLength = 120): string {
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength)}…` : trimmed;
 }
 
-function buildHref(page: number, tag?: string): string {
+function isSort(value: string): value is PublicArticleSort {
+  return (SORT_VALUES as string[]).includes(value);
+}
+
+interface FilterParams {
+  q?: string;
+  tag?: string;
+  sort: PublicArticleSort;
+}
+
+function buildHref(params: FilterParams & { page?: number }): string {
   const sp = new URLSearchParams();
-  if (tag) sp.set("tag", tag);
-  if (page > 1) sp.set("page", String(page));
+  if (params.q) sp.set("q", params.q);
+  if (params.tag) sp.set("tag", params.tag);
+  if (params.sort !== DEFAULT_SORT) sp.set("sort", params.sort);
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
   const qs = sp.toString();
   return qs ? `/articles?${qs}` : "/articles";
 }
@@ -36,18 +64,21 @@ function buildHref(page: number, tag?: string): string {
 export default async function ArticlesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; tag?: string }>;
+  searchParams: Promise<{ page?: string; tag?: string; q?: string; sort?: string }>;
 }) {
-  const { page: pageParam, tag: tagParam } = await searchParams;
+  const { page: pageParam, tag: tagParam, q: qParam, sort: sortParam } = await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
   const tag = tagParam?.trim() || undefined;
+  const query = qParam?.trim() || undefined;
+  const sort = sortParam && isSort(sortParam) ? sortParam : DEFAULT_SORT;
+  const filters: FilterParams = { q: query, tag, sort };
 
-  const { articles, totalCount } = await findPublicArticlesCached({
-    page,
-    pageSize: PAGE_SIZE,
-    tag,
-  });
+  const [{ articles, totalCount }, availableTags] = await Promise.all([
+    findPublicArticlesCached({ page, pageSize: PAGE_SIZE, tag, query, sort }),
+    findPublicArticleTagsCached(),
+  ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const hasFilters = Boolean(query || tag || sort !== DEFAULT_SORT);
 
   return (
     <div>
@@ -56,20 +87,56 @@ export default async function ArticlesPage({
         LoLで話題になったトロール系の炎上案件をまとめた記事です。各記事にコメントできます。
       </p>
 
-      {tag && (
-        <p className="muted" style={{ marginBottom: "1rem" }}>
-          「{tag}」で絞り込み中 ・ <Link href="/articles">解除</Link>
-        </p>
-      )}
+      <form style={{ marginBottom: "1.5rem" }}>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="q">フリーワード検索</label>
+            <input type="text" id="q" name="q" defaultValue={query ?? ""} placeholder="例: AI, ブースティング" />
+          </div>
+          <div className="form-field">
+            <label htmlFor="tag">タグ</label>
+            <select id="tag" name="tag" defaultValue={tag ?? ""}>
+              <option value="">すべて</option>
+              {availableTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="sort">並び順</label>
+            <select id="sort" name="sort" defaultValue={sort}>
+              {SORT_VALUES.map((s) => (
+                <option key={s} value={s}>
+                  {SORT_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="form-actions">
+          <button className="btn" type="submit">
+            検索
+          </button>
+          {hasFilters && (
+            <Link className="btn btn-secondary" href="/articles">
+              条件をクリア
+            </Link>
+          )}
+        </div>
+      </form>
 
       {articles.length === 0 ? (
         <div className="empty-state">
-          <p>まだ記事はありません。</p>
+          <p>{hasFilters ? "条件に一致する記事が見つかりませんでした。" : "まだ記事はありません。"}</p>
         </div>
       ) : (
         <div>
           {articles.map((article) => {
             const thumbUrl = extractFirstImageUrl(article.body);
+            const scoreCounts = computeScoreCounts(article.votes);
+            const voteTotal = article.votes.length;
             return (
               <Link key={article.id} href={`/articles/${article.id}`} className="card">
                 <div className="article-card-inner">
@@ -96,6 +163,12 @@ export default async function ArticlesPage({
                         ))}
                       </div>
                     )}
+                    <div style={{ marginTop: "0.6rem", maxWidth: "320px" }}>
+                      <VoteRateBar scoreCounts={scoreCounts} compact />
+                      <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.75rem" }}>
+                        {voteTotal > 0 ? `違反/問題なしレート ${voteTotal}票` : "まだ投票はありません"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -114,7 +187,7 @@ export default async function ArticlesPage({
           }}
         >
           {page > 1 ? (
-            <Link className="btn btn-secondary" href={buildHref(page - 1, tag)}>
+            <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page - 1 })}>
               前へ
             </Link>
           ) : (
@@ -124,7 +197,7 @@ export default async function ArticlesPage({
             {page} / {totalPages} ページ
           </span>
           {page < totalPages ? (
-            <Link className="btn btn-secondary" href={buildHref(page + 1, tag)}>
+            <Link className="btn btn-secondary" href={buildHref({ ...filters, page: page + 1 })}>
               次へ
             </Link>
           ) : (
