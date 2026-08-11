@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateArticleAction, type ArticleFormState } from "../actions";
 import { MarkdownEditorField } from "../markdown-editor-field";
+import { SeverityGuide } from "../severity-guide";
 import { SEVERITY_LABELS, SEVERITY_ORDER } from "@/lib/articleSeverity";
 import type { ArticleSeverity } from "@/generated/prisma";
 
@@ -52,6 +53,7 @@ export function ArticleEditForm({
               </option>
             ))}
           </select>
+          <SeverityGuide />
         </div>
       </div>
       <div className="form-field">

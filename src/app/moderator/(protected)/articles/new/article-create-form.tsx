@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createArticleAction, type ArticleFormState } from "../actions";
 import { MarkdownEditorField } from "../markdown-editor-field";
+import { SeverityGuide } from "../severity-guide";
 import { SEVERITY_LABELS, SEVERITY_ORDER } from "@/lib/articleSeverity";
 
 const initialState: ArticleFormState = {};
@@ -40,6 +41,7 @@ export function ArticleCreateForm() {
               </option>
             ))}
           </select>
+          <SeverityGuide />
         </div>
       </div>
       <div className="form-field">
