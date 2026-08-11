@@ -13,9 +13,11 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/gif": "gif",
 };
 
-// アップロード先。public/配下に置くことでNext.jsの静的配信をそのまま使う。
-// docker-compose.ymlでこのディレクトリを名前付きVolumeにマウントし、
-// イメージ再ビルド(コンテナ再作成)を跨いでも投稿済み画像が消えないようにしている。
+// 保存先自体はpublic/配下のまま(docker-compose.ymlでこのディレクトリを名前付き
+// Volumeにマウントし、イメージ再ビルド/コンテナ再作成を跨いでも投稿済み画像が
+// 消えないようにしている)。ただし配信は/api/uploads/articles/[filename]経由で行う
+// (このNext.jsのバージョンはpublicフォルダをサーバー起動時にスキャンして固定するため、
+// 起動後に追加したファイルが再起動までpublic直配信では404になることを確認したため)。
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "articles");
 
 export async function POST(request: NextRequest) {
@@ -44,5 +46,8 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
-  return NextResponse.json({ ok: true, url: `/uploads/articles/${filename}` }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, url: `/api/uploads/articles/${filename}` },
+    { status: 201 },
+  );
 }
