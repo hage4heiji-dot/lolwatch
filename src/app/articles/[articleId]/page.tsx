@@ -77,7 +77,10 @@ export default async function ArticlePage({
 
   return (
     <div>
-      <h1>{article.title}</h1>
+      <Link href="/articles" className="muted" style={{ fontSize: "0.85rem" }}>
+        ← 炎上案件一覧に戻る
+      </Link>
+      <h1 style={{ marginTop: "0.75rem" }}>{article.title}</h1>
       <p className="muted" style={{ marginTop: "0.75rem" }}>
         <span className="badge" title={SEVERITY_LABELS[article.severity]}>
           {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
