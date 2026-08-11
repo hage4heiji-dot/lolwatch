@@ -53,9 +53,9 @@ export function ArticleEditForm({
               </option>
             ))}
           </select>
-          <SeverityGuide />
         </div>
       </div>
+      <SeverityGuide />
       <div className="form-field">
         <label htmlFor="tags">タグ(カンマ区切り、最大10個)</label>
         <input

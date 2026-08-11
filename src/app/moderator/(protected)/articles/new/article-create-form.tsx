@@ -41,9 +41,9 @@ export function ArticleCreateForm() {
               </option>
             ))}
           </select>
-          <SeverityGuide />
         </div>
       </div>
+      <SeverityGuide />
       <div className="form-field">
         <label htmlFor="tags">タグ(カンマ区切り、最大10個)</label>
         <input id="tags" name="tags" maxLength={300} placeholder="例: AI関連, ペナルティ制度" />
