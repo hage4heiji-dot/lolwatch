@@ -1440,6 +1440,29 @@ a.card:hover {
   font-weight: 700;
 }
 
+/* --- 記事(炎上案件)一覧カード --- */
+.article-card-inner {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.article-card-thumb {
+  flex: 0 0 auto;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--card-bg-hover);
+}
+
+.article-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
 /* --- 記事(炎上案件)への5段階投票の分布バー(判定基準診断と同じ1〜5スケール) --- */
 .violation-bar-track {
   display: flex;

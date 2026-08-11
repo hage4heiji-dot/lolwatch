@@ -13,6 +13,19 @@ const articleSchema = z.object({
   body: z.string().trim().min(1).max(20000),
 });
 
+const MAX_TAGS = 10;
+const MAX_TAG_LENGTH = 30;
+
+// カンマ区切りの自由入力タグを配列に変換する。空要素・重複・長すぎるタグは除外する。
+function parseTagsInput(value: FormDataEntryValue | null): string[] {
+  if (typeof value !== "string") return [];
+  const tags = value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0 && tag.length <= MAX_TAG_LENGTH);
+  return Array.from(new Set(tags)).slice(0, MAX_TAGS);
+}
+
 // 記事本体の編集は投稿した本人のモデレーターか管理者のみ(ModeratorReviewの編集権限と同じ方針)。
 async function findEditableArticle(articleId: string, moderatorId: string, isAdmin: boolean) {
   const article = await prisma.article.findUnique({ where: { id: articleId } });
@@ -39,6 +52,7 @@ export async function createArticleAction(
     data: {
       title: parsed.data.title,
       body: parsed.data.body,
+      tags: parseTagsInput(formData.get("tags")),
       moderatorId: moderator.id,
     },
   });
@@ -68,7 +82,11 @@ export async function updateArticleAction(
 
   await prisma.article.update({
     where: { id: articleId },
-    data: { title: parsed.data.title, body: parsed.data.body },
+    data: {
+      title: parsed.data.title,
+      body: parsed.data.body,
+      tags: parseTagsInput(formData.get("tags")),
+    },
   });
 
   redirect(`/moderator/articles/${articleId}`);

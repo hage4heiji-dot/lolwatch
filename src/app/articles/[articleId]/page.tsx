@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -71,9 +72,22 @@ export default async function ArticlePage({
   return (
     <div>
       <h1>{article.title}</h1>
-      <p className="muted" style={{ marginTop: "0.5rem", marginBottom: "1.5rem" }}>
+      <p
+        className="muted"
+        style={{ marginTop: "0.5rem", marginBottom: article.tags.length > 0 ? "0.5rem" : "1.5rem" }}
+      >
         {formatDateTime(article.publishedAt!)} ・ {article.moderator.displayName}
       </p>
+
+      {article.tags.length > 0 && (
+        <div className="article-card-tags" style={{ marginBottom: "1.5rem" }}>
+          {article.tags.map((t) => (
+            <Link key={t} href={`/articles?tag=${encodeURIComponent(t)}`} className="badge">
+              {t}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginBottom: "2rem" }}>
         <ArticleBody body={article.body} />

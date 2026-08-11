@@ -218,6 +218,10 @@ model Article {
   id          String    @id @default(uuid())
   title       String
   body        String
+  // 固定enumではなくモデレーターが自由入力するタグ(例: "AI関連", "ペナルティ制度")。
+  // 炎上案件の話題は事前に種類を列挙しきれないため、通報のReportCategoryとは
+  // 違って自由入力+絞り込み用の一覧表示に留める。
+  tags        String[]  @default([])
   moderatorId String
   moderator   Moderator @relation(fields: [moderatorId], references: [id])
   publishedAt DateTime?

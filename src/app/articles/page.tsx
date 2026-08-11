@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { findPublicArticlesCached } from "@/lib/articleList";
+import { findPublicArticlesCached, extractFirstImageUrl } from "@/lib/articleList";
 
 const PAGE_SIZE = 20;
 
@@ -24,15 +24,28 @@ function excerpt(body: string, maxLength = 120): string {
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength)}…` : trimmed;
 }
 
+function buildHref(page: number, tag?: string): string {
+  const sp = new URLSearchParams();
+  if (tag) sp.set("tag", tag);
+  if (page > 1) sp.set("page", String(page));
+  const qs = sp.toString();
+  return qs ? `/articles?${qs}` : "/articles";
+}
+
 export default async function ArticlesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; tag?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, tag: tagParam } = await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
+  const tag = tagParam?.trim() || undefined;
 
-  const { articles, totalCount } = await findPublicArticlesCached({ page, pageSize: PAGE_SIZE });
+  const { articles, totalCount } = await findPublicArticlesCached({
+    page,
+    pageSize: PAGE_SIZE,
+    tag,
+  });
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
@@ -42,22 +55,48 @@ export default async function ArticlesPage({
         LoLで話題になったトロール系の炎上案件をまとめた記事です。各記事にコメントできます。
       </p>
 
+      {tag && (
+        <p className="muted" style={{ marginBottom: "1rem" }}>
+          「{tag}」で絞り込み中 ・ <Link href="/articles">解除</Link>
+        </p>
+      )}
+
       {articles.length === 0 ? (
         <div className="empty-state">
           <p>まだ記事はありません。</p>
         </div>
       ) : (
         <div>
-          {articles.map((article) => (
-            <Link key={article.id} href={`/articles/${article.id}`} className="card">
-              <h2 style={{ fontSize: "1.05rem" }}>{article.title}</h2>
-              <p className="muted" style={{ marginTop: "0.4rem" }}>{excerpt(article.body)}</p>
-              <p className="muted" style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
-                {article.publishedAt ? formatDate(article.publishedAt) : ""} ・ コメント
-                {article._count.comments}件
-              </p>
-            </Link>
-          ))}
+          {articles.map((article) => {
+            const thumbUrl = extractFirstImageUrl(article.body);
+            return (
+              <Link key={article.id} href={`/articles/${article.id}`} className="card">
+                <div className="article-card-inner">
+                  {thumbUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumbUrl} alt="" className="article-card-thumb" />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 style={{ fontSize: "1.05rem" }}>{article.title}</h2>
+                    <p className="muted" style={{ marginTop: "0.4rem" }}>{excerpt(article.body)}</p>
+                    <p className="muted" style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
+                      {article.publishedAt ? formatDate(article.publishedAt) : ""} ・ コメント
+                      {article._count.comments}件
+                    </p>
+                    {article.tags.length > 0 && (
+                      <div className="article-card-tags">
+                        {article.tags.map((t) => (
+                          <span key={t} className="badge">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 
@@ -71,7 +110,7 @@ export default async function ArticlesPage({
           }}
         >
           {page > 1 ? (
-            <Link className="btn btn-secondary" href={`/articles?page=${page - 1}`}>
+            <Link className="btn btn-secondary" href={buildHref(page - 1, tag)}>
               前へ
             </Link>
           ) : (
@@ -81,7 +120,7 @@ export default async function ArticlesPage({
             {page} / {totalPages} ページ
           </span>
           {page < totalPages ? (
-            <Link className="btn btn-secondary" href={`/articles?page=${page + 1}`}>
+            <Link className="btn btn-secondary" href={buildHref(page + 1, tag)}>
               次へ
             </Link>
           ) : (

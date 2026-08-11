@@ -46,7 +46,12 @@ export default async function EditArticlePage({
       </section>
 
       <section className="section">
-        <ArticleEditForm articleId={article.id} title={article.title} body={article.body} />
+        <ArticleEditForm
+          articleId={article.id}
+          title={article.title}
+          body={article.body}
+          tags={article.tags}
+        />
       </section>
 
       <section className="section">
