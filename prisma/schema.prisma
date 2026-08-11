@@ -211,27 +211,37 @@ model RankActivityCheck {
   @@index([playerId, checkedAt])
 }
 
+enum ArticleSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // トロール行為等が話題化した「炎上案件」をモデレーターがまとめた記事。
 // 個々の試合内行為を申告するReportとは違い、複数試合・SNS上の発言等をまたぐ
 // 話題を運営がまとめて記事化するもの。publishedAtがnullの間は下書き(非公開)。
 model Article {
-  id          String    @id @default(uuid())
+  id          String          @id @default(uuid())
   title       String
   body        String
   // 固定enumではなくモデレーターが自由入力するタグ(例: "AI関連", "ペナルティ制度")。
   // 炎上案件の話題は事前に種類を列挙しきれないため、通報のReportCategoryとは
   // 違って自由入力+絞り込み用の一覧表示に留める。
-  tags        String[]  @default([])
-  moderatorId String
-  moderator   Moderator @relation(fields: [moderatorId], references: [id])
-  publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  tags         String[]        @default([])
+  // 炎上そのものが起きた日(記事の公開日=publishedAtとは別)。一覧の並び順はこちらの降順。
+  incidentDate DateTime        @db.Date
+  severity     ArticleSeverity
+  moderatorId  String
+  moderator    Moderator       @relation(fields: [moderatorId], references: [id])
+  publishedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   comments ArticleComment[]
   votes    ArticleVote[]
 
-  @@index([publishedAt, createdAt])
+  @@index([publishedAt, incidentDate])
 }
 
 // 記事(炎上案件)に対する一般ユーザーの投票。判定基準診断(CalibrationAnswer)と

@@ -7,6 +7,7 @@ import { DEVICE_ID_COOKIE } from "@/lib/deviceId";
 import { ArticleBody } from "@/app/article-body";
 import { ArticleVoteBar } from "./article-vote-bar";
 import { CommentSection } from "./comment-section";
+import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,13 @@ function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Tokyo",
+  }).format(date);
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
     timeZone: "Asia/Tokyo",
   }).format(date);
 }
@@ -72,11 +80,17 @@ export default async function ArticlePage({
   return (
     <div>
       <h1>{article.title}</h1>
+      <p className="muted" style={{ marginTop: "0.75rem" }}>
+        <span className="badge" title={SEVERITY_LABELS[article.severity]}>
+          {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
+        </span>{" "}
+        {formatDate(article.incidentDate)}に発生
+      </p>
       <p
         className="muted"
-        style={{ marginTop: "0.5rem", marginBottom: article.tags.length > 0 ? "0.5rem" : "1.5rem" }}
+        style={{ marginTop: "0.35rem", marginBottom: article.tags.length > 0 ? "0.5rem" : "1.5rem" }}
       >
-        {formatDateTime(article.publishedAt!)} ・ {article.moderator.displayName}
+        公開: {formatDateTime(article.publishedAt!)} ・ {article.moderator.displayName}
       </p>
 
       {article.tags.length > 0 && (

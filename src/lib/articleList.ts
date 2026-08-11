@@ -20,7 +20,7 @@ export async function findPublicArticles({
   const [articles, totalCount] = await Promise.all([
     prisma.article.findMany({
       where,
-      orderBy: { publishedAt: "desc" },
+      orderBy: { incidentDate: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {

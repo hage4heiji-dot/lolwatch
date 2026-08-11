@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/moderatorAuth";
+import { ArticleSeverity } from "@/generated/prisma";
 
 export type ArticleFormState = { error?: string };
 export type ModerationFormState = { error?: string };
@@ -11,6 +12,8 @@ export type ModerationFormState = { error?: string };
 const articleSchema = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(20000),
+  incidentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "炎上日の形式が不正です。"),
+  severity: z.enum(ArticleSeverity),
 });
 
 const MAX_TAGS = 10;
@@ -43,9 +46,11 @@ export async function createArticleAction(
   const parsed = articleSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
+    incidentDate: formData.get("incidentDate"),
+    severity: formData.get("severity"),
   });
   if (!parsed.success) {
-    return { error: "タイトルと本文を入力してください。" };
+    return { error: "タイトル・本文・炎上日・炎上度合いを入力してください。" };
   }
 
   const article = await prisma.article.create({
@@ -53,6 +58,8 @@ export async function createArticleAction(
       title: parsed.data.title,
       body: parsed.data.body,
       tags: parseTagsInput(formData.get("tags")),
+      incidentDate: new Date(parsed.data.incidentDate),
+      severity: parsed.data.severity,
       moderatorId: moderator.id,
     },
   });
@@ -70,9 +77,11 @@ export async function updateArticleAction(
   const parsed = articleSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
+    incidentDate: formData.get("incidentDate"),
+    severity: formData.get("severity"),
   });
   if (!parsed.success) {
-    return { error: "タイトルと本文を入力してください。" };
+    return { error: "タイトル・本文・炎上日・炎上度合いを入力してください。" };
   }
 
   const article = await findEditableArticle(articleId, moderator.id, moderator.isAdmin);
@@ -86,6 +95,8 @@ export async function updateArticleAction(
       title: parsed.data.title,
       body: parsed.data.body,
       tags: parseTagsInput(formData.get("tags")),
+      incidentDate: new Date(parsed.data.incidentDate),
+      severity: parsed.data.severity,
     },
   });
 

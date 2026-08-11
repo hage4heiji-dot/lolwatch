@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { findPublicArticlesCached, extractFirstImageUrl } from "@/lib/articleList";
+import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 
 const PAGE_SIZE = 20;
 
@@ -77,10 +78,13 @@ export default async function ArticlesPage({
                     <img src={thumbUrl} alt="" className="article-card-thumb" />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h2 style={{ fontSize: "1.05rem" }}>{article.title}</h2>
+                    <span className="badge" title={SEVERITY_LABELS[article.severity]}>
+                      {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
+                    </span>
+                    <h2 style={{ fontSize: "1.05rem", marginTop: "0.4rem" }}>{article.title}</h2>
                     <p className="muted" style={{ marginTop: "0.4rem" }}>{excerpt(article.body)}</p>
                     <p className="muted" style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
-                      {article.publishedAt ? formatDate(article.publishedAt) : ""} ・ コメント
+                      {formatDate(article.incidentDate)}に発生 ・ コメント
                       {article._count.comments}件
                     </p>
                     {article.tags.length > 0 && (

@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 
 export const dynamic = "force-dynamic";
 
-function formatDateTime(date: Date): string {
+function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
     dateStyle: "medium",
-    timeStyle: "short",
     timeZone: "Asia/Tokyo",
   }).format(date);
 }
 
 export default async function ModeratorArticlesPage() {
   const articles = await prisma.article.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { incidentDate: "desc" },
     include: {
       moderator: { select: { displayName: true } },
       _count: { select: { comments: true } },
@@ -42,9 +42,10 @@ export default async function ModeratorArticlesPage() {
               <tr>
                 <th>タイトル</th>
                 <th>状態</th>
+                <th>炎上度合い</th>
                 <th>作成者</th>
                 <th>コメント数</th>
-                <th>作成日時</th>
+                <th>炎上日</th>
               </tr>
             </thead>
             <tbody>
@@ -60,9 +61,12 @@ export default async function ModeratorArticlesPage() {
                       <span className="muted">下書き</span>
                     )}
                   </td>
+                  <td title={SEVERITY_LABELS[article.severity]}>
+                    {SEVERITY_ICONS[article.severity]}
+                  </td>
                   <td className="muted">{article.moderator.displayName}</td>
                   <td>{article._count.comments}</td>
-                  <td className="muted">{formatDateTime(article.createdAt)}</td>
+                  <td className="muted">{formatDate(article.incidentDate)}</td>
                 </tr>
               ))}
             </tbody>
