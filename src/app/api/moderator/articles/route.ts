@@ -33,6 +33,21 @@ function isAuthorized(request: NextRequest): boolean {
   return timingSafeEqual(tokenBuf, expectedBuf);
 }
 
+// 自動投稿エージェントが既存記事との重複を避けるための一覧取得用。
+// タイトルと出典URL(本文から抽出できないため、本文全体をそのまま返す)を返す。
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "認証に失敗しました。" }, { status: 401 });
+  }
+
+  const articles = await prisma.article.findMany({
+    select: { id: true, title: true, tags: true, incidentDate: true, publishedAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json({ articles });
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "認証に失敗しました。" }, { status: 401 });
