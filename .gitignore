@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# 記事投稿画像(実運用ではdocker-compose.ymlのVolumeに永続化する。ローカル生成物なので追跡しない)
+/public/uploads/
+
 # production
 /build
 

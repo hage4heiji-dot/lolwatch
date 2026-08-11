@@ -161,6 +161,39 @@ export function checkVoteRateLimit(ip: string): RateLimitResult {
   return { allowed: true };
 }
 
+// 記事(炎上案件)への「違反/違反じゃない」投票API用。理由はcheckVoteRateLimitと同じ
+// (deviceIdクッキーに依存しないIP単位の頻度制限)。通報への投票とは別バケットにして、
+// 片方の連打がもう片方の投票を巻き込んで止めてしまわないようにする。
+const ARTICLE_VOTE_WINDOW_MS = 60 * 1000;
+const ARTICLE_VOTE_MAX_REQUESTS = 20;
+const articleVoteHistory = new Map<string, number[]>();
+
+export function checkArticleVoteRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - ARTICLE_VOTE_WINDOW_MS;
+  const timestamps = (articleVoteHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= ARTICLE_VOTE_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "投票が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  articleVoteHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of articleVoteHistory) {
+      if (values.every((t) => t < since)) {
+        articleVoteHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
 // モデレーター評価への異議申し立てAPI用。理由はcheckVoteRateLimitと同じ
 // (deviceIdクッキーに依存しないIP単位の頻度制限)。投票より頻度が低い操作なので
 // 閾値も低めにする。
@@ -219,6 +252,64 @@ export function checkDeletionRequestRateLimit(ip: string): RateLimitResult {
     for (const [key, values] of deletionRequestHistory) {
       if (values.every((t) => t < since)) {
         deletionRequestHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}
+
+// 記事コメント投稿API用。通報(checkReportRateLimit)ほど厳しくする必要はないが、
+// 連投・二重送信対策として短い間隔での連続投稿だけは弾く。
+const COMMENT_COOLDOWN_MS = 10 * 1000;
+
+export async function checkArticleCommentRateLimit(params: {
+  deviceId: string;
+  ip: string;
+}): Promise<RateLimitResult> {
+  const { deviceId, ip } = params;
+  const since = new Date(Date.now() - COMMENT_COOLDOWN_MS);
+  const recent = await prisma.articleComment.findFirst({
+    where: {
+      OR: [{ deviceId }, { posterIp: ip }],
+      createdAt: { gte: since },
+    },
+    select: { id: true },
+  });
+  if (recent) {
+    return {
+      allowed: false,
+      reason: "投稿間隔が短すぎます。しばらく待ってから再度お試しください。",
+    };
+  }
+  return { allowed: true };
+}
+
+// 記事コメントへの「不適切」通報API用。理由はcheckDeletionRequestRateLimitと同じ
+// (deviceIdクッキーに依存しないIP単位の頻度制限)。
+const COMMENT_REPORT_WINDOW_MS = 60 * 1000;
+const COMMENT_REPORT_MAX_REQUESTS = 10;
+const commentReportHistory = new Map<string, number[]>();
+
+export function checkCommentReportRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - COMMENT_REPORT_WINDOW_MS;
+  const timestamps = (commentReportHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= COMMENT_REPORT_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "操作が集中しています。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  commentReportHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of commentReportHistory) {
+      if (values.every((t) => t < since)) {
+        commentReportHistory.delete(key);
       }
     }
   }

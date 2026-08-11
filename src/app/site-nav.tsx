@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/players", label: "ユーザー一覧" },
   { href: "/stats", label: "統計" },
   { href: "/calibration", label: "判定基準診断" },
+  { href: "/articles", label: "炎上案件" },
   { href: "/guidelines", label: "ガイドライン" },
 ];
 

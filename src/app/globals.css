@@ -277,6 +277,87 @@ a.card:hover {
   margin-top: 0.75rem;
 }
 
+/* 記事本文(Markdownレンダリング結果)用。全称セレクタでmargin/paddingを
+   リセットしているため、要素ごとに個別に付け直す。 */
+.article-body p {
+  margin-top: 1rem;
+}
+
+.article-body p:first-child {
+  margin-top: 0;
+}
+
+.article-body h1,
+.article-body h2,
+.article-body h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.article-body h2 {
+  font-size: 1.2rem;
+}
+
+.article-body h3 {
+  font-size: 1.05rem;
+}
+
+.article-body ul,
+.article-body ol {
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+}
+
+.article-body ul {
+  list-style: disc;
+}
+
+.article-body ol {
+  list-style: decimal;
+}
+
+.article-body li + li {
+  margin-top: 0.35rem;
+}
+
+.article-body a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.article-body blockquote {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.article-body code {
+  background: var(--card-bg);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.article-body pre {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.article-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.article-body img {
+  max-width: 100%;
+  margin-top: 1rem;
+  border-radius: var(--radius);
+}
+
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -1357,6 +1438,42 @@ a.card:hover {
   width: 2.5rem;
   text-align: right;
   font-weight: 700;
+}
+
+/* --- 記事(炎上案件)への5段階投票の分布バー(判定基準診断と同じ1〜5スケール) --- */
+.violation-bar-track {
+  display: flex;
+  height: 0.85rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.violation-bar-segment-1 {
+  background: var(--danger);
+}
+
+.violation-bar-segment-2 {
+  background: color-mix(in srgb, var(--danger) 50%, var(--self-highlight));
+}
+
+.violation-bar-segment-3 {
+  background: var(--self-highlight);
+}
+
+.violation-bar-segment-4 {
+  background: color-mix(in srgb, var(--kill-color) 50%, var(--self-highlight));
+}
+
+.violation-bar-segment-5 {
+  background: var(--kill-color);
+}
+
+.violation-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-top: 0.35rem;
 }
 
 /* --- 判定基準診断 --- */

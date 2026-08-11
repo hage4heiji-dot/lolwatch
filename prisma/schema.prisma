@@ -136,6 +136,7 @@ model Moderator {
 
   reviews  ModeratorReview[]
   sessions ModeratorSession[]
+  articles Article[]
 }
 
 // ログイントークンはハッシュ化して保存する(Cookieには生トークンのみ)。
@@ -208,6 +209,77 @@ model RankActivityCheck {
   lastRankedMatchAt  DateTime?
 
   @@index([playerId, checkedAt])
+}
+
+// トロール行為等が話題化した「炎上案件」をモデレーターがまとめた記事。
+// 個々の試合内行為を申告するReportとは違い、複数試合・SNS上の発言等をまたぐ
+// 話題を運営がまとめて記事化するもの。publishedAtがnullの間は下書き(非公開)。
+model Article {
+  id          String    @id @default(uuid())
+  title       String
+  body        String
+  moderatorId String
+  moderator   Moderator @relation(fields: [moderatorId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  comments ArticleComment[]
+  votes    ArticleVote[]
+
+  @@index([publishedAt, createdAt])
+}
+
+// 記事(炎上案件)に対する一般ユーザーの投票。判定基準診断(CalibrationAnswer)と
+// 同じ1(違反)〜5(問題なし)の5段階。あくまで参考シグナル。device単位で1票のみ
+// (同じ値をもう一度選ぶと取り消し)。
+model ArticleVote {
+  id        String   @id @default(uuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  score     Int
+  deviceId  String
+  posterIp  String
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, deviceId])
+  @@index([articleId, score])
+}
+
+// 記事へのコメント。Reportと同様、投稿元IP/deviceIdは表示せず内部保持のみで、
+// 即時公開。問題があれば一般ユーザーがArticleCommentReportで通報し、
+// モデレーターがhiddenAtで非表示にする(Reportのhidden運用と同じ方針)。
+model ArticleComment {
+  id           String    @id @default(uuid())
+  articleId    String
+  article      Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  body         String
+  deviceId     String
+  posterIp     String
+  createdAt    DateTime  @default(now())
+  hiddenAt     DateTime?
+  hiddenReason String?
+
+  reports ArticleCommentReport[]
+
+  @@index([articleId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([posterIp, createdAt])
+}
+
+// コメントへの「不適切」通報。ReportDeletionRequestと同様、申請=即非表示ではなく
+// モデレーターへの再確認シグナルとして扱う。
+model ArticleCommentReport {
+  id               String         @id @default(uuid())
+  articleCommentId String
+  articleComment   ArticleComment @relation(fields: [articleCommentId], references: [id], onDelete: Cascade)
+  deviceId         String
+  posterIp         String
+  reason           String
+  createdAt        DateTime       @default(now())
+
+  @@unique([articleCommentId, deviceId])
+  @@index([articleCommentId])
 }
 
 // 一般ユーザー向け「判定基準診断」の1回分の受験。シナリオ本体は

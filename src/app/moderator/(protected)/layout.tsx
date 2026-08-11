@@ -24,6 +24,7 @@ export default async function ModeratorProtectedLayout({
         <nav className="site-nav">
           <Link href="/moderator">ダッシュボード</Link>
           <Link href={`/moderator/moderators/${moderator.id}`}>自分のレビュー一覧</Link>
+          <Link href="/moderator/articles">炎上案件記事</Link>
           {moderator.isAdmin && <Link href="/moderator/reports">全通報一覧</Link>}
           {moderator.isAdmin && <Link href="/moderator/moderators">モデレーター別集計</Link>}
         </nav>

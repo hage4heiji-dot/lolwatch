@@ -16,6 +16,10 @@ services:
     container_name: lolwatch-app
     env_file:
       - .env
+    volumes:
+      # 記事投稿画像の保存先。イメージはCOPY . .でビルド時に固定されるため、
+      # 再ビルド・コンテナ再作成を跨いで投稿済み画像が消えないようVolumeに永続化する。
+      - article-uploads:/app/public/uploads
     restart: unless-stopped
     logging: *default-logging
 
@@ -34,6 +38,9 @@ services:
       - app
     restart: unless-stopped
     logging: *default-logging
+
+volumes:
+  article-uploads:
 
 networks:
   default:
