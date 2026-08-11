@@ -19,6 +19,10 @@ FROM base AS runner
 ENV NODE_ENV=production
 RUN addgroup -g 10001 -S appgroup && adduser -u 10001 -S appuser -G appgroup
 COPY --from=builder --chown=appuser:appgroup /app /app
+# public/uploadsはdocker-compose.ymlでVolumeマウントする(記事投稿画像の永続化用)。
+# ここで所有権をappuserにしたディレクトリを用意しておくことで、Volume新規作成時に
+# Dockerがこの内容(所有権含む)をコピーし、rootオーナーのまま作られてEACCESになるのを防ぐ。
+RUN mkdir -p /app/public/uploads/articles && chown -R appuser:appgroup /app/public/uploads
 USER appuser
 EXPOSE 3000
 CMD ["npm", "run", "start"]
