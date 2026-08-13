@@ -42,6 +42,7 @@ export default async function EditArticlePage({
         <PublishControl
           articleId={article.id}
           publishedAt={article.publishedAt?.toISOString() ?? null}
+          archivedAt={article.archivedAt?.toISOString() ?? null}
         />
       </section>
 

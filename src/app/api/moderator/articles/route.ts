@@ -41,7 +41,14 @@ export async function GET(request: NextRequest) {
   }
 
   const articles = await prisma.article.findMany({
-    select: { id: true, title: true, tags: true, incidentDate: true, publishedAt: true },
+    select: {
+      id: true,
+      title: true,
+      tags: true,
+      incidentDate: true,
+      publishedAt: true,
+      archivedAt: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 

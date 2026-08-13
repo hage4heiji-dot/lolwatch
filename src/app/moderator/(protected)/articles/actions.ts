@@ -117,7 +117,9 @@ export async function publishArticleAction(
 
   await prisma.article.update({
     where: { id: articleId },
-    data: { publishedAt: new Date() },
+    // archivedAtも念のためクリアする(通常はarchivedAt≠nullの記事は下書きに
+    // 戻してから公開する運用だが、状態の矛盾を残さないための保険)。
+    data: { publishedAt: new Date(), archivedAt: null },
   });
 
   redirect(`/moderator/articles/${articleId}`);
@@ -143,8 +145,53 @@ export async function unpublishArticleAction(
   redirect(`/moderator/articles/${articleId}`);
 }
 
-// 下書き(非公開)のみ削除可能とする。公開済みの記事は読者のコメント・投票が
-// 付いている可能性があるため、削除する前に一度非公開に戻すひと手間を挟む。
+// 重複記事など「確認不要」と判断した下書きを非公開にする。削除と違い、自動投稿API
+// の既存記事一覧(重複防止用)には残り続けるため、AIが同じ案件を再度拾うのを防げる。
+export async function archiveArticleAction(
+  articleId: string,
+  _prevState: ArticleFormState,
+  _formData: FormData,
+): Promise<ArticleFormState> {
+  const moderator = await requireModerator();
+
+  const article = await findEditableArticle(articleId, moderator.id, moderator.isAdmin);
+  if (!article) {
+    return { error: "対象の記事が見つかりません。" };
+  }
+  if (article.publishedAt) {
+    return { error: "公開中の記事は非公開にできません。先に下書きに戻してください。" };
+  }
+
+  await prisma.article.update({
+    where: { id: articleId },
+    data: { archivedAt: new Date() },
+  });
+
+  redirect(`/moderator/articles/${articleId}`);
+}
+
+export async function unarchiveArticleAction(
+  articleId: string,
+  _prevState: ArticleFormState,
+  _formData: FormData,
+): Promise<ArticleFormState> {
+  const moderator = await requireModerator();
+
+  const article = await findEditableArticle(articleId, moderator.id, moderator.isAdmin);
+  if (!article) {
+    return { error: "対象の記事が見つかりません。" };
+  }
+
+  await prisma.article.update({
+    where: { id: articleId },
+    data: { archivedAt: null },
+  });
+
+  redirect(`/moderator/articles/${articleId}`);
+}
+
+// 下書き・非公開の記事のみ削除可能とする。公開済みの記事は読者のコメント・投票が
+// 付いている可能性があるため、削除する前に一度下書きに戻すひと手間を挟む。
 export async function deleteArticleAction(
   articleId: string,
   _prevState: ArticleFormState,
@@ -157,7 +204,7 @@ export async function deleteArticleAction(
     return { error: "対象の記事が見つかりません。" };
   }
   if (article.publishedAt) {
-    return { error: "公開中の記事は削除できません。先に非公開に戻してください。" };
+    return { error: "公開中の記事は削除できません。先に下書きに戻してください。" };
   }
 
   await prisma.article.delete({ where: { id: articleId } });

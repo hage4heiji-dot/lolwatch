@@ -220,7 +220,13 @@ enum ArticleSeverity {
 
 // トロール行為等が話題化した「炎上案件」をモデレーターがまとめた記事。
 // 個々の試合内行為を申告するReportとは違い、複数試合・SNS上の発言等をまたぐ
-// 話題を運営がまとめて記事化するもの。publishedAtがnullの間は下書き(非公開)。
+// 話題を運営がまとめて記事化するもの。状態はpublishedAt/archivedAtの組で表す:
+//   下書き(要確認): publishedAt=null, archivedAt=null … 新規作成・未判断
+//   公開中:         publishedAt≠null                    … 一般公開中
+//   非公開:         publishedAt=null, archivedAt≠null   … 重複等で却下済み、確認不要
+// 自動投稿API(既存記事一覧取得)は状態を問わず全記事を返すため、非公開にした記事も
+// 重複防止の対象であり続ける(削除すると一覧から消えてAIに再度拾われうるため、
+// 重複記事は削除ではなくarchivedAtで残すことを想定)。
 model Article {
   id          String          @id @default(uuid())
   title       String
@@ -235,6 +241,7 @@ model Article {
   moderatorId  String
   moderator    Moderator       @relation(fields: [moderatorId], references: [id])
   publishedAt  DateTime?
+  archivedAt   DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
@@ -242,6 +249,7 @@ model Article {
   votes    ArticleVote[]
 
   @@index([publishedAt, incidentDate])
+  @@index([archivedAt])
 }
 
 // 記事(炎上案件)に対する一般ユーザーの投票。判定基準診断(CalibrationAnswer)と
