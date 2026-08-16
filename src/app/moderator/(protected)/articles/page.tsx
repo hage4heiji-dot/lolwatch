@@ -113,7 +113,19 @@ export default async function ModeratorArticlesPage({
               {articles.map((article) => (
                 <tr key={article.id}>
                   <td>
-                    <Link href={`/moderator/articles/${article.id}`}>{article.title}</Link>
+                    <Link
+                      href={`/moderator/articles/${article.id}`}
+                      title={article.title}
+                      style={{
+                        display: "inline-block",
+                        maxWidth: "320px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {article.title}
+                    </Link>
                   </td>
                   <td>
                     {article.publishedAt ? (
