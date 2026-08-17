@@ -218,6 +218,15 @@ enum ArticleSeverity {
   CRITICAL
 }
 
+// INCIDENT: 従来の「実際に起きた炎上案件」をまとめる記事(裏取り必須、incidentDate/severity必須)。
+// JUDGMENT: 特定の実在案件ではなく「ある行為はトロールか?」を問う記事(裏取り不要、
+// incidentDate/severityは持たない)。判定基準診断のミニ版を記事単位で量産できるようにし、
+// 実名の裏取りが要らない分、より軽く・伸びやすいコンテンツとして炎上案件記事と併存させる。
+enum ArticleKind {
+  INCIDENT
+  JUDGMENT
+}
+
 // トロール行為等が話題化した「炎上案件」をモデレーターがまとめた記事。
 // 個々の試合内行為を申告するReportとは違い、複数試合・SNS上の発言等をまたぐ
 // 話題を運営がまとめて記事化するもの。状態はpublishedAt/archivedAtの組で表す:
@@ -235,9 +244,11 @@ model Article {
   // 炎上案件の話題は事前に種類を列挙しきれないため、通報のReportCategoryとは
   // 違って自由入力+絞り込み用の一覧表示に留める。
   tags         String[]        @default([])
+  kind         ArticleKind     @default(INCIDENT)
   // 炎上そのものが起きた日(記事の公開日=publishedAtとは別)。一覧の並び順はこちらの降順。
-  incidentDate DateTime        @db.Date
-  severity     ArticleSeverity
+  // kind=JUDGMENTの記事は特定の実在案件を指さないため常にnull。
+  incidentDate DateTime?       @db.Date
+  severity     ArticleSeverity?
   moderatorId  String
   moderator    Moderator       @relation(fields: [moderatorId], references: [id])
   publishedAt  DateTime?
@@ -253,6 +264,7 @@ model Article {
 
   @@index([publishedAt, incidentDate])
   @@index([archivedAt])
+  @@index([kind])
 }
 
 // 記事(炎上案件)に対する一般ユーザーの投票。判定基準診断(CalibrationAnswer)と
@@ -284,6 +296,10 @@ model ArticleComment {
   createdAt    DateTime  @default(now())
   hiddenAt     DateTime?
   hiddenReason String?
+  // 投稿時点でそのdeviceIdがこの記事に投じていたArticleVote.score(1〜5)のスナップショット。
+  // 未投票なら null。事後にVoteを変更してもコメント側の表示は投稿時点のまま固定するため、
+  // リレーションではなくスナップショット値として持つ。
+  voteScoreAtPost Int?
 
   reports ArticleCommentReport[]
 

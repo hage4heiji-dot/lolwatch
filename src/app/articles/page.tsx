@@ -8,6 +8,8 @@ import {
   type PublicArticleSort,
 } from "@/lib/articleList";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
+import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS, ARTICLE_KIND_ORDER } from "@/lib/articleKind";
+import type { ArticleKind } from "@/generated/prisma";
 import { VoteRateBar } from "./vote-rate-bar";
 
 const PAGE_SIZE = 20;
@@ -48,13 +50,19 @@ function isSort(value: string): value is PublicArticleSort {
 interface FilterParams {
   q?: string;
   tag?: string;
+  kind?: ArticleKind;
   sort: PublicArticleSort;
+}
+
+function isKind(value: string): value is ArticleKind {
+  return (ARTICLE_KIND_ORDER as string[]).includes(value);
 }
 
 function buildHref(params: FilterParams & { page?: number }): string {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
   if (params.tag) sp.set("tag", params.tag);
+  if (params.kind) sp.set("kind", params.kind);
   if (params.sort !== DEFAULT_SORT) sp.set("sort", params.sort);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   const qs = sp.toString();
@@ -64,21 +72,23 @@ function buildHref(params: FilterParams & { page?: number }): string {
 export default async function ArticlesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; tag?: string; q?: string; sort?: string }>;
+  searchParams: Promise<{ page?: string; tag?: string; q?: string; kind?: string; sort?: string }>;
 }) {
-  const { page: pageParam, tag: tagParam, q: qParam, sort: sortParam } = await searchParams;
+  const { page: pageParam, tag: tagParam, q: qParam, kind: kindParam, sort: sortParam } =
+    await searchParams;
   const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
   const tag = tagParam?.trim() || undefined;
   const query = qParam?.trim() || undefined;
+  const kind = kindParam && isKind(kindParam) ? kindParam : undefined;
   const sort = sortParam && isSort(sortParam) ? sortParam : DEFAULT_SORT;
-  const filters: FilterParams = { q: query, tag, sort };
+  const filters: FilterParams = { q: query, tag, kind, sort };
 
   const [{ articles, totalCount }, availableTags] = await Promise.all([
-    findPublicArticlesCached({ page, pageSize: PAGE_SIZE, tag, query, sort }),
+    findPublicArticlesCached({ page, pageSize: PAGE_SIZE, tag, query, kind, sort }),
     findPublicArticleTagsCached(),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasFilters = Boolean(query || tag || sort !== DEFAULT_SORT);
+  const hasFilters = Boolean(query || tag || kind || sort !== DEFAULT_SORT);
 
   return (
     <div>
@@ -100,6 +110,17 @@ export default async function ArticlesPage({
               {availableTags.map((t) => (
                 <option key={t} value={t}>
                   {t}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="kind">種類</label>
+            <select id="kind" name="kind" defaultValue={kind ?? ""}>
+              <option value="">すべて</option>
+              {ARTICLE_KIND_ORDER.map((k) => (
+                <option key={k} value={k}>
+                  {ARTICLE_KIND_LABELS[k]}
                 </option>
               ))}
             </select>
@@ -145,14 +166,19 @@ export default async function ArticlesPage({
                     <img src={thumbUrl} alt="" className="article-card-thumb" />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span className="badge" title={SEVERITY_LABELS[article.severity]}>
-                      {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
-                    </span>
+                    <span className="badge" title={ARTICLE_KIND_LABELS[article.kind]}>
+                      {ARTICLE_KIND_ICONS[article.kind]} {ARTICLE_KIND_LABELS[article.kind]}
+                    </span>{" "}
+                    {article.severity && (
+                      <span className="badge" title={SEVERITY_LABELS[article.severity]}>
+                        {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
+                      </span>
+                    )}
                     <h2 style={{ fontSize: "1.05rem", marginTop: "0.4rem" }}>{article.title}</h2>
                     <p className="muted" style={{ marginTop: "0.4rem" }}>{excerpt(article.body)}</p>
                     <p className="muted" style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
-                      {formatDate(article.incidentDate)}に発生 ・ コメント
-                      {article._count.comments}件
+                      {article.incidentDate ? `${formatDate(article.incidentDate)}に発生 ・ ` : ""}
+                      コメント{article._count.comments}件
                     </p>
                     {article.tags.length > 0 && (
                       <div className="article-card-tags">

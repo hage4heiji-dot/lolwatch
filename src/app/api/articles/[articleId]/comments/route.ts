@@ -64,12 +64,20 @@ export async function POST(
       return respond({ error: rateCheck.reason }, 429);
     }
 
+    // このdeviceIdが同じ記事に投じている投票(違反〜問題なしの1〜5段階)があれば、
+    // コメント投稿時点のスナップショットとして一緒に保存する(コメント一覧で
+    // 「どちら寄りの人の投稿か」を表示するため)。事後にVoteを変えてもここは固定。
+    const existingVote = await prisma.articleVote.findUnique({
+      where: { articleId_deviceId: { articleId, deviceId } },
+    });
+
     const comment = await prisma.articleComment.create({
       data: {
         articleId,
         body: parsed.data.body,
         deviceId,
         posterIp: ip,
+        voteScoreAtPost: existingVote?.score ?? null,
       },
     });
 
@@ -80,6 +88,7 @@ export async function POST(
           id: comment.id,
           body: comment.body,
           createdAt: comment.createdAt,
+          voteScoreAtPost: comment.voteScoreAtPost,
         },
       },
       201,

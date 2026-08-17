@@ -4,17 +4,30 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/moderatorAuth";
-import { ArticleSeverity } from "@/generated/prisma";
+import { ArticleSeverity, ArticleKind } from "@/generated/prisma";
 
 export type ArticleFormState = { error?: string };
 export type ModerationFormState = { error?: string };
 
-const articleSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  body: z.string().trim().min(1).max(20000),
-  incidentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "炎上日の形式が不正です。"),
-  severity: z.enum(ArticleSeverity),
-});
+// kind=INCIDENT(炎上案件)はincidentDate/severityが必須、kind=JUDGMENT(行為判定)は
+// 特定の実在案件を指さないためどちらも持たない。フォーム側で送られてきても無視する。
+const articleSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    body: z.string().trim().min(1).max(20000),
+    kind: z.enum(ArticleKind),
+    incidentDate: z.string().optional(),
+    severity: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.kind !== "INCIDENT") return;
+    if (!data.incidentDate || !/^\d{4}-\d{2}-\d{2}$/.test(data.incidentDate)) {
+      ctx.addIssue({ code: "custom", path: ["incidentDate"], message: "炎上日の形式が不正です。" });
+    }
+    if (!data.severity || !z.enum(ArticleSeverity).safeParse(data.severity).success) {
+      ctx.addIssue({ code: "custom", path: ["severity"], message: "炎上度合いを選択してください。" });
+    }
+  });
 
 const MAX_TAGS = 10;
 const MAX_TAG_LENGTH = 30;
@@ -46,20 +59,23 @@ export async function createArticleAction(
   const parsed = articleSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
+    kind: formData.get("kind"),
     incidentDate: formData.get("incidentDate"),
     severity: formData.get("severity"),
   });
   if (!parsed.success) {
-    return { error: "タイトル・本文・炎上日・炎上度合いを入力してください。" };
+    return { error: "入力内容を確認してください(タイトル・本文は必須、炎上案件の場合は炎上日・炎上度合いも必須です)。" };
   }
 
+  const isIncident = parsed.data.kind === "INCIDENT";
   const article = await prisma.article.create({
     data: {
       title: parsed.data.title,
       body: parsed.data.body,
       tags: parseTagsInput(formData.get("tags")),
-      incidentDate: new Date(parsed.data.incidentDate),
-      severity: parsed.data.severity,
+      kind: parsed.data.kind,
+      incidentDate: isIncident ? new Date(parsed.data.incidentDate!) : null,
+      severity: isIncident ? (parsed.data.severity as ArticleSeverity) : null,
       moderatorId: moderator.id,
     },
   });
@@ -77,11 +93,12 @@ export async function updateArticleAction(
   const parsed = articleSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
+    kind: formData.get("kind"),
     incidentDate: formData.get("incidentDate"),
     severity: formData.get("severity"),
   });
   if (!parsed.success) {
-    return { error: "タイトル・本文・炎上日・炎上度合いを入力してください。" };
+    return { error: "入力内容を確認してください(タイトル・本文は必須、炎上案件の場合は炎上日・炎上度合いも必須です)。" };
   }
 
   const article = await findEditableArticle(articleId, moderator.id, moderator.isAdmin);
@@ -89,14 +106,16 @@ export async function updateArticleAction(
     return { error: "対象の記事が見つかりません。" };
   }
 
+  const isIncident = parsed.data.kind === "INCIDENT";
   await prisma.article.update({
     where: { id: articleId },
     data: {
       title: parsed.data.title,
       body: parsed.data.body,
       tags: parseTagsInput(formData.get("tags")),
-      incidentDate: new Date(parsed.data.incidentDate),
-      severity: parsed.data.severity,
+      kind: parsed.data.kind,
+      incidentDate: isIncident ? new Date(parsed.data.incidentDate!) : null,
+      severity: isIncident ? (parsed.data.severity as ArticleSeverity) : null,
     },
   });
 

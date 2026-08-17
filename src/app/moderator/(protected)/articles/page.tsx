@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
+import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
 import type { Prisma } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,7 @@ export default async function ModeratorArticlesPage({
   const [articles, draftCount, publishedCount, archivedCount] = await Promise.all([
     prisma.article.findMany({
       where: whereForStatus(status),
-      orderBy: { incidentDate: "desc" },
+      orderBy: [{ incidentDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       include: {
         moderator: { select: { displayName: true } },
         _count: { select: { comments: true } },
@@ -102,6 +103,7 @@ export default async function ModeratorArticlesPage({
             <thead>
               <tr>
                 <th>タイトル</th>
+                <th>種類</th>
                 <th>状態</th>
                 <th>炎上度合い</th>
                 <th>作成者</th>
@@ -127,6 +129,9 @@ export default async function ModeratorArticlesPage({
                       {article.title}
                     </Link>
                   </td>
+                  <td title={ARTICLE_KIND_LABELS[article.kind]}>
+                    {ARTICLE_KIND_ICONS[article.kind]} {ARTICLE_KIND_LABELS[article.kind]}
+                  </td>
                   <td>
                     {article.publishedAt ? (
                       <span className="badge badge-verified">🌐 公開中</span>
@@ -136,12 +141,12 @@ export default async function ModeratorArticlesPage({
                       <span className="badge badge-unverified">⏳ 下書き(要確認)</span>
                     )}
                   </td>
-                  <td title={SEVERITY_LABELS[article.severity]}>
-                    {SEVERITY_ICONS[article.severity]}
+                  <td title={article.severity ? SEVERITY_LABELS[article.severity] : ""}>
+                    {article.severity ? SEVERITY_ICONS[article.severity] : "-"}
                   </td>
                   <td className="muted">{article.moderator.displayName}</td>
                   <td>{article._count.comments}</td>
-                  <td className="muted">{formatDate(article.incidentDate)}</td>
+                  <td className="muted">{article.incidentDate ? formatDate(article.incidentDate) : "-"}</td>
                 </tr>
               ))}
             </tbody>

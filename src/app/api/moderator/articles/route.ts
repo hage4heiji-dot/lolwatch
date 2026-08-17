@@ -53,13 +53,18 @@ export async function GET(request: NextRequest) {
       publishedAt: true,
       archivedAt: true,
       pageViews: true,
+      kind: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
   // PVは公開されてから読まれた分の実績なので、下書きを含めるとタグ実績が
   // 薄まってしまう(下書きは常にpageViews=0)。公開済み記事のみで集計する。
-  const genreStats = computeTagStats(articles.filter((a) => a.publishedAt !== null));
+  // このエージェントはINCIDENT(炎上案件)しか書かないため、行為判定記事(JUDGMENT)の
+  // PVで炎上案件のジャンル実績が歪まないよう、集計もINCIDENTに限定する。
+  const genreStats = computeTagStats(
+    articles.filter((a) => a.publishedAt !== null && a.kind === "INCIDENT"),
+  );
 
   return NextResponse.json({ articles, genreStats });
 }

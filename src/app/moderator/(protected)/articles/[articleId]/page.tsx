@@ -52,7 +52,8 @@ export default async function EditArticlePage({
           title={article.title}
           body={article.body}
           tags={article.tags}
-          incidentDate={article.incidentDate.toISOString().slice(0, 10)}
+          kind={article.kind}
+          incidentDate={article.incidentDate?.toISOString().slice(0, 10) ?? null}
           severity={article.severity}
         />
       </section>

@@ -8,9 +8,12 @@ import { ArticleBody } from "@/app/article-body";
 import { ArticleVoteBar } from "./article-vote-bar";
 import { CommentSection } from "./comment-section";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
+import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
 import { computeScoreCounts } from "@/lib/articleList";
 
 export const dynamic = "force-dynamic";
+
+const SITE_URL = "https://lol-watch.com";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -82,10 +85,15 @@ export default async function ArticlePage({
       </Link>
       <h1 style={{ marginTop: "0.75rem" }}>{article.title}</h1>
       <p className="muted" style={{ marginTop: "0.75rem" }}>
-        <span className="badge" title={SEVERITY_LABELS[article.severity]}>
-          {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
+        <span className="badge" title={ARTICLE_KIND_LABELS[article.kind]}>
+          {ARTICLE_KIND_ICONS[article.kind]} {ARTICLE_KIND_LABELS[article.kind]}
         </span>{" "}
-        {formatDate(article.incidentDate)}に発生
+        {article.severity && (
+          <span className="badge" title={SEVERITY_LABELS[article.severity]}>
+            {SEVERITY_ICONS[article.severity]} {SEVERITY_LABELS[article.severity]}
+          </span>
+        )}{" "}
+        {article.incidentDate && `${formatDate(article.incidentDate)}に発生`}
       </p>
       <p
         className="muted"
@@ -110,6 +118,8 @@ export default async function ArticlePage({
 
       <ArticleVoteBar
         articleId={article.id}
+        kind={article.kind}
+        pageUrl={`${SITE_URL}/articles/${article.id}`}
         initialScoreCounts={scoreCounts}
         initialMyVote={myVote as 1 | 2 | 3 | 4 | 5 | null}
       />
@@ -120,6 +130,7 @@ export default async function ArticlePage({
           id: comment.id,
           body: comment.body,
           createdAtLabel: formatDateTime(comment.createdAt),
+          voteScoreAtPost: comment.voteScoreAtPost as 1 | 2 | 3 | 4 | 5 | null,
         }))}
       />
     </div>

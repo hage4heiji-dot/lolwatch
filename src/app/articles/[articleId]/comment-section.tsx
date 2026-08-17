@@ -2,11 +2,22 @@
 
 import { useState } from "react";
 import { CommentReportButton } from "./comment-report-button";
+import { CALIBRATION_SCALE_LABELS, type CalibrationScore } from "@/lib/calibrationScenarios";
 
 interface CommentItem {
   id: string;
   body: string;
   createdAtLabel: string;
+  voteScoreAtPost: CalibrationScore | null;
+}
+
+function VoteBadge({ score }: { score: CalibrationScore | null }) {
+  if (score === null) return null;
+  return (
+    <span className="badge" style={{ marginLeft: "0.5rem" }}>
+      {CALIBRATION_SCALE_LABELS[score]}側の投稿
+    </span>
+  );
 }
 
 export function CommentSection({
@@ -42,6 +53,7 @@ export function CommentSection({
           id: data.comment.id,
           body: data.comment.body,
           createdAtLabel: "たった今",
+          voteScoreAtPost: data.comment.voteScoreAtPost ?? null,
         },
       ]);
       setBody("");
@@ -72,6 +84,7 @@ export function CommentSection({
               <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
               <p className="muted" style={{ marginTop: "0.35rem", fontSize: "0.85rem" }}>
                 {comment.createdAtLabel}
+                <VoteBadge score={comment.voteScoreAtPost} />
               </p>
               <CommentReportButton articleId={articleId} commentId={comment.id} />
             </div>

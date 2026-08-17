@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { memoizeWithTtlByKey } from "@/lib/ttlCache";
-import type { Prisma } from "@/generated/prisma";
+import type { ArticleKind, Prisma } from "@/generated/prisma";
 
 export type PublicArticleSort =
   | "incidentDate_desc"
@@ -8,19 +8,22 @@ export type PublicArticleSort =
   | "severity_desc"
   | "severity_asc";
 
-function sortToOrderBy(sort: PublicArticleSort): Prisma.ArticleOrderByWithRelationInput {
+// kind=JUDGMENTの記事はincidentDate/severityを持たない(常にnull)。並び順に関わらず
+// nullは末尾に固定した上で、その中では公開日(publishedAt)の新しい順に並べる
+// (kind=JUDGMENTだけに絞り込んだ場合にも意味のある順序になるようにするため)。
+function sortToOrderBy(sort: PublicArticleSort): Prisma.ArticleOrderByWithRelationInput[] {
   switch (sort) {
     case "incidentDate_asc":
-      return { incidentDate: "asc" };
+      return [{ incidentDate: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }];
     case "severity_desc":
       // Postgres enumはCREATE TYPEで宣言した順(LOW→MEDIUM→HIGH→CRITICAL)でソートされるため、
       // 追加のマッピングなしでそのまま強度順になる。
-      return { severity: "desc" };
+      return [{ severity: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }];
     case "severity_asc":
-      return { severity: "asc" };
+      return [{ severity: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }];
     case "incidentDate_desc":
     default:
-      return { incidentDate: "desc" };
+      return [{ incidentDate: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }];
   }
 }
 
@@ -32,17 +35,20 @@ export async function findPublicArticles({
   pageSize,
   tag,
   query,
+  kind,
   sort = "incidentDate_desc",
 }: {
   page: number;
   pageSize: number;
   tag?: string;
   query?: string;
+  kind?: ArticleKind;
   sort?: PublicArticleSort;
 }) {
   const where: Prisma.ArticleWhereInput = {
     publishedAt: { not: null },
     ...(tag ? { tags: { has: tag } } : {}),
+    ...(kind ? { kind } : {}),
     ...(query
       ? {
           OR: [
@@ -77,7 +83,8 @@ const PUBLIC_ARTICLES_CACHE_TTL_MS = 30 * 1000;
 export const findPublicArticlesCached = memoizeWithTtlByKey(
   findPublicArticles,
   PUBLIC_ARTICLES_CACHE_TTL_MS,
-  (params) => `${params.page}:${params.tag ?? ""}:${params.query ?? ""}:${params.sort ?? ""}`,
+  (params) =>
+    `${params.page}:${params.tag ?? ""}:${params.query ?? ""}:${params.kind ?? ""}:${params.sort ?? ""}`,
 );
 
 // タグ絞り込みのプルダウン用。公開記事に実際に使われているタグだけを新しい順ではなく
