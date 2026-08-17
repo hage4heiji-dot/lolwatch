@@ -244,6 +244,9 @@ model Article {
   archivedAt   DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  // GA4の実測PVをscripts/sync-article-pageviews.tsで定期同期した値(直近60日のローリング窓)。
+  // タグ別の人気度を集計し、自動投稿エージェントがジャンルを試行錯誤する材料にする。
+  pageViews    Int             @default(0)
 
   comments ArticleComment[]
   votes    ArticleVote[]

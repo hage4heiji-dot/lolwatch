@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ArticleSeverity } from "@/generated/prisma";
+import { computeTagStats } from "@/lib/articleGenreStats";
 
 // クラウド上の定期実行エージェント(炎上案件の下書き自動作成)専用のエンドポイント。
 // モデレーターのログインCookieではなく、専用のBearerトークンで認証する
@@ -35,6 +36,9 @@ function isAuthorized(request: NextRequest): boolean {
 
 // 自動投稿エージェントが既存記事との重複を避けるための一覧取得用。
 // タイトルと出典URL(本文から抽出できないため、本文全体をそのまま返す)を返す。
+// あわせてタグ(ジャンル)別のPV実績(genreStats)を返し、エージェントが
+// 「次にどのジャンルを試すか」を過去実績から試行錯誤できるようにする
+// (scripts/sync-article-pageviews.tsがGA4実測値でpageViewsを定期更新している)。
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "認証に失敗しました。" }, { status: 401 });
@@ -48,11 +52,16 @@ export async function GET(request: NextRequest) {
       incidentDate: true,
       publishedAt: true,
       archivedAt: true,
+      pageViews: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ articles });
+  // PVは公開されてから読まれた分の実績なので、下書きを含めるとタグ実績が
+  // 薄まってしまう(下書きは常にpageViews=0)。公開済み記事のみで集計する。
+  const genreStats = computeTagStats(articles.filter((a) => a.publishedAt !== null));
+
+  return NextResponse.json({ articles, genreStats });
 }
 
 export async function POST(request: NextRequest) {

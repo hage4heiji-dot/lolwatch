@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Article" ADD COLUMN "pageViews" INTEGER NOT NULL DEFAULT 0;
