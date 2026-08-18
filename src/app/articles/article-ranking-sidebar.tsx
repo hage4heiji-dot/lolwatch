@@ -85,12 +85,28 @@ function RecentCommentsCard({ items }: { items: RecentCommentItem[] }) {
   );
 }
 
-export async function ArticleRankingSidebar() {
-  const [popular, mostCommented, recentComments] = await Promise.all([
-    findPopularArticlesCached(RANKING_LIMIT),
-    findMostCommentedArticlesCached(RANKING_LIMIT),
-    findRecentCommentsCached(RECENT_COMMENTS_LIMIT),
+export async function ArticleRankingSidebar({
+  excludeArticleId,
+}: {
+  // 記事詳細ページから使う場合、閲覧中の記事自身がランキング/最近のコメントに
+  // 混じって出てくるのは冗長なので除外できるようにする。除外後にlimit件数を
+  // 満たせるよう、少し多めに取得しておく。
+  excludeArticleId?: string;
+} = {}) {
+  const fetchLimit = RANKING_LIMIT + 3;
+  const [popularRaw, mostCommentedRaw, recentCommentsRaw] = await Promise.all([
+    findPopularArticlesCached(fetchLimit),
+    findMostCommentedArticlesCached(fetchLimit),
+    findRecentCommentsCached(RECENT_COMMENTS_LIMIT + 3),
   ]);
+
+  const popular = popularRaw.filter((a) => a.id !== excludeArticleId).slice(0, RANKING_LIMIT);
+  const mostCommented = mostCommentedRaw
+    .filter((a) => a.id !== excludeArticleId)
+    .slice(0, RANKING_LIMIT);
+  const recentComments = recentCommentsRaw
+    .filter((c) => c.articleId !== excludeArticleId)
+    .slice(0, RECENT_COMMENTS_LIMIT);
 
   return (
     <aside className="articles-sidebar">

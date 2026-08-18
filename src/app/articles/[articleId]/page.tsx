@@ -10,6 +10,7 @@ import { CommentSection } from "./comment-section";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
 import { computeScoreCounts, findRelatedArticlesCached } from "@/lib/articleList";
+import { ArticleRankingSidebar } from "../article-ranking-sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -84,9 +85,8 @@ export default async function ArticlePage({
   });
 
   return (
-    // サイト全体のシェルは広め(--content-width)だが、この記事本文は長文の
-    // 読み物なので行が間延びしないよう読みやすい幅に収める。
-    <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+    <div className="articles-layout">
+    <div>
       <Link href="/articles" className="muted" style={{ fontSize: "0.85rem" }}>
         ← 炎上案件一覧に戻る
       </Link>
@@ -158,6 +158,9 @@ export default async function ArticlePage({
           voteScoreAtPost: comment.voteScoreAtPost as 1 | 2 | 3 | 4 | 5 | null,
         }))}
       />
+    </div>
+
+    <ArticleRankingSidebar excludeArticleId={article.id} />
     </div>
   );
 }
