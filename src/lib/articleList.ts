@@ -134,6 +134,48 @@ export const findMostCommentedArticlesCached = memoizeWithTtlByKey(
   (limit) => String(limit),
 );
 
+export interface RecentCommentItem {
+  commentId: string;
+  articleId: string;
+  articleTitle: string;
+  articleKind: ArticleKind;
+  body: string;
+  createdAt: Date;
+}
+
+// /articles右サイドバーの「最近のコメント」用。人気記事/コメント数ランキングとは
+// 別軸で、サイト全体の直近の動き(鮮度)を見せて回遊を誘う。非表示コメント・
+// 非公開記事のコメントは除く。
+async function findRecentComments(limit: number): Promise<RecentCommentItem[]> {
+  const comments = await prisma.articleComment.findMany({
+    where: { hiddenAt: null, article: { publishedAt: { not: null } } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      article: { select: { id: true, title: true, kind: true } },
+    },
+  });
+  return comments.map((c) => ({
+    commentId: c.id,
+    articleId: c.article.id,
+    articleTitle: c.article.title,
+    articleKind: c.article.kind,
+    body: c.body,
+    createdAt: c.createdAt,
+  }));
+}
+
+// ランキング(1分キャッシュ)より鮮度を重視し、短めのTTLにする。
+const RECENT_COMMENTS_CACHE_TTL_MS = 20 * 1000;
+export const findRecentCommentsCached = memoizeWithTtlByKey(
+  findRecentComments,
+  RECENT_COMMENTS_CACHE_TTL_MS,
+  (limit) => String(limit),
+);
+
 export interface RelatedArticleItem {
   id: string;
   title: string;
