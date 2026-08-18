@@ -8,24 +8,23 @@ export type PublicArticleSort =
   | "severity_desc"
   | "severity_asc";
 
-// kind=JUDGMENTの記事はincidentDate/severityを持たない(常にnull)。並び順に関わらず
-// nullは末尾に固定した上で、その中では公開日(publishedAt)の新しい順に並べる
-// (kind=JUDGMENTだけに絞り込んだ場合にも意味のある順序になるようにするため)。
-function sortToOrderBy(sort: PublicArticleSort): Prisma.ArticleOrderByWithRelationInput[] {
-  switch (sort) {
-    case "incidentDate_asc":
-      return [{ incidentDate: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }];
-    case "severity_desc":
-      // Postgres enumはCREATE TYPEで宣言した順(LOW→MEDIUM→HIGH→CRITICAL)でソートされるため、
-      // 追加のマッピングなしでそのまま強度順になる。
-      return [{ severity: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }];
-    case "severity_asc":
-      return [{ severity: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }];
-    case "incidentDate_desc":
-    default:
-      return [{ incidentDate: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }];
-  }
+// severity(炎上度合い)によるソート用。kind=JUDGMENTの記事はseverityを持たない
+// (常にnull)ので末尾に固定する(severityの代わりになる指標が無いため)。
+function severitySortToOrderBy(
+  sort: "severity_desc" | "severity_asc",
+): Prisma.ArticleOrderByWithRelationInput[] {
+  // Postgres enumはCREATE TYPEで宣言した順(LOW→MEDIUM→HIGH→CRITICAL)でソートされるため、
+  // 追加のマッピングなしでそのまま強度順になる。
+  return sort === "severity_desc"
+    ? [{ severity: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }]
+    : [{ severity: { sort: "asc", nulls: "last" } }, { publishedAt: "desc" }];
 }
+
+const PUBLIC_ARTICLE_LIST_INCLUDE = {
+  moderator: { select: { displayName: true } },
+  _count: { select: { comments: { where: { hiddenAt: null } } } },
+  votes: { select: { score: true } },
+} satisfies Prisma.ArticleInclude;
 
 // 公開の「炎上案件記事」一覧用。通報一覧(findPublicReports)と同じ方針で、
 // 非公開(下書き)の記事は対象外にする。tagで絞り込むと、そのタグを含む記事のみ返す。
@@ -59,17 +58,35 @@ export async function findPublicArticles({
       : {}),
   };
 
+  if (sort === "incidentDate_desc" || sort === "incidentDate_asc") {
+    // kind=JUDGMENTの記事はincidentDateを持たない(常にnull)。Prismaの宣言的
+    // orderByではCOALESCE(incidentDate, publishedAt)のような代替キーが組めず、
+    // nullをfirst/lastどちらに固定しても全JUDGMENT記事が一箇所に固まって
+    // しまう(公開日が新しくても一番下に埋もれる)。この並び順だけは
+    // JS側でincidentDate ?? publishedAtを実効的な日付として計算しソートする。
+    // 記事数が数百件規模までのサイト前提の割り切った実装(DB側でのページング
+    // ではなく全件取得後にJSでページングする)。
+    const all = await prisma.article.findMany({ where, include: PUBLIC_ARTICLE_LIST_INCLUDE });
+
+    const effectiveTime = (a: (typeof all)[number]) => (a.incidentDate ?? a.publishedAt)!.getTime();
+    all.sort((a, b) =>
+      sort === "incidentDate_asc"
+        ? effectiveTime(a) - effectiveTime(b)
+        : effectiveTime(b) - effectiveTime(a),
+    );
+
+    const totalCount = all.length;
+    const start = (page - 1) * pageSize;
+    return { articles: all.slice(start, start + pageSize), totalCount };
+  }
+
   const [articles, totalCount] = await Promise.all([
     prisma.article.findMany({
       where,
-      orderBy: sortToOrderBy(sort),
+      orderBy: severitySortToOrderBy(sort),
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: {
-        moderator: { select: { displayName: true } },
-        _count: { select: { comments: { where: { hiddenAt: null } } } },
-        votes: { select: { score: true } },
-      },
+      include: PUBLIC_ARTICLE_LIST_INCLUDE,
     }),
     prisma.article.count({ where }),
   ]);
