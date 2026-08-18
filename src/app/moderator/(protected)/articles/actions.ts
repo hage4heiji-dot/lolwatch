@@ -16,8 +16,12 @@ const articleSchema = z
     title: z.string().trim().min(1).max(200),
     body: z.string().trim().min(1).max(20000),
     kind: z.enum(ArticleKind),
-    incidentDate: z.string().optional(),
-    severity: z.string().optional(),
+    // kind=JUDGMENTの場合、フォーム側で炎上日・炎上度合いの入力欄自体を描画しないため、
+    // FormData.get()は「存在しないキー」としてundefinedではなくnullを返す。
+    // z.string().optional()はundefinedのみ許容しnullを弾いてしまうため、
+    // 必ずnullish()(null/undefined両方許容)にする。
+    incidentDate: z.string().nullish(),
+    severity: z.string().nullish(),
   })
   .superRefine((data, ctx) => {
     if (data.kind !== "INCIDENT") return;
