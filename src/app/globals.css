@@ -1467,6 +1467,86 @@ a.card:hover {
   margin-top: 0.5rem;
 }
 
+/* --- /articles: メイン一覧+右サイドバー(人気記事・関連記事ランキング) --- */
+.articles-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .articles-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.articles-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  /* サイドバーがヘッダー分の高さを避けつつスクロール追従するように。
+     ページ全体は縦に長くなりうるので、ビューポート内に収まる範囲だけ追従する。 */
+  position: sticky;
+  top: 5rem;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.ranking-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.ranking-rank {
+  flex: 0 0 auto;
+  width: 1.3rem;
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.ranking-body {
+  min-width: 0;
+}
+
+.ranking-title {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ranking-meta {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* --- 記事詳細ページの関連記事 --- */
+.related-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 520px) {
+  .related-articles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- 記事(炎上案件)への5段階投票の分布バー(判定基準診断と同じ1〜5スケール) --- */
 .violation-bar-track {
   display: flex;

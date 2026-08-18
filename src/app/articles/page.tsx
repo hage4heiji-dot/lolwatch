@@ -11,6 +11,7 @@ import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS, ARTICLE_KIND_ORDER } from "@/lib/articleKind";
 import type { ArticleKind } from "@/generated/prisma";
 import { VoteRateBar } from "./vote-rate-bar";
+import { ArticleRankingSidebar } from "./article-ranking-sidebar";
 
 const PAGE_SIZE = 20;
 
@@ -97,6 +98,8 @@ export default async function ArticlesPage({
         LoLで話題になったトロール系の炎上案件をまとめた記事です。各記事にコメントできます。
       </p>
 
+      <div className="articles-layout">
+      <div>
       <form style={{ marginBottom: "1.5rem" }}>
         <div className="form-row">
           <div className="form-field">
@@ -231,6 +234,10 @@ export default async function ArticlesPage({
           )}
         </div>
       )}
+      </div>
+
+      <ArticleRankingSidebar />
+      </div>
     </div>
   );
 }

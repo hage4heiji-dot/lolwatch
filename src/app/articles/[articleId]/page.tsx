@@ -9,7 +9,7 @@ import { ArticleVoteBar } from "./article-vote-bar";
 import { CommentSection } from "./comment-section";
 import { SEVERITY_LABELS, SEVERITY_ICONS } from "@/lib/articleSeverity";
 import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
-import { computeScoreCounts } from "@/lib/articleList";
+import { computeScoreCounts, findRelatedArticlesCached } from "@/lib/articleList";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +77,11 @@ export default async function ArticlePage({
     ? (article.votes.find((v) => v.deviceId === deviceId)?.score ?? null)
     : null;
   const scoreCounts = computeScoreCounts(article.votes);
+  const relatedArticles = await findRelatedArticlesCached({
+    articleId: article.id,
+    tags: article.tags,
+    limit: 4,
+  });
 
   return (
     <div>
@@ -123,6 +128,24 @@ export default async function ArticlePage({
         initialScoreCounts={scoreCounts}
         initialMyVote={myVote as 1 | 2 | 3 | 4 | 5 | null}
       />
+
+      {relatedArticles.length > 0 && (
+        <div className="section">
+          <h2>関連記事</h2>
+          <div className="related-articles-grid">
+            {relatedArticles.map((related) => (
+              <Link key={related.id} href={`/articles/${related.id}`} className="card">
+                <span className="badge" title={ARTICLE_KIND_LABELS[related.kind]}>
+                  {ARTICLE_KIND_ICONS[related.kind]} {ARTICLE_KIND_LABELS[related.kind]}
+                </span>
+                <p style={{ marginTop: "0.4rem", fontSize: "0.9rem", lineHeight: 1.4 }}>
+                  {related.title}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <CommentSection
         articleId={article.id}
