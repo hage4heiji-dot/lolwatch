@@ -14,15 +14,22 @@ const QUESTION_LABELS: Record<ArticleKind, string> = {
   JUDGMENT: "この行為はトロールだと思いますか?",
 };
 
+const SHARE_VOTE_LABELS: Record<ArticleKind, { violation: string; fine: string }> = {
+  INCIDENT: { violation: "🚫 違反だと思う", fine: "✅ 問題なしだと思う" },
+  JUDGMENT: { violation: "🚫 トロールだと思う", fine: "✅ 問題なしだと思う" },
+};
+
 export function ArticleVoteBar({
   articleId,
   kind,
+  title,
   pageUrl,
   initialScoreCounts,
   initialMyVote,
 }: {
   articleId: string;
   kind: ArticleKind;
+  title: string;
   pageUrl: string;
   initialScoreCounts: ScoreCounts;
   initialMyVote: CalibrationScore | null;
@@ -74,10 +81,18 @@ export function ArticleVoteBar({
 
   const total = SCALE.reduce((sum, s) => sum + (scoreCounts[s] ?? 0), 0);
 
-  function xIntentUrl(score: 1 | 5, text: string): string {
+  // 違反用/問題なし用と投稿を分けず、1つの投稿に両方の投票リンクを埋め込む。
+  // 読んだ人がその場でどちらのリンクを踏むか選べるようにするため。
+  function xShareIntentUrl(): string {
+    const labels = SHARE_VOTE_LABELS[kind];
+    const text = [
+      title,
+      "",
+      `${labels.violation} → ${pageUrl}?vote=1`,
+      `${labels.fine} → ${pageUrl}?vote=5`,
+    ].join("\n");
     const intent = new URL("https://twitter.com/intent/tweet");
     intent.searchParams.set("text", text);
-    intent.searchParams.set("url", `${pageUrl}?vote=${score}`);
     return intent.toString();
   }
 
@@ -107,26 +122,18 @@ export function ArticleVoteBar({
         ))}
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem" }}>
+      <div style={{ marginTop: "0.75rem" }}>
         <a
           className="btn btn-secondary"
-          href={xIntentUrl(1, "違反だと思う")}
+          href={xShareIntentUrl()}
           target="_blank"
           rel="noopener noreferrer"
         >
-          🚫 違反だと思う→Xでポスト
-        </a>
-        <a
-          className="btn btn-secondary"
-          href={xIntentUrl(5, "問題なしだと思う")}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          ✅ 問題なしだと思う→Xでポスト
+          🗳️ 意見をXでポストする
         </a>
       </div>
       <p className="muted" style={{ marginTop: "0.35rem", fontSize: "0.75rem" }}>
-        このリンクを踏んで戻ってきた人は自動的にその側へ投票されます。
+        タイトルと「違反/問題なし」両方の投票リンクを含む投稿ができます。踏んで戻ってきた人はその側へ自動的に投票されます。
       </p>
     </div>
   );

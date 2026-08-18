@@ -126,6 +126,7 @@ export default async function ArticlePage({
       <ArticleVoteBar
         articleId={article.id}
         kind={article.kind}
+        title={article.title}
         pageUrl={`${SITE_URL}/articles/${article.id}`}
         initialScoreCounts={scoreCounts}
         initialMyVote={myVote as 1 | 2 | 3 | 4 | 5 | null}
