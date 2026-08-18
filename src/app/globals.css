@@ -20,6 +20,9 @@
   --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.05);
   --shadow-md: 0 4px 16px rgba(20, 20, 30, 0.08);
   --radius: 10px;
+  /* サイト全体のコンテンツ幅。ヘッダー・本文・フッターで揃える(以前は900pxで
+     PC画面だと余白ばかりが目立っていたため拡張した)。 */
+  --content-width: 1180px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -135,7 +138,7 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  max-width: 900px;
+  max-width: var(--content-width);
   margin: 0 auto;
 }
 
@@ -226,7 +229,7 @@ h2 {
 .site-main {
   flex: 1;
   width: 100%;
-  max-width: 900px;
+  max-width: var(--content-width);
   margin: 0 auto;
   padding: 2.25rem 1.5rem 3rem;
   animation: fade-in 0.2s ease;
@@ -249,7 +252,7 @@ h2 {
   font-size: 0.75rem;
   line-height: 1.6;
   color: var(--muted);
-  max-width: 900px;
+  max-width: var(--content-width);
   margin: 0 auto;
   width: 100%;
 }

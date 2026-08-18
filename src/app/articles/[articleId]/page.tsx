@@ -84,7 +84,9 @@ export default async function ArticlePage({
   });
 
   return (
-    <div>
+    // サイト全体のシェルは広め(--content-width)だが、この記事本文は長文の
+    // 読み物なので行が間延びしないよう読みやすい幅に収める。
+    <div style={{ maxWidth: "760px", margin: "0 auto" }}>
       <Link href="/articles" className="muted" style={{ fontSize: "0.85rem" }}>
         ← 炎上案件一覧に戻る
       </Link>
