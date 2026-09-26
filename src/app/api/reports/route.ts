@@ -2,7 +2,13 @@ import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAccountByPuuid, getLeagueEntriesByPuuid, RiotApiError } from "@/lib/riot";
+import {
+  getAccountByPuuid,
+  getLatestDdragonVersion,
+  getLeagueEntriesByPuuid,
+  RiotApiError,
+} from "@/lib/riot";
+import { FALLBACK_DDRAGON_VERSION, getChampionIconUrl } from "@/lib/ddragon";
 import { upsertPlayerFromRiotAccount } from "@/lib/player";
 import {
   DEVICE_ID_COOKIE,
@@ -18,8 +24,8 @@ import {
   isSafeReferenceUrl,
   REFERENCE_URL_ALLOWED_DOMAINS_LABEL,
 } from "@/lib/referenceUrl";
-import { CATEGORY_LABELS } from "@/lib/reportCategories";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
+import { DISCORD_COLORS, SITE_URL, discordQuote, notifyDiscord } from "@/lib/discord";
 
 // 通報は必ず特定の試合(matchId)と、その試合内の対象アカウント(puuid)に紐付ける。
 // puuid/championName/queueIdは事前に GET /api/matches/[matchId] で取得した参加者一覧から選ばれたもの。
@@ -134,19 +140,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    after(() =>
-      notifyDiscord("alerts", {
-        title: `🚨 新しい通報: ${account.gameName}#${account.tagLine}`,
+    after(async () => {
+      const ddragonVersion = await getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION);
+      await notifyDiscord("alerts", {
+        label: "🚨 新しい通報",
+        thumbnailUrl: getChampionIconUrl(ddragonVersion, championName),
+        title: `${account.gameName}#${account.tagLine}`,
         url: `${SITE_URL}/moderator/review/${encodeURIComponent(puuid)}`,
         color: DISCORD_COLORS.red,
-        description: comment || undefined,
+        description: comment ? discordQuote(comment) : undefined,
         fields: [
-          { name: "カテゴリ", value: CATEGORY_LABELS[category] },
-          { name: "チャンピオン", value: championName },
+          { name: "カテゴリ", value: `${CATEGORY_ICONS[category]} ${CATEGORY_LABELS[category]}`, inline: true },
+          { name: "チャンピオン", value: championName, inline: true },
           { name: "参考URL", value: referenceUrl || "" },
         ],
-      }),
-    );
+      });
+    });
 
     return respond(
       {

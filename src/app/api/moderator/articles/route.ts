@@ -5,8 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ArticleSeverity, ArticleKind } from "@/generated/prisma";
 import { computeTagStats } from "@/lib/articleGenreStats";
-import { ARTICLE_KIND_LABELS } from "@/lib/articleKind";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
+import { DISCORD_COLORS, SITE_URL, articleCardImageUrl, notifyDiscord } from "@/lib/discord";
 
 // クラウド上の定期実行エージェント(下書き自動作成)専用のエンドポイント。
 // モデレーターのログインCookieではなく、専用のBearerトークンで認証する
@@ -125,12 +125,18 @@ export async function POST(request: NextRequest) {
   // Botの下書きは人間の確認・公開待ちになるため、要対応として通知する。
   after(() =>
     notifyDiscord("alerts", {
-      title: `📝 Botが下書きを作成: ${article.title}`,
+      label: "📝 Botの下書き(公開待ち)",
+      title: article.title,
       url: `${SITE_URL}/moderator/articles/${article.id}`,
       color: DISCORD_COLORS.gray,
+      imageUrl: articleCardImageUrl(article.id),
       fields: [
-        { name: "種別", value: ARTICLE_KIND_LABELS[article.kind] },
-        { name: "タグ", value: article.tags.map((tag) => `#${tag}`).join(" ") },
+        {
+          name: "種別",
+          value: `${ARTICLE_KIND_ICONS[article.kind]} ${ARTICLE_KIND_LABELS[article.kind]}`,
+          inline: true,
+        },
+        { name: "タグ", value: article.tags.map((tag) => `#${tag}`).join(" "), inline: true },
       ],
     }),
   );

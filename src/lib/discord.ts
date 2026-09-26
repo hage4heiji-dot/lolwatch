@@ -27,16 +27,36 @@ export const DISCORD_COLORS = {
   gray: 0x888888,
 } as const;
 
+// 表示の構成: label(上段の小さい見出し=通知の種類) → title(対象。urlがあればリンク) →
+// description → fields(inline指定のものは横並び) → image。thumbnailは右上の小さい画像。種類と対象を分けることで、
+// チャンネルを流し見したときに何の通知かがlabelだけで判別できるようにする。
 export type DiscordNotification = {
+  label: string;
   title: string;
   description?: string;
   url?: string;
   color?: number;
-  fields?: { name: string; value: string }[];
+  fields?: { name: string; value: string; inline?: boolean }[];
+  thumbnailUrl?: string;
+  imageUrl?: string;
 };
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// ユーザー投稿などの本文を引用ブロックとして表示する(サイト側の文言と区別しやすくするため)。
+export function discordQuote(text: string, max = MAX_FIELD_VALUE): string {
+  return truncate(text.trim(), max)
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+}
+
+// スタックトレース等をコードブロックで表示する。
+export function discordCodeBlock(text: string, max = 800): string {
+  const fence = "```";
+  return `${fence}\n${truncate(text.replaceAll(fence, "'''"), max)}\n${fence}`;
 }
 
 export async function notifyDiscord(
@@ -47,6 +67,7 @@ export async function notifyDiscord(
   if (!webhookUrl) return;
 
   const embed = {
+    author: { name: truncate(notification.label, 250) },
     title: truncate(notification.title, 250),
     description: notification.description
       ? truncate(notification.description, MAX_DESCRIPTION)
@@ -58,7 +79,11 @@ export async function notifyDiscord(
       .map((field) => ({
         name: truncate(field.name, 250),
         value: truncate(field.value, MAX_FIELD_VALUE),
+        inline: field.inline ?? false,
       })),
+    thumbnail: notification.thumbnailUrl ? { url: notification.thumbnailUrl } : undefined,
+    image: notification.imageUrl ? { url: notification.imageUrl } : undefined,
+    footer: { text: "lol-watch.com", icon_url: `${SITE_URL}/logo.png` },
     timestamp: new Date().toISOString(),
   };
 
@@ -76,4 +101,17 @@ export async function notifyDiscord(
   } catch (err) {
     console.error(`Discord通知に失敗しました (${channel}):`, err);
   }
+}
+
+// 通報系の通知タイトル用。名前履歴が取れない場合(通常は起きない)でも通知自体は出す。
+export function formatRiotId(
+  name: { riotIdName: string; riotIdTagLine: string } | undefined,
+): string {
+  return name ? `${name.riotIdName}#${name.riotIdTagLine}` : "(名前不明のプレイヤー)";
+}
+
+// 記事の通知に添える画像。記事詳細ページのOGP画像(opengraph-image.tsx)をそのまま使う。
+// 下書きでも生成できる(公開状態を見ていない)ため、Botの下書き通知にも使える。
+export function articleCardImageUrl(articleId: string): string {
+  return `${SITE_URL}/articles/${articleId}/opengraph-image`;
 }

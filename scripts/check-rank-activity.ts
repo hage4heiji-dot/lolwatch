@@ -4,7 +4,7 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { hasRecentRankedMatch, RiotApiError } from "../src/lib/riot";
-import { DISCORD_COLORS, notifyDiscord } from "../src/lib/discord";
+import { DISCORD_COLORS, discordCodeBlock, notifyDiscord } from "../src/lib/discord";
 
 const WINDOW_DAYS = Number(process.env.RANK_CHECK_WINDOW_DAYS ?? "3");
 const MIN_INTERVAL_MS = Number(process.env.RIOT_API_MIN_INTERVAL_MS ?? "1300");
@@ -51,9 +51,14 @@ async function main() {
     `完了: ${players.length}件中 ${activeCount}件がランク参加中、${errorCount}件でエラー`,
   );
   await notifyDiscord("batch", {
-    title: errorCount > 0 ? "⚠️ ランク参加チェック: 一部エラー" : "✅ ランク参加チェック: 完了",
+    label: errorCount > 0 ? "⚠️ 一部エラー" : "✅ 完了",
+    title: "ランク参加チェック",
     color: errorCount > 0 ? DISCORD_COLORS.yellow : DISCORD_COLORS.green,
-    description: `${players.length}件中 ${activeCount}件がランク参加中、${errorCount}件でエラー`,
+    fields: [
+      { name: "対象", value: `${players.length}人`, inline: true },
+      { name: "ランク参加中", value: `${activeCount}人`, inline: true },
+      { name: "エラー", value: `${errorCount}件`, inline: true },
+    ],
   });
 }
 
@@ -62,9 +67,10 @@ main()
     console.error(err);
     process.exitCode = 1;
     await notifyDiscord("batch", {
-      title: "❌ ランク参加チェック: 失敗",
+      label: "❌ 失敗",
+      title: "ランク参加チェック",
       color: DISCORD_COLORS.red,
-      description: err instanceof Error ? (err.stack ?? err.message) : String(err),
+      description: discordCodeBlock(err instanceof Error ? (err.stack ?? err.message) : String(err)),
     });
   })
   .finally(() => prisma.$disconnect());

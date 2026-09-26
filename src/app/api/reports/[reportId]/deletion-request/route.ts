@@ -10,7 +10,8 @@ import {
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
 import { checkDeletionRequestRateLimit } from "@/lib/rateLimit";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { DISCORD_COLORS, SITE_URL, discordQuote, formatRiotId, notifyDiscord } from "@/lib/discord";
+import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 
 const requestSchema = z.object({
   reason: z.string().trim().min(3).max(300),
@@ -36,7 +37,18 @@ export async function POST(
 
   const report = await prisma.report.findUnique({
     where: { id: reportId },
-    include: { player: { select: { puuid: true } } },
+    include: {
+      player: {
+        select: {
+          puuid: true,
+          nameHistory: {
+            where: { isCurrent: true },
+            take: 1,
+            select: { riotIdName: true, riotIdTagLine: true },
+          },
+        },
+      },
+    },
   });
   if (!report) {
     return NextResponse.json({ error: "対象の通報が見つかりません。" }, { status: 404 });
@@ -61,10 +73,19 @@ export async function POST(
   if (!existing) {
     after(() =>
       notifyDiscord("alerts", {
-        title: `🗑️ 通報の削除申請 (この通報への申請 計${requestCount}件)`,
+        label: "🗑️ 通報の削除申請",
+        title: formatRiotId(report.player.nameHistory[0]),
         url: `${SITE_URL}/moderator/review/${encodeURIComponent(report.player.puuid)}`,
         color: DISCORD_COLORS.yellow,
-        description: parsed.data.reason,
+        description: discordQuote(parsed.data.reason),
+        fields: [
+          {
+            name: "対象の通報",
+            value: `${CATEGORY_ICONS[report.category]} ${CATEGORY_LABELS[report.category]}`,
+            inline: true,
+          },
+          { name: "申請数", value: `${requestCount}件`, inline: true },
+        ],
       }),
     );
   }

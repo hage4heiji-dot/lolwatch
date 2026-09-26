@@ -9,8 +9,8 @@ import {
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
 import { checkObjectionRateLimit } from "@/lib/rateLimit";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
-import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
+import { DISCORD_COLORS, SITE_URL, discordQuote, formatRiotId, notifyDiscord } from "@/lib/discord";
+import { VERDICT_LABELS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +26,22 @@ export async function POST(
 
   const review = await prisma.moderatorReview.findUnique({
     where: { id: reviewId },
-    include: { report: { select: { player: { select: { puuid: true } } } } },
+    include: {
+      report: {
+        select: {
+          player: {
+            select: {
+              puuid: true,
+              nameHistory: {
+                where: { isCurrent: true },
+                take: 1,
+                select: { riotIdName: true, riotIdTagLine: true },
+              },
+            },
+          },
+        },
+      },
+    },
   });
   if (!review) {
     return NextResponse.json({ error: "対象の評価が見つかりません。" }, { status: 404 });
@@ -56,12 +71,18 @@ export async function POST(
   if (!existing) {
     after(() =>
       notifyDiscord("alerts", {
-        title: `🙋 モデレーター判定への異議 (この判定への異議 計${objectionCount}件)`,
+        label: "🙋 判定への異議",
+        title: formatRiotId(review.report.player.nameHistory[0]),
         url: `${SITE_URL}/moderator/review/${encodeURIComponent(review.report.player.puuid)}`,
         color: DISCORD_COLORS.yellow,
         fields: [
-          { name: "判定", value: VERDICT_LABELS[review.verdict] },
-          { name: "判定理由", value: review.rationale },
+          {
+            name: "判定",
+            value: `${VERDICT_ICONS[review.verdict]} ${VERDICT_LABELS[review.verdict]}`,
+            inline: true,
+          },
+          { name: "異議数", value: `${objectionCount}件`, inline: true },
+          { name: "判定理由", value: discordQuote(review.rationale) },
         ],
       }),
     );

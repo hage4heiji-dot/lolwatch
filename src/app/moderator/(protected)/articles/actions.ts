@@ -6,8 +6,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/moderatorAuth";
 import { ArticleSeverity, ArticleKind } from "@/generated/prisma";
-import { ARTICLE_KIND_LABELS } from "@/lib/articleKind";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { ARTICLE_KIND_LABELS, ARTICLE_KIND_ICONS } from "@/lib/articleKind";
+import { DISCORD_COLORS, SITE_URL, articleCardImageUrl, notifyDiscord } from "@/lib/discord";
 
 export type ArticleFormState = { error?: string };
 export type ModerationFormState = { error?: string };
@@ -150,12 +150,18 @@ export async function publishArticleAction(
 
   after(() =>
     notifyDiscord("activity", {
-      title: `📰 記事を公開: ${article.title}`,
+      label: "📰 記事を公開",
+      title: article.title,
       url: `${SITE_URL}/articles/${articleId}`,
       color: DISCORD_COLORS.green,
+      imageUrl: articleCardImageUrl(articleId),
       fields: [
-        { name: "種別", value: ARTICLE_KIND_LABELS[article.kind] },
-        { name: "公開者", value: moderator.username },
+        {
+          name: "種別",
+          value: `${ARTICLE_KIND_ICONS[article.kind]} ${ARTICLE_KIND_LABELS[article.kind]}`,
+          inline: true,
+        },
+        { name: "公開者", value: moderator.username, inline: true },
       ],
     }),
   );

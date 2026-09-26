@@ -14,7 +14,7 @@ import {
   acquireInFlightLock,
   releaseInFlightLock,
 } from "@/lib/rateLimit";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { DISCORD_COLORS, SITE_URL, discordQuote, notifyDiscord } from "@/lib/discord";
 
 const requestSchema = z.object({
   body: z.string().trim().min(1).max(500),
@@ -84,10 +84,11 @@ export async function POST(
 
     after(() =>
       notifyDiscord("activity", {
-        title: `💬 新着コメント: ${article.title}`,
+        label: "💬 新着コメント",
+        title: article.title,
         url: `${SITE_URL}/articles/${articleId}`,
         color: DISCORD_COLORS.blue,
-        description: comment.body,
+        description: discordQuote(comment.body),
       }),
     );
 

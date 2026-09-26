@@ -10,7 +10,7 @@ import {
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
 import { checkCommentReportRateLimit } from "@/lib/rateLimit";
-import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
+import { DISCORD_COLORS, SITE_URL, discordQuote, notifyDiscord } from "@/lib/discord";
 
 const requestSchema = z.object({
   reason: z.string().trim().min(3).max(300),
@@ -56,12 +56,13 @@ export async function POST(
     });
     after(() =>
       notifyDiscord("alerts", {
-        title: `🚩 コメントへの通報: ${comment.article.title}`,
+        label: "🚩 コメントへの通報",
+        title: comment.article.title,
         url: `${SITE_URL}/moderator/articles/${comment.articleId}`,
         color: DISCORD_COLORS.red,
         fields: [
-          { name: "通報理由", value: parsed.data.reason },
-          { name: "対象コメント", value: comment.body },
+          { name: "通報されたコメント", value: discordQuote(comment.body) },
+          { name: "通報理由", value: discordQuote(parsed.data.reason) },
         ],
       }),
     );
