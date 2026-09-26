@@ -134,9 +134,10 @@ model Moderator {
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
 
-  reviews  ModeratorReview[]
-  sessions ModeratorSession[]
-  articles Article[]
+  reviews        ModeratorReview[]
+  sessions       ModeratorSession[]
+  articles       Article[]
+  reviewComments ReviewComment[]
 }
 
 // ログイントークンはハッシュ化して保存する(Cookieには生トークンのみ)。
@@ -193,20 +194,28 @@ model ReviewObjection {
 // モデレーター評価に対する一般ユーザーの公開コメント。ArticleCommentと同じ運用
 // (即時公開・投稿元IP/deviceIdは内部保持のみ・問題があればReviewCommentReportで通報され、
 // 管理者がhiddenAtで非表示にする)。
+// モデレーターは一般ユーザーのコメントに返信できる。返信はmoderatorId・parentIdを持つ
+// ReviewCommentとして保存し(deviceId/posterIpはnull)、返信への返信は受け付けない(1階層のみ)。
 model ReviewComment {
   id                String          @id @default(uuid())
   moderatorReviewId String
   moderatorReview   ModeratorReview @relation(fields: [moderatorReviewId], references: [id], onDelete: Cascade)
   body              String
-  deviceId          String
-  posterIp          String
+  deviceId          String?
+  posterIp          String?
+  moderatorId       String?
+  moderator         Moderator?      @relation(fields: [moderatorId], references: [id], onDelete: Restrict)
+  parentId          String?
+  parent            ReviewComment?  @relation("ReviewCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   createdAt         DateTime        @default(now())
   hiddenAt          DateTime?
   hiddenReason      String?
 
+  replies ReviewComment[]       @relation("ReviewCommentReplies")
   reports ReviewCommentReport[]
 
   @@index([moderatorReviewId, createdAt])
+  @@index([parentId])
   @@index([deviceId, createdAt])
   @@index([posterIp, createdAt])
 }

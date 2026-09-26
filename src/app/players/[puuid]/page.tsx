@@ -407,6 +407,8 @@ export default async function PlayerProfilePage({
                               id: comment.id,
                               body: comment.body,
                               createdAtLabel: formatDateTime(comment.createdAt),
+                              parentId: comment.parentId,
+                              moderatorName: comment.moderator?.displayName ?? null,
                             }))}
                           >
                             <ReviewObjectionButton

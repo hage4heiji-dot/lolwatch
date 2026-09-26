@@ -10,6 +10,7 @@ import { ModeratorReviewCard } from "./review-card";
 import { HideReportControl } from "./hide-report-control";
 import { HideCommentControl } from "../../hide-comment-control";
 import { hideReviewCommentAction, unhideReviewCommentAction } from "./moderation-actions";
+import { ReviewCommentReplyForm } from "./review-comment-reply-form";
 import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
 
 function replayScriptHref(matchId: string, incidentTimestampSeconds: number | null): string {
@@ -173,22 +174,55 @@ export default async function ModeratorReviewPage({
                         <p className="muted" style={{ fontSize: "0.85rem" }}>
                           💬 {VERDICT_LABELS[review.verdict]}の判定へのコメント({review.comments.length}件)
                         </p>
-                        {review.comments.map((comment) => (
-                          <div key={comment.id} style={{ marginTop: "0.6rem" }}>
-                            <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
-                            <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
-                              {formatDateTime(comment.createdAt)}
-                              {comment._count.reports > 0 ? ` ・ 通報${comment._count.reports}件` : ""}
-                            </p>
-                            <HideCommentControl
-                              commentId={comment.id}
-                              hideAction={hideReviewCommentAction.bind(null, comment.id, puuid)}
-                              unhideAction={unhideReviewCommentAction.bind(null, comment.id, puuid)}
-                              hiddenAt={comment.hiddenAt?.toISOString() ?? null}
-                              hiddenReason={comment.hiddenReason}
-                            />
-                          </div>
-                        ))}
+                        {review.comments
+                          .filter((comment) => !comment.parentId)
+                          .map((comment) => (
+                            <div key={comment.id} style={{ marginTop: "0.6rem" }}>
+                              <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
+                              <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                                {formatDateTime(comment.createdAt)}
+                                {comment._count.reports > 0 ? ` ・ 通報${comment._count.reports}件` : ""}
+                              </p>
+                              <HideCommentControl
+                                commentId={comment.id}
+                                hideAction={hideReviewCommentAction.bind(null, comment.id, puuid)}
+                                unhideAction={unhideReviewCommentAction.bind(null, comment.id, puuid)}
+                                hiddenAt={comment.hiddenAt?.toISOString() ?? null}
+                                hiddenReason={comment.hiddenReason}
+                              />
+                              {review.comments
+                                .filter((reply) => reply.parentId === comment.id)
+                                .map((reply) => (
+                                  <div
+                                    key={reply.id}
+                                    style={{
+                                      marginTop: "0.6rem",
+                                      marginLeft: "1rem",
+                                      paddingLeft: "0.75rem",
+                                      borderLeft: "2px solid var(--border)",
+                                    }}
+                                  >
+                                    <span className="badge">⚔️ {reply.moderator?.displayName}</span>
+                                    <p style={{ marginTop: "0.35rem", whiteSpace: "pre-wrap" }}>{reply.body}</p>
+                                    <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                                      {formatDateTime(reply.createdAt)}
+                                    </p>
+                                    <HideCommentControl
+                                      commentId={reply.id}
+                                      hideAction={hideReviewCommentAction.bind(null, reply.id, puuid)}
+                                      unhideAction={unhideReviewCommentAction.bind(null, reply.id, puuid)}
+                                      hiddenAt={reply.hiddenAt?.toISOString() ?? null}
+                                      hiddenReason={reply.hiddenReason}
+                                    />
+                                  </div>
+                                ))}
+                              {!comment.hiddenAt && (
+                                <div style={{ marginLeft: "1rem" }}>
+                                  <ReviewCommentReplyForm commentId={comment.id} puuid={puuid} />
+                                </div>
+                              )}
+                            </div>
+                          ))}
                       </div>
                     ),
                   )}

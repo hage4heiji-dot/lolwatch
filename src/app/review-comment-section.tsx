@@ -7,6 +7,9 @@ interface ReviewCommentItem {
   id: string;
   body: string;
   createdAtLabel: string;
+  // モデレーターの返信のみ値を持つ(返信先の一般ユーザーコメントのID・返信したモデレーター名)。
+  parentId: string | null;
+  moderatorName: string | null;
 }
 
 // 判定(ModeratorReview)ごとの公開コメント欄。プレイヤーページには判定が複数並ぶため、
@@ -44,7 +47,13 @@ export function ReviewCommentSection({
       }
       setComments((prev) => [
         ...prev,
-        { id: data.comment.id, body: data.comment.body, createdAtLabel: "たった今" },
+        {
+          id: data.comment.id,
+          body: data.comment.body,
+          createdAtLabel: "たった今",
+          parentId: null,
+          moderatorName: null,
+        },
       ]);
       setBody("");
     } catch {
@@ -53,6 +62,9 @@ export function ReviewCommentSection({
       setPending(false);
     }
   }
+
+  // 返信は親コメントの下にまとめて表示する(親が非表示で取得されていない返信は出さない)。
+  const topLevelComments = comments.filter((comment) => !comment.parentId);
 
   return (
     <div>
@@ -77,12 +89,12 @@ export function ReviewCommentSection({
             borderLeft: "2px solid var(--border)",
           }}
         >
-          {comments.length === 0 ? (
+          {topLevelComments.length === 0 ? (
             <p className="muted" style={{ fontSize: "0.85rem" }}>
               まだコメントはありません。
             </p>
           ) : (
-            comments.map((comment, i) => (
+            topLevelComments.map((comment, i) => (
               <div
                 key={comment.id}
                 style={{
@@ -99,6 +111,25 @@ export function ReviewCommentSection({
                   endpoint={`/api/moderator-reviews/${reviewId}/comments/${comment.id}/report`}
                   commentId={comment.id}
                 />
+                {comments
+                  .filter((reply) => reply.parentId === comment.id)
+                  .map((reply) => (
+                    <div
+                      key={reply.id}
+                      style={{
+                        marginTop: "0.6rem",
+                        marginLeft: "1rem",
+                        paddingLeft: "0.75rem",
+                        borderLeft: "2px solid var(--border)",
+                      }}
+                    >
+                      <span className="badge">⚔️ {reply.moderatorName}(モデレーター)</span>
+                      <p style={{ marginTop: "0.35rem", whiteSpace: "pre-wrap" }}>{reply.body}</p>
+                      <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                        {reply.createdAtLabel}
+                      </p>
+                    </div>
+                  ))}
               </div>
             ))
           )}

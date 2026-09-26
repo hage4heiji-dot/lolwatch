@@ -1,9 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/moderatorAuth";
+import { DISCORD_COLORS, SITE_URL, discordQuote, notifyDiscord } from "@/lib/discord";
 
 export type ModerationFormState = { error?: string };
 
@@ -134,6 +136,59 @@ export async function unhideReviewCommentAction(
     where: { id: commentId },
     data: { hiddenAt: null, hiddenReason: null },
   });
+
+  redirect(`/moderator/review/${puuid}`);
+}
+
+const replySchema = z.object({ body: z.string().trim().min(1).max(1000) });
+
+// 判定へのコメントにモデレーターとして返信する。非表示化と違い、管理者でなくても
+// ログイン済みのモデレーターなら誰でも返信できる。返信先は一般ユーザーのコメントのみ(1階層)。
+export async function replyToReviewCommentAction(
+  commentId: string,
+  puuid: string,
+  _prevState: ModerationFormState,
+  formData: FormData,
+): Promise<ModerationFormState> {
+  const moderator = await requireModerator();
+
+  const parsed = replySchema.safeParse({ body: formData.get("body") });
+  if (!parsed.success) {
+    return { error: "返信は1〜1000文字で入力してください。" };
+  }
+
+  const parent = await findOwnedReviewComment(commentId, puuid);
+  if (!parent) {
+    return { error: "対象のコメントが見つかりません。" };
+  }
+  if (parent.parentId || parent.moderatorId) {
+    return { error: "モデレーターの返信にはさらに返信できません。" };
+  }
+  if (parent.hiddenAt) {
+    return { error: "非表示にしたコメントには返信できません。" };
+  }
+
+  await prisma.reviewComment.create({
+    data: {
+      moderatorReviewId: parent.moderatorReviewId,
+      parentId: parent.id,
+      moderatorId: moderator.id,
+      body: parsed.data.body,
+    },
+  });
+
+  after(() =>
+    notifyDiscord("activity", {
+      label: "↩️ モデレーターの返信",
+      title: `${moderator.displayName} が判定コメントに返信`,
+      url: `${SITE_URL}/players/${encodeURIComponent(puuid)}`,
+      color: DISCORD_COLORS.blue,
+      fields: [
+        { name: "元のコメント", value: discordQuote(parent.body) },
+        { name: "返信", value: discordQuote(parsed.data.body) },
+      ],
+    }),
+  );
 
   redirect(`/moderator/review/${puuid}`);
 }
