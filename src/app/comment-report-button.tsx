@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
+// 記事コメント・判定コメント共通の「不適切」通報ボタン。endpointに通報APIのURLを渡す。
 export function CommentReportButton({
-  articleId,
+  endpoint,
   commentId,
 }: {
-  articleId: string;
+  endpoint: string;
   commentId: string;
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -20,7 +21,7 @@ export function CommentReportButton({
     setPending(true);
     setError(null);
     try {
-      const res = await fetch(`/api/articles/${articleId}/comments/${commentId}/report`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),

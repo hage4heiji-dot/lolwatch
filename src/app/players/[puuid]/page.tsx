@@ -28,6 +28,7 @@ import { canEditReport } from "@/lib/reportEdit";
 import { ReportVoteButtons } from "@/app/report-vote-buttons";
 import { ReportDeletionRequestButton } from "@/app/report-deletion-request-button";
 import { ReviewObjectionButton } from "@/app/review-objection-button";
+import { ReviewCommentSection } from "@/app/review-comment-section";
 import { ReportEditForm } from "@/app/report-edit-form";
 import { MatchScoreboard } from "@/app/match-scoreboard";
 import { ShareButtons } from "@/app/share-buttons";
@@ -400,15 +401,24 @@ export default async function PlayerProfilePage({
                           <p className="muted" style={{ marginTop: "0.5rem" }}>
                             ⚔️ {review.moderator.displayName} ・ {formatDateTime(review.createdAt)}
                           </p>
-                          <ReviewObjectionButton
+                          <ReviewCommentSection
                             reviewId={review.id}
-                            initialCount={review.objections.length}
-                            initialHasObjected={
-                              deviceId
-                                ? review.objections.some((o) => o.deviceId === deviceId)
-                                : false
-                            }
-                          />
+                            initialComments={review.comments.map((comment) => ({
+                              id: comment.id,
+                              body: comment.body,
+                              createdAtLabel: formatDateTime(comment.createdAt),
+                            }))}
+                          >
+                            <ReviewObjectionButton
+                              reviewId={review.id}
+                              initialCount={review.objections.length}
+                              initialHasObjected={
+                                deviceId
+                                  ? review.objections.some((o) => o.deviceId === deviceId)
+                                  : false
+                              }
+                            />
+                          </ReviewCommentSection>
                         </div>
                       ))}
                     </div>

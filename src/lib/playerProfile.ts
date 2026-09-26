@@ -42,6 +42,18 @@ export async function findPlayerByPuuid(puuid: string, options?: { includeHidden
             include: {
               moderator: { select: { displayName: true } },
               objections: true,
+              comments: {
+                where: includeHidden ? {} : { hiddenAt: null },
+                orderBy: { createdAt: "asc" },
+                select: {
+                  id: true,
+                  body: true,
+                  createdAt: true,
+                  hiddenAt: true,
+                  hiddenReason: true,
+                  _count: { select: { reports: true } },
+                },
+              },
             },
           },
         },

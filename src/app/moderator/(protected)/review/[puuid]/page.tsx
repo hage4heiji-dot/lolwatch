@@ -8,6 +8,9 @@ import { formatMatchTime } from "@/lib/matchTime";
 import { ReviewForm } from "./review-form";
 import { ModeratorReviewCard } from "./review-card";
 import { HideReportControl } from "./hide-report-control";
+import { HideCommentControl } from "../../hide-comment-control";
+import { hideReviewCommentAction, unhideReviewCommentAction } from "./moderation-actions";
+import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
 
 function replayScriptHref(matchId: string, incidentTimestampSeconds: number | null): string {
   const base = `/api/moderator/replay-script/${encodeURIComponent(matchId)}`;
@@ -157,6 +160,38 @@ export default async function ModeratorReviewPage({
                       canEdit={review.moderatorId === moderator?.id}
                     />
                   ))}
+                  {report.moderatorReviews.map((review) =>
+                    review.comments.length === 0 ? null : (
+                      <div
+                        key={`comments-${review.id}`}
+                        style={{
+                          marginTop: "0.75rem",
+                          paddingLeft: "0.75rem",
+                          borderLeft: "2px solid var(--border)",
+                        }}
+                      >
+                        <p className="muted" style={{ fontSize: "0.85rem" }}>
+                          💬 {VERDICT_LABELS[review.verdict]}の判定へのコメント({review.comments.length}件)
+                        </p>
+                        {review.comments.map((comment) => (
+                          <div key={comment.id} style={{ marginTop: "0.6rem" }}>
+                            <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
+                            <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                              {formatDateTime(comment.createdAt)}
+                              {comment._count.reports > 0 ? ` ・ 通報${comment._count.reports}件` : ""}
+                            </p>
+                            <HideCommentControl
+                              commentId={comment.id}
+                              hideAction={hideReviewCommentAction.bind(null, comment.id, puuid)}
+                              unhideAction={unhideReviewCommentAction.bind(null, comment.id, puuid)}
+                              hiddenAt={comment.hiddenAt?.toISOString() ?? null}
+                              hiddenReason={comment.hiddenReason}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
 

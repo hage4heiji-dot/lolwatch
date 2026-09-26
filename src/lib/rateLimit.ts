@@ -285,7 +285,30 @@ export async function checkArticleCommentRateLimit(params: {
   return { allowed: true };
 }
 
-// 記事コメントへの「不適切」通報API用。理由はcheckDeletionRequestRateLimitと同じ
+// 判定(ModeratorReview)へのコメント投稿API用。記事コメントと同じ理由・同じ間隔。
+export async function checkReviewCommentRateLimit(params: {
+  deviceId: string;
+  ip: string;
+}): Promise<RateLimitResult> {
+  const { deviceId, ip } = params;
+  const since = new Date(Date.now() - COMMENT_COOLDOWN_MS);
+  const recent = await prisma.reviewComment.findFirst({
+    where: {
+      OR: [{ deviceId }, { posterIp: ip }],
+      createdAt: { gte: since },
+    },
+    select: { id: true },
+  });
+  if (recent) {
+    return {
+      allowed: false,
+      reason: "投稿間隔が短すぎます。しばらく待ってから再度お試しください。",
+    };
+  }
+  return { allowed: true };
+}
+
+// 記事コメント・判定コメントへの「不適切」通報API用(共通のIP単位の枠)。理由はcheckDeletionRequestRateLimitと同じ
 // (deviceIdクッキーに依存しないIP単位の頻度制限)。
 const COMMENT_REPORT_WINDOW_MS = 60 * 1000;
 const COMMENT_REPORT_MAX_REQUESTS = 10;

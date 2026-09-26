@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ArticleEditForm } from "./article-edit-form";
 import { PublishControl } from "./publish-control";
-import { HideCommentControl } from "./hide-comment-control";
+import { HideCommentControl } from "../../hide-comment-control";
+import { hideCommentAction, unhideCommentAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,8 @@ export default async function EditArticlePage({
                 </p>
                 <HideCommentControl
                   commentId={comment.id}
-                  articleId={article.id}
+                  hideAction={hideCommentAction.bind(null, comment.id, article.id)}
+                  unhideAction={unhideCommentAction.bind(null, comment.id, article.id)}
                   hiddenAt={comment.hiddenAt?.toISOString() ?? null}
                   hiddenReason={comment.hiddenReason}
                 />

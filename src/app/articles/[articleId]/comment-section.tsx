@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CommentReportButton } from "./comment-report-button";
+import { CommentReportButton } from "@/app/comment-report-button";
 import { CALIBRATION_SCALE_LABELS, type CalibrationScore } from "@/lib/calibrationScenarios";
 
 interface CommentItem {
@@ -86,7 +86,10 @@ export function CommentSection({
                 {comment.createdAtLabel}
                 <VoteBadge score={comment.voteScoreAtPost} />
               </p>
-              <CommentReportButton articleId={articleId} commentId={comment.id} />
+              <CommentReportButton
+                endpoint={`/api/articles/${articleId}/comments/${comment.id}/report`}
+                commentId={comment.id}
+              />
             </div>
           ))}
         </div>

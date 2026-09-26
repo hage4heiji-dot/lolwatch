@@ -171,6 +171,7 @@ model ModeratorReview {
   createdAt         DateTime         @default(now())
 
   objections ReviewObjection[]
+  comments   ReviewComment[]
 
   @@index([reportId, createdAt])
 }
@@ -187,6 +188,42 @@ model ReviewObjection {
 
   @@unique([moderatorReviewId, deviceId])
   @@index([moderatorReviewId])
+}
+
+// モデレーター評価に対する一般ユーザーの公開コメント。ArticleCommentと同じ運用
+// (即時公開・投稿元IP/deviceIdは内部保持のみ・問題があればReviewCommentReportで通報され、
+// 管理者がhiddenAtで非表示にする)。
+model ReviewComment {
+  id                String          @id @default(uuid())
+  moderatorReviewId String
+  moderatorReview   ModeratorReview @relation(fields: [moderatorReviewId], references: [id], onDelete: Cascade)
+  body              String
+  deviceId          String
+  posterIp          String
+  createdAt         DateTime        @default(now())
+  hiddenAt          DateTime?
+  hiddenReason      String?
+
+  reports ReviewCommentReport[]
+
+  @@index([moderatorReviewId, createdAt])
+  @@index([deviceId, createdAt])
+  @@index([posterIp, createdAt])
+}
+
+// 判定へのコメントに対する「不適切」通報。ArticleCommentReportと同じく、
+// 通報=即非表示ではなくモデレーターへの再確認シグナルとして扱う。
+model ReviewCommentReport {
+  id              String        @id @default(uuid())
+  reviewCommentId String
+  reviewComment   ReviewComment @relation(fields: [reviewCommentId], references: [id], onDelete: Cascade)
+  deviceId        String
+  posterIp        String
+  reason          String
+  createdAt       DateTime      @default(now())
+
+  @@unique([reviewCommentId, deviceId])
+  @@index([reviewCommentId])
 }
 
 // scripts/post-daily-violations.tsの実行記録。dateKeyで一意にし、コンテナ再起動

@@ -2,24 +2,30 @@
 
 import { useState } from "react";
 import { useActionState } from "react";
-import { hideCommentAction, unhideCommentAction, type ModerationFormState } from "../actions";
+type ModerationFormState = { error?: string };
+type ModerationAction = (
+  prevState: ModerationFormState,
+  formData: FormData,
+) => Promise<ModerationFormState>;
 
 const initialState: ModerationFormState = {};
 
+// 記事コメント・判定コメント共通の非表示/再表示コントロール。対象ID等をbind済みの
+// Server Actionを親(Server Component)から受け取る。
 export function HideCommentControl({
   commentId,
-  articleId,
+  hideAction,
+  unhideAction,
   hiddenAt,
   hiddenReason,
 }: {
   commentId: string;
-  articleId: string;
+  hideAction: ModerationAction;
+  unhideAction: ModerationAction;
   hiddenAt: string | null;
   hiddenReason: string | null;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const hideAction = hideCommentAction.bind(null, commentId, articleId);
-  const unhideAction = unhideCommentAction.bind(null, commentId, articleId);
   const [hideState, hideFormAction, hidePending] = useActionState(hideAction, initialState);
   const [unhideState, unhideFormAction, unhidePending] = useActionState(
     unhideAction,
