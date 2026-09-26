@@ -253,6 +253,11 @@ model RankActivityCheck {
   checkedAt          DateTime @default(now())
   isActiveInRanked   Boolean
   lastRankedMatchAt  DateTime?
+  // 最新の(非表示でない)通報の日時と、それ以降にランクマッチへ出場しているか。
+  // トップページの「トロール撲滅数」(通報後ランクに参加できていない人数)の集計に使う。
+  // 公開中の通報がないプレイヤー・この列の追加前のチェックではnull。
+  sinceReportAt        DateTime?
+  hasRankedSinceReport Boolean?
 
   @@index([playerId, checkedAt])
 }

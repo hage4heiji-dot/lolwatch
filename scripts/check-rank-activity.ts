@@ -18,7 +18,17 @@ async function main() {
 
   const players = await prisma.player.findMany({
     where: { reports: { some: {} } },
-    select: { id: true, puuid: true },
+    select: {
+      id: true,
+      puuid: true,
+      // 「通報後にランクへ参加しているか」の起点。非表示の通報(誤通報等)は起点にしない。
+      reports: {
+        where: { hiddenAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { createdAt: true },
+      },
+    },
   });
 
   console.log(
@@ -26,15 +36,35 @@ async function main() {
   );
 
   let activeCount = 0;
+  let notSinceReportCount = 0;
   let errorCount = 0;
 
   for (const player of players) {
     try {
       const isActive = await hasRecentRankedMatch(player.puuid, since);
+
+      const latestReportAt = player.reports[0]?.createdAt ?? null;
+      let hasRankedSinceReport: boolean | null = null;
+      if (latestReportAt) {
+        if (isActive && latestReportAt <= since) {
+          // 直近の出場が通報より後なのは明らかなので、追加のAPI呼び出しを省く。
+          hasRankedSinceReport = true;
+        } else {
+          await sleep(MIN_INTERVAL_MS);
+          hasRankedSinceReport = await hasRecentRankedMatch(player.puuid, latestReportAt);
+        }
+      }
+
       await prisma.rankActivityCheck.create({
-        data: { playerId: player.id, isActiveInRanked: isActive },
+        data: {
+          playerId: player.id,
+          isActiveInRanked: isActive,
+          sinceReportAt: latestReportAt,
+          hasRankedSinceReport,
+        },
       });
       if (isActive) activeCount += 1;
+      if (hasRankedSinceReport === false) notSinceReportCount += 1;
     } catch (err) {
       errorCount += 1;
       if (err instanceof RiotApiError && err.status === 429) {
@@ -48,7 +78,7 @@ async function main() {
   }
 
   console.log(
-    `完了: ${players.length}件中 ${activeCount}件がランク参加中、${errorCount}件でエラー`,
+    `完了: ${players.length}件中 ${activeCount}件がランク参加中、${notSinceReportCount}件が通報後ランク未参加、${errorCount}件でエラー`,
   );
   await notifyDiscord("batch", {
     label: errorCount > 0 ? "⚠️ 一部エラー" : "✅ 完了",
@@ -57,6 +87,7 @@ async function main() {
     fields: [
       { name: "対象", value: `${players.length}人`, inline: true },
       { name: "ランク参加中", value: `${activeCount}人`, inline: true },
+      { name: "通報後ランク未参加", value: `${notSinceReportCount}人`, inline: true },
       { name: "エラー", value: `${errorCount}件`, inline: true },
     ],
   });

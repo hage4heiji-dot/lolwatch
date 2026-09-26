@@ -4,6 +4,7 @@ import { getMostWatchedPlayers } from "@/lib/stats";
 import { periodFilterSince } from "@/lib/periodFilter";
 import { getSplashArtUrl, pickRandomMisunderstoodTrollChampion } from "@/lib/ddragon";
 import calibrationBanner from "./calibration/banner.png";
+import { RankWatchBoard } from "./rank-watch-board";
 
 // DB通報件数を毎回集計するため、ビルド時の静的プリレンダー対象から外す。
 export const dynamic = "force-dynamic";
@@ -29,6 +30,8 @@ export default async function Home() {
           IDが分かれば、あなたを傷つけた相手が何度通報されているか誰でも確認できます。
         </p>
       </section>
+
+      <RankWatchBoard />
 
       <Link href="/report" className="report-cta">
         <span className="report-cta-title">🚨 通報はここから</span>
