@@ -8,6 +8,7 @@ import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { todayJstMidnightUtc, toJstDateKey } from "../src/lib/jstDate";
 import { buildDailyViolationDigest, isXPostConfigured, postToX } from "../src/lib/xPost";
+import { DISCORD_COLORS, notifyDiscord } from "../src/lib/discord";
 
 async function main() {
   const until = todayJstMidnightUtc();
@@ -68,16 +69,26 @@ async function main() {
   await postToX(text);
   await prisma.dailyXPost.create({ data: { dateKey: dateLabel } });
 
-  if (entries.length === 0) {
-    console.log(`${dateLabel}: 違反確認されたユーザーはいませんでした。自己紹介を投稿しました。`);
-  } else {
-    console.log(`${dateLabel}: ${entries.length}人分の日次まとめを投稿しました。`);
-  }
+  const summary =
+    entries.length === 0
+      ? `${dateLabel}: 違反確認されたユーザーはいませんでした。自己紹介を投稿しました。`
+      : `${dateLabel}: ${entries.length}人分の日次まとめを投稿しました。`;
+  console.log(summary);
+  await notifyDiscord("batch", {
+    title: "✅ Xへの日次投稿: 完了",
+    color: DISCORD_COLORS.green,
+    description: `${summary}\n\n${text}`,
+  });
 }
 
 main()
-  .catch((err) => {
+  .catch(async (err) => {
     console.error(err);
     process.exitCode = 1;
+    await notifyDiscord("batch", {
+      title: "❌ Xへの日次投稿: 失敗",
+      color: DISCORD_COLORS.red,
+      description: err instanceof Error ? (err.stack ?? err.message) : String(err),
+    });
   })
   .finally(() => prisma.$disconnect());

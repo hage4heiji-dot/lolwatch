@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +14,7 @@ import {
   acquireInFlightLock,
   releaseInFlightLock,
 } from "@/lib/rateLimit";
+import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
 
 const requestSchema = z.object({
   body: z.string().trim().min(1).max(500),
@@ -80,6 +81,15 @@ export async function POST(
         voteScoreAtPost: existingVote?.score ?? null,
       },
     });
+
+    after(() =>
+      notifyDiscord("activity", {
+        title: `💬 新着コメント: ${article.title}`,
+        url: `${SITE_URL}/articles/${articleId}`,
+        color: DISCORD_COLORS.blue,
+        description: comment.body,
+      }),
+    );
 
     return respond(
       {

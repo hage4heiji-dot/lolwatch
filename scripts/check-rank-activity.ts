@@ -4,6 +4,7 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import { hasRecentRankedMatch, RiotApiError } from "../src/lib/riot";
+import { DISCORD_COLORS, notifyDiscord } from "../src/lib/discord";
 
 const WINDOW_DAYS = Number(process.env.RANK_CHECK_WINDOW_DAYS ?? "3");
 const MIN_INTERVAL_MS = Number(process.env.RIOT_API_MIN_INTERVAL_MS ?? "1300");
@@ -49,11 +50,21 @@ async function main() {
   console.log(
     `完了: ${players.length}件中 ${activeCount}件がランク参加中、${errorCount}件でエラー`,
   );
+  await notifyDiscord("batch", {
+    title: errorCount > 0 ? "⚠️ ランク参加チェック: 一部エラー" : "✅ ランク参加チェック: 完了",
+    color: errorCount > 0 ? DISCORD_COLORS.yellow : DISCORD_COLORS.green,
+    description: `${players.length}件中 ${activeCount}件がランク参加中、${errorCount}件でエラー`,
+  });
 }
 
 main()
-  .catch((err) => {
+  .catch(async (err) => {
     console.error(err);
     process.exitCode = 1;
+    await notifyDiscord("batch", {
+      title: "❌ ランク参加チェック: 失敗",
+      color: DISCORD_COLORS.red,
+      description: err instanceof Error ? (err.stack ?? err.message) : String(err),
+    });
   })
   .finally(() => prisma.$disconnect());

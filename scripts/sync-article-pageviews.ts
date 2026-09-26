@@ -6,6 +6,7 @@
 import "dotenv/config";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { prisma } from "../src/lib/prisma";
+import { DISCORD_COLORS, notifyDiscord } from "../src/lib/discord";
 
 const propertyId = process.env.GA4_PROPERTY_ID;
 
@@ -52,12 +53,23 @@ async function main() {
     ),
   );
 
-  console.log(`${pvByArticleId.size}件の記事にGA4のPVを反映しました(全${articles.length}件中)。`);
+  const summary = `${pvByArticleId.size}件の記事にGA4のPVを反映しました(全${articles.length}件中)。`;
+  console.log(summary);
+  await notifyDiscord("batch", {
+    title: "✅ 記事PV同期: 完了",
+    color: DISCORD_COLORS.green,
+    description: summary,
+  });
 }
 
 main()
-  .catch((err) => {
+  .catch(async (err) => {
     console.error(err);
     process.exitCode = 1;
+    await notifyDiscord("batch", {
+      title: "❌ 記事PV同期: 失敗",
+      color: DISCORD_COLORS.red,
+      description: err instanceof Error ? (err.stack ?? err.message) : String(err),
+    });
   })
   .finally(() => prisma.$disconnect());

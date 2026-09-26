@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,7 @@ import {
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
 import { checkDeletionRequestRateLimit } from "@/lib/rateLimit";
+import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
 
 const requestSchema = z.object({
   reason: z.string().trim().min(3).max(300),
@@ -33,7 +34,10 @@ export async function POST(
     return NextResponse.json({ error: "削除申請の理由を3文字以上で入力してください。" }, { status: 400 });
   }
 
-  const report = await prisma.report.findUnique({ where: { id: reportId } });
+  const report = await prisma.report.findUnique({
+    where: { id: reportId },
+    include: { player: { select: { puuid: true } } },
+  });
   if (!report) {
     return NextResponse.json({ error: "対象の通報が見つかりません。" }, { status: 404 });
   }
@@ -53,6 +57,17 @@ export async function POST(
   }
 
   const requestCount = await prisma.reportDeletionRequest.count({ where: { reportId } });
+
+  if (!existing) {
+    after(() =>
+      notifyDiscord("alerts", {
+        title: `🗑️ 通報の削除申請 (この通報への申請 計${requestCount}件)`,
+        url: `${SITE_URL}/moderator/review/${encodeURIComponent(report.player.puuid)}`,
+        color: DISCORD_COLORS.yellow,
+        description: parsed.data.reason,
+      }),
+    );
+  }
 
   const res = NextResponse.json({ ok: true, requestCount, alreadyRequested: Boolean(existing) });
   if (!existingDeviceId) {

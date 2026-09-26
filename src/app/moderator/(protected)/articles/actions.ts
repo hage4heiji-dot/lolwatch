@@ -1,10 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/moderatorAuth";
 import { ArticleSeverity, ArticleKind } from "@/generated/prisma";
+import { ARTICLE_KIND_LABELS } from "@/lib/articleKind";
+import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
 
 export type ArticleFormState = { error?: string };
 export type ModerationFormState = { error?: string };
@@ -144,6 +147,18 @@ export async function publishArticleAction(
     // 戻してから公開する運用だが、状態の矛盾を残さないための保険)。
     data: { publishedAt: new Date(), archivedAt: null },
   });
+
+  after(() =>
+    notifyDiscord("activity", {
+      title: `📰 記事を公開: ${article.title}`,
+      url: `${SITE_URL}/articles/${articleId}`,
+      color: DISCORD_COLORS.green,
+      fields: [
+        { name: "種別", value: ARTICLE_KIND_LABELS[article.kind] },
+        { name: "公開者", value: moderator.username },
+      ],
+    }),
+  );
 
   redirect(`/moderator/articles/${articleId}`);
 }

@@ -1,10 +1,12 @@
 import { timingSafeEqual } from "crypto";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ArticleSeverity, ArticleKind } from "@/generated/prisma";
 import { computeTagStats } from "@/lib/articleGenreStats";
+import { ARTICLE_KIND_LABELS } from "@/lib/articleKind";
+import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
 
 // クラウド上の定期実行エージェント(下書き自動作成)専用のエンドポイント。
 // モデレーターのログインCookieではなく、専用のBearerトークンで認証する
@@ -119,6 +121,19 @@ export async function POST(request: NextRequest) {
       // publishedAtは常にnull(下書き)。このAPIには公開権限を持たせない。
     },
   });
+
+  // Botの下書きは人間の確認・公開待ちになるため、要対応として通知する。
+  after(() =>
+    notifyDiscord("alerts", {
+      title: `📝 Botが下書きを作成: ${article.title}`,
+      url: `${SITE_URL}/moderator/articles/${article.id}`,
+      color: DISCORD_COLORS.gray,
+      fields: [
+        { name: "種別", value: ARTICLE_KIND_LABELS[article.kind] },
+        { name: "タグ", value: article.tags.map((tag) => `#${tag}`).join(" ") },
+      ],
+    }),
+  );
 
   return NextResponse.json(
     { ok: true, articleId: article.id, editUrl: `/moderator/articles/${article.id}` },

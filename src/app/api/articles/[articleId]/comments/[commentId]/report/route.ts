@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,7 @@ import {
 } from "@/lib/deviceId";
 import { getClientIp } from "@/lib/ip";
 import { checkCommentReportRateLimit } from "@/lib/rateLimit";
+import { DISCORD_COLORS, SITE_URL, notifyDiscord } from "@/lib/discord";
 
 const requestSchema = z.object({
   reason: z.string().trim().min(3).max(300),
@@ -33,7 +34,10 @@ export async function POST(
     return NextResponse.json({ error: "通報理由を3文字以上で入力してください。" }, { status: 400 });
   }
 
-  const comment = await prisma.articleComment.findUnique({ where: { id: commentId } });
+  const comment = await prisma.articleComment.findUnique({
+    where: { id: commentId },
+    include: { article: { select: { title: true } } },
+  });
   if (!comment) {
     return NextResponse.json({ error: "対象のコメントが見つかりません。" }, { status: 404 });
   }
@@ -50,6 +54,17 @@ export async function POST(
     await prisma.articleCommentReport.create({
       data: { articleCommentId: commentId, deviceId, posterIp: ip, reason: parsed.data.reason },
     });
+    after(() =>
+      notifyDiscord("alerts", {
+        title: `🚩 コメントへの通報: ${comment.article.title}`,
+        url: `${SITE_URL}/moderator/articles/${comment.articleId}`,
+        color: DISCORD_COLORS.red,
+        fields: [
+          { name: "通報理由", value: parsed.data.reason },
+          { name: "対象コメント", value: comment.body },
+        ],
+      }),
+    );
   }
 
   const res = NextResponse.json({ ok: true, alreadyReported: Boolean(existing) });
