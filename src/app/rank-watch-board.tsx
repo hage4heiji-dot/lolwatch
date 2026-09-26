@@ -1,14 +1,6 @@
 import { getRankWatchStats } from "@/lib/rankWatchStats";
+import { formatRelativeTime } from "@/lib/relativeTime";
 import { CountUp } from "./count-up";
-
-function formatRelative(date: Date): string {
-  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
-  if (minutes < 1) return "たった今";
-  if (minutes < 60) return `${minutes}分前`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
-  return `${Math.floor(hours / 24)}日前`;
-}
 
 // トップページの「ランク参加監視」ボード。通報されたプレイヤーを定期的に監視していることと、
 // その成果(通報後ランクに参加できていない人数)を大きく見せる。
@@ -65,7 +57,7 @@ export async function RankWatchBoard() {
       </div>
 
       <p className="rank-watch-footnote">
-        {stats.lastCheckedAt ? `最終チェック: ${formatRelative(stats.lastCheckedAt)} ・ ` : ""}
+        {stats.lastCheckedAt ? `最終チェック: ${formatRelativeTime(stats.lastCheckedAt)} ・ ` : ""}
         撲滅数は、最新の通報から{stats.minDaysSinceReport}日以上経ったプレイヤーが対象です
       </p>
     </section>

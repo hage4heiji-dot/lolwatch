@@ -32,6 +32,7 @@ import { ReviewCommentSection } from "@/app/review-comment-section";
 import { ReportEditForm } from "@/app/report-edit-form";
 import { MatchScoreboard } from "@/app/match-scoreboard";
 import { ShareButtons } from "@/app/share-buttons";
+import { RankWatchPanel } from "./rank-watch-panel";
 
 const SITE_URL = "https://lol-watch.com";
 
@@ -230,23 +231,12 @@ export default async function PlayerProfilePage({
       </div>
 
       {latestRankCheck && (
-        <p
-          className="muted"
-          style={{
-            marginTop: "0.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            flexWrap: "wrap",
-          }}
-        >
-          <span className={latestRankCheck.isActiveInRanked ? "badge badge-verified-guilty" : "badge"}>
-            {latestRankCheck.isActiveInRanked
-              ? "⚠️ 通報後もランク参加中の可能性"
-              : "✅ 直近のランク参加は確認できず"}
-          </span>
-          <span>最終確認: {formatDateTime(latestRankCheck.checkedAt)}</span>
-        </p>
+        <RankWatchPanel
+          check={latestRankCheck}
+          // player.reportsは公開中の通報のみ・新しい順。
+          latestReportAt={player.reports[0]?.createdAt ?? null}
+          firstReportAt={player.reports.at(-1)?.createdAt ?? null}
+        />
       )}
 
       <section className="section">

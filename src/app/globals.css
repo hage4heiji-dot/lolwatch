@@ -972,6 +972,112 @@ a.card:hover {
   }
 }
 
+/* --- プレイヤーページ: ランク参加監視パネル(トップの監視ボードと同じ見た目で、状態ごとに色を変える) --- */
+.player-watch {
+  margin-top: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse at top, rgba(200, 170, 110, 0.12), transparent 60%), #0b0b12;
+  border: 1px solid rgba(200, 170, 110, 0.25);
+  color: #f2ede0;
+  text-align: center;
+}
+
+.player-watch-eradicated {
+  background: radial-gradient(ellipse at top, rgba(255, 107, 91, 0.22), transparent 65%), #0b0b12;
+  border-color: rgba(255, 107, 91, 0.45);
+}
+
+.player-watch-active {
+  background: radial-gradient(ellipse at top, rgba(245, 197, 66, 0.16), transparent 65%), #0b0b12;
+  border-color: rgba(245, 197, 66, 0.4);
+}
+
+.player-watch-status {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #c8aa6e;
+}
+
+.player-watch-eradicated .player-watch-status {
+  color: #ff6b5b;
+}
+
+.player-watch-active .player-watch-status {
+  color: #f5c542;
+}
+
+.player-watch-value {
+  margin-top: 0.35rem;
+  font-size: 3.2rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #f5f0e6;
+}
+
+.player-watch-eradicated .player-watch-value {
+  color: #ff6b5b;
+  text-shadow: 0 0 24px rgba(255, 107, 91, 0.35);
+}
+
+.player-watch-active .player-watch-value {
+  color: #f5c542;
+}
+
+.player-watch-value-text {
+  font-size: 2rem;
+}
+
+.player-watch-unit {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-left: 0.2rem;
+}
+
+.player-watch-caption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(245, 240, 230, 0.75);
+}
+
+.player-watch-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1.25rem;
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+}
+
+.player-watch-meta div {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.player-watch-meta dt {
+  color: #c8aa6e;
+}
+
+.player-watch-meta dd {
+  margin: 0;
+  color: rgba(245, 240, 230, 0.7);
+}
+
+@media (max-width: 640px) {
+  .player-watch-value {
+    font-size: 2.5rem;
+  }
+
+  .player-watch-value-text {
+    font-size: 1.6rem;
+  }
+}
+
 /* --- ホーム: 通報CTA --- */
 .report-cta {
   display: flex;

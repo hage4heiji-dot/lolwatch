@@ -8,7 +8,7 @@ import { memoizeWithTtl } from "@/lib/ttlCache";
 // - トロール撲滅数: 最新の通報以降、一度もランクマッチに出場していないプレイヤー数。
 //   通報直後はほぼ全員が「未出場」になってしまうため、最新の通報から
 //   MIN_DAYS_SINCE_REPORT日以上経ったプレイヤーだけを数える。
-const MIN_DAYS_SINCE_REPORT = Number(process.env.RANK_CHECK_WINDOW_DAYS ?? "3");
+export const MIN_DAYS_SINCE_REPORT = Number(process.env.RANK_CHECK_WINDOW_DAYS ?? "3");
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export type RankWatchStats = {
