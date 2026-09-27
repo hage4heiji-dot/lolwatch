@@ -2,9 +2,9 @@
 // 受け取り、未設定のチャンネルへの通知は何もしない(xPost.tsと同じく「未設定=機能オフ」)。
 // 通知はあくまで補助的なものなので、失敗しても例外は投げずログに残すだけにする。
 const WEBHOOK_URLS = {
-  // 通報・削除申請・異議・コメント通報・Bot下書きなど、管理者の対応が必要なもの
+  // 通報・削除申請・異議・コメント通報など、モデレーターの対応が必要なもの
   alerts: process.env.DISCORD_WEBHOOK_URL_ALERTS,
-  // 記事の公開・新着コメントなど、サイト上の動き
+  // 記事の公開・Botの下書き・新着コメント・日次レポートなど、サイト上の動き
   activity: process.env.DISCORD_WEBHOOK_URL_ACTIVITY,
   // workerのバッチ処理の結果・エラー
   batch: process.env.DISCORD_WEBHOOK_URL_BATCH,

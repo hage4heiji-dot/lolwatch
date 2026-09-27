@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Botの下書きは人間の確認・公開待ちになるため、要対応として通知する。
+  // Botの下書きは公開待ちであることが分かるよう、記事の動きとして「サイトの動き」へ通知する。
   after(() =>
-    notifyDiscord("alerts", {
+    notifyDiscord("activity", {
       label: "📝 Botの下書き(公開待ち)",
       title: article.title,
       url: `${SITE_URL}/moderator/articles/${article.id}`,
