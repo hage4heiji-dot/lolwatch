@@ -152,7 +152,7 @@ export default async function PlayerProfilePage({
 
   const currentName = player.nameHistory.find((n) => n.isCurrent);
   const pastNames = player.nameHistory.filter((n) => !n.isCurrent);
-  const latestRankCheck = player.rankActivity[0];
+  const latestRankCheck = player.rankActivity[0] ?? null;
 
   // ランクや試合結果、一緒にプレイした相手はいずれもRiot APIの補助情報。
   // 取得に失敗しても通報一覧自体は表示できるよう、個別にcatchしてページ全体を
@@ -230,7 +230,8 @@ export default async function PlayerProfilePage({
         )}
       </div>
 
-      {latestRankCheck && (
+      {/* 通報直後でまだチェック結果がなくても、「監視開始・チェック待ち」として出す。 */}
+      {player.reports.length > 0 && (
         <RankWatchPanel
           check={latestRankCheck}
           // player.reportsは公開中の通報のみ・新しい順。

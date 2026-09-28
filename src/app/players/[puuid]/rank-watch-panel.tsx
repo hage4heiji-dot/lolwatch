@@ -25,22 +25,34 @@ function formatDate(date: Date): string {
 // - watching:   最新の通報以降ランク出場なしだが、まだMIN_DAYS_SINCE_REPORT日経っていない
 // - active:     最新の通報以降にランク出場あり
 // - unknown:    通報以降の出場を記録する前のチェック結果しかない(直近の出場有無のみ表示)
+// - pending:    最新の通報以降まだチェックされていない(通報直後。次回のバッチ実行待ち)
 export function RankWatchPanel({
   check,
   latestReportAt,
   firstReportAt,
 }: {
-  check: { checkedAt: Date; isActiveInRanked: boolean; hasRankedSinceReport: boolean | null };
+  check: {
+    checkedAt: Date;
+    isActiveInRanked: boolean;
+    hasRankedSinceReport: boolean | null;
+  } | null;
   latestReportAt: Date | null;
   firstReportAt: Date | null;
 }) {
   const daysSinceReport = latestReportAt ? daysSince(latestReportAt) : null;
 
-  let state: "eradicated" | "watching" | "active" | "unknown" = "unknown";
-  if (check.hasRankedSinceReport === true) {
-    state = "active";
+  let state: "eradicated" | "watching" | "active" | "unknown" | "pending" = "unknown";
+  if (!check) {
+    state = "pending";
   } else if (check.hasRankedSinceReport === false && daysSinceReport !== null) {
+    // 古い通報以降に未出場なら、それより新しい通報以降も未出場なので、チェック後に
+    // 新しい通報が来ていてもそのまま使える(rankWatchStatsと同じ考え方)。
     state = daysSinceReport >= MIN_DAYS_SINCE_REPORT ? "eradicated" : "watching";
+  } else if (latestReportAt && check.checkedAt < latestReportAt) {
+    // 最新の通報より前のチェック結果で「出場あり」等と出すと誤解を招くので、次回チェック待ちにする。
+    state = "pending";
+  } else if (check.hasRankedSinceReport === true) {
+    state = "active";
   }
 
   const recentLabel = `直近${MIN_DAYS_SINCE_REPORT}日間`;
@@ -83,7 +95,7 @@ export function RankWatchPanel({
         </>
       )}
 
-      {state === "active" && (
+      {check && state === "active" && (
         <>
           <p id="player-watch-status" className="player-watch-status">⚠️ 通報後もランク戦に出場</p>
           <p className="player-watch-value">
@@ -99,7 +111,19 @@ export function RankWatchPanel({
         </>
       )}
 
-      {state === "unknown" && (
+      {state === "pending" && (
+        <>
+          <p id="player-watch-status" className="player-watch-status">👁️ 監視開始</p>
+          <p className="player-watch-value">
+            <span className="player-watch-value-text">チェック待ち</span>
+          </p>
+          <p className="player-watch-caption">
+            通報を受け付けました。6時間以内にRiot APIでランク戦への出場状況をチェックします
+          </p>
+        </>
+      )}
+
+      {check && state === "unknown" && (
         <>
           <p id="player-watch-status" className="player-watch-status">👁️ 監視中</p>
           <p className="player-watch-value">
@@ -124,10 +148,12 @@ export function RankWatchPanel({
             <dd>{formatDate(latestReportAt)}</dd>
           </div>
         )}
-        <div>
-          <dt>最終チェック</dt>
-          <dd>{formatRelativeTime(check.checkedAt)}</dd>
-        </div>
+        {check && (
+          <div>
+            <dt>最終チェック</dt>
+            <dd>{formatRelativeTime(check.checkedAt)}</dd>
+          </div>
+        )}
         <div>
           <dt>チェック間隔</dt>
           <dd>6時間ごと (Riot API)</dd>
