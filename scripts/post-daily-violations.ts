@@ -65,15 +65,23 @@ async function main() {
 
   const entries = Array.from(countByPlayerId.values()).sort((a, b) => b.count - a.count);
 
+  // 違反確認されたユーザーがいない日はXへ投稿しない(自己紹介投稿の連投を避けるため)。
+  if (entries.length === 0) {
+    console.log(`${dateLabel}: 違反確認されたユーザーがいないため投稿をスキップしました。`);
+    await notifyDiscord("batch", {
+      label: "⏭️ スキップ",
+      title: `Xへの日次投稿 (${dateLabel}分)`,
+      color: DISCORD_COLORS.gray,
+      description: "違反確認されたユーザーがいなかったため投稿しませんでした。",
+    });
+    return;
+  }
+
   const text = buildDailyViolationDigest({ dateLabel, entries });
   await postToX(text);
   await prisma.dailyXPost.create({ data: { dateKey: dateLabel } });
 
-  const summary =
-    entries.length === 0
-      ? `${dateLabel}: 違反確認されたユーザーはいませんでした。自己紹介を投稿しました。`
-      : `${dateLabel}: ${entries.length}人分の日次まとめを投稿しました。`;
-  console.log(summary);
+  console.log(`${dateLabel}: ${entries.length}人分の日次まとめを投稿しました。`);
   await notifyDiscord("batch", {
     label: "✅ 完了",
     title: `Xへの日次投稿 (${dateLabel}分)`,
