@@ -10,10 +10,12 @@ import {
   discordCodeBlock,
   notifyDiscord,
 } from "../src/lib/discord";
+import { querySearchAnalytics } from "../src/lib/search-console";
 
 const propertyId = process.env.GA4_PROPERTY_ID;
 const TOP_PAGES = 5;
 const TOP_CHANNELS = 4;
+const TOP_QUERIES = 5;
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 type DailyTotals = { users: number; newUsers: number; sessions: number; pageViews: number };
@@ -39,6 +41,34 @@ function shortenPageTitle(title: string, path: string): string {
   return trimmed || path;
 }
 
+// Google検索キーワード上位をSearch Consoleから取得する。Search Consoleは太平洋時間で
+// 日を区切るため、実行時点(09:05 JST = 前日16:05 PT頃)で最後まで集計が済んでいる
+// 「太平洋時間の前日」を対象にする(JSTでは前々日17時〜前日17時に相当)。
+// 未設定・権限不足でもGA4のレポート自体は投稿したいので、失敗時は理由を文字列で返す。
+async function fetchTopQueries(): Promise<{ label: string; value: string }> {
+  const pacificToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  const target = new Date(Date.parse(pacificToday) - 86400 * 1000).toISOString().slice(0, 10);
+  const label = `🔎 Google検索キーワード (${formatGaDate(target.replaceAll("-", ""))} 太平洋時間)`;
+  try {
+    const rows = await querySearchAnalytics({
+      startDate: target,
+      endDate: target,
+      dimensions: ["query"],
+      rowLimit: TOP_QUERIES,
+      dataState: "all",
+    });
+    if (rows.length === 0) return { label, value: "(データなし)" };
+    const lines = rows.map(
+      (r, i) => `${i + 1}. ${r.keys[0]} — ${r.clicks}クリック / ${r.impressions}表示`,
+    );
+    return { label, value: lines.join("\n") };
+  } catch (err) {
+    console.error("Search Consoleの取得に失敗:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return { label, value: `取得失敗: ${message.slice(0, 200)}` };
+  }
+}
+
 async function main() {
   if (!propertyId) {
     console.log("GA4_PROPERTY_ID が未設定のためスキップします。");
@@ -48,7 +78,7 @@ async function main() {
   const client = new BetaAnalyticsDataClient();
   const property = `properties/${propertyId}`;
 
-  const [[totalsRes], [pagesRes], [channelsRes]] = await Promise.all([
+  const [[totalsRes], [pagesRes], [channelsRes], topQueries] = await Promise.all([
     client.runReport({
       property,
       dateRanges: [{ startDate: "2daysAgo", endDate: "yesterday" }],
@@ -86,6 +116,7 @@ async function main() {
       orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
       limit: TOP_CHANNELS,
     }),
+    fetchTopQueries(),
   ]);
 
   const totalsByDate = new Map<string, DailyTotals>();
@@ -128,6 +159,7 @@ async function main() {
       { name: "📄 ページビュー", value: withDiff(today.pageViews, previous?.pageViews, "PV"), inline: true },
       { name: "🔥 よく見られたページ", value: topPages.join("\n") },
       { name: "🧭 流入元 (セッション数)", value: channels.join(" / ") },
+      { name: topQueries.label, value: topQueries.value },
     ],
   });
 }
