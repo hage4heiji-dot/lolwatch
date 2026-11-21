@@ -2576,3 +2576,64 @@ a:has(> .calibration-banner):hover .calibration-banner {
     font-size: 1.7rem;
   }
 }
+
+/* --- 通報回数の解説ページ: データリクエストの手順 --- */
+.data-request-steps {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.data-request-step {
+  position: relative;
+  display: flex;
+  gap: 0.9rem;
+  padding-bottom: 1.1rem;
+}
+
+/* 番号同士を縦線でつないで「流れ」を見せる。 */
+.data-request-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 0.95rem;
+  top: 2rem;
+  bottom: 0.1rem;
+  width: 2px;
+  background: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.data-request-step-num {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.data-request-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.2rem;
+  min-width: 0;
+}
+
+.data-request-step-btn {
+  align-self: flex-start;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 640px) {
+  .data-request-step-btn {
+    align-self: stretch;
+  }
+}

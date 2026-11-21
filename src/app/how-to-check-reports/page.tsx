@@ -29,19 +29,49 @@ export default function HowToCheckReportsPage() {
             Riot Gamesには、自分のアカウントに関するデータをまとめて取り寄せる「データリクエスト」の仕組みがあります。
             ゲーム内での通報に関する記録も、ここで取り寄せるデータに含まれている場合があります。
           </p>
-          <p style={{ marginTop: "0.75rem" }}>
-            <strong>手順</strong>
-          </p>
-          <ol style={{ paddingLeft: "1.2rem" }}>
-            <li>
-              Riotサポートの
-              <a href={RIOT_DATA_REQUEST_URL} target="_blank" rel="noopener noreferrer">
-                データリクエストのページ
-              </a>
-              を開き、Riotアカウントでログインする
+          <ol className="data-request-steps">
+            <li className="data-request-step">
+              <span className="data-request-step-num">1</span>
+              <div className="data-request-step-body">
+                <strong>Riotのデータリクエストのページを開く</strong>
+                <p className="muted">Riotアカウントでログインします。</p>
+                <a
+                  href={RIOT_DATA_REQUEST_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn data-request-step-btn"
+                >
+                  Riotのページを開く ↗
+                </a>
+              </div>
             </li>
-            <li>画面の案内に従ってデータをリクエストする</li>
-            <li>準備ができたらダウンロード用のリンクが届くので、ファイルを保存する</li>
+            <li className="data-request-step">
+              <span className="data-request-step-num">2</span>
+              <div className="data-request-step-body">
+                <strong>データをリクエストする</strong>
+                <p className="muted">画面の案内に従ってリクエストを送信します。</p>
+              </div>
+            </li>
+            <li className="data-request-step">
+              <span className="data-request-step-num">3</span>
+              <div className="data-request-step-body">
+                <strong>ダウンロード用のリンクが届く</strong>
+                <p className="muted">
+                  届くまでの期間はアカウントの状態や地域によって異なります。リンクには有効期限がある場合があるので、届いたら早めに保存してください。
+                </p>
+              </div>
+            </li>
+            <li className="data-request-step">
+              <span className="data-request-step-num">4</span>
+              <div className="data-request-step-body">
+                <strong>
+                  lolwatchで読み込んで集計する <span className="badge">準備中</span>
+                </strong>
+                <p className="muted">
+                  届いたファイルをこのページで読み込むと、通報に関する記録を集計して表示する機能を準備しています。ファイルはお使いのブラウザの中だけで処理し、サーバーには送信しない方式にする予定です。
+                </p>
+              </div>
+            </li>
           </ol>
           <p style={{ marginTop: "0.75rem" }}>
             <strong>取り寄せられる主なデータ(Riot公式ページより)</strong>
@@ -53,8 +83,6 @@ export default function HowToCheckReportsPage() {
             <li>サポートとコミュニケーション(チケット、チャット、メッセージのログ)</li>
           </ul>
           <p className="muted" style={{ marginTop: "0.75rem" }}>
-            ※ 届くまでの期間は、アカウントの状態や地域によって異なります。ダウンロードリンクには有効期限がある場合があるので、届いたら早めに保存してください。
-            <br />
             ※ ファイルにはメールアドレスやチャットログなどの個人情報が含まれます。他人に渡したり、SNS等にそのまま公開したりしないでください。
           </p>
         </div>
