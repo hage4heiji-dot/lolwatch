@@ -120,6 +120,13 @@ export default async function StatsPage({
         サイト全体の通報状況の集計です。
       </p>
 
+      <Link href="/how-to-check-reports" className="game-cta">
+        <span className="game-cta-title">🔍 自分が通報された回数を調べる</span>
+        <span className="game-cta-sub">
+          Riot IDで検索して通報件数を確認。Riot公式のデータリクエストでの確認方法も解説しています。
+        </span>
+      </Link>
+
       <form style={{ marginBottom: "1.5rem" }}>
         <div className="form-row" style={{ alignItems: "flex-end" }}>
           <div className="form-field">

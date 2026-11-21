@@ -31,6 +31,13 @@ export default async function Home() {
         </p>
       </section>
 
+      <Link href="/how-to-check-reports" className="game-cta">
+        <span className="game-cta-title">🔍 自分が通報された回数を調べる</span>
+        <span className="game-cta-sub">
+          Riot IDで検索して通報件数を確認。Riot公式のデータリクエストでの確認方法も解説しています。
+        </span>
+      </Link>
+
       <RankWatchBoard />
 
       <Link href="/report" className="report-cta">
