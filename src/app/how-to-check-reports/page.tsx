@@ -23,34 +23,7 @@ export default function HowToCheckReportsPage() {
       </p>
 
       <section className="section">
-        <h2>1. lolwatchで通報件数を検索する(すぐ確認できる)</h2>
-        <div className="card">
-          <p>
-            Riot ID(名前#タグ)で検索すると、lolwatchに投稿された通報の件数・内容・モデレーターの判定結果を確認できます。
-          </p>
-          <form action="/players" method="get" style={{ marginTop: "1rem" }}>
-            <input type="hidden" name="period" value="all" />
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="q">Riot ID(名前#タグ)</label>
-                <input type="text" id="q" name="q" placeholder="例: Faker#KR1" required />
-              </div>
-            </div>
-            <div className="form-actions">
-              <button className="btn" type="submit">
-                通報件数を検索
-              </button>
-            </div>
-          </form>
-          <p className="muted" style={{ marginTop: "0.75rem" }}>
-            ※ ここで表示されるのは、lolwatchのユーザーが投稿した通報の件数です。ゲーム内でRiotに送られた通報の件数とは別物です。
-            検索して見つからない場合、lolwatchではまだ通報されていません。
-          </p>
-        </div>
-      </section>
-
-      <section className="section">
-        <h2>2. Riot公式のデータリクエストで確認する</h2>
+        <h2>1. Riot公式のデータリクエストで確認する</h2>
         <div className="card">
           <p>
             Riot Gamesには、自分のアカウントに関するデータをまとめて取り寄せる「データリクエスト」の仕組みがあります。
@@ -83,6 +56,33 @@ export default function HowToCheckReportsPage() {
             ※ 届くまでの期間は、アカウントの状態や地域によって異なります。ダウンロードリンクには有効期限がある場合があるので、届いたら早めに保存してください。
             <br />
             ※ ファイルにはメールアドレスやチャットログなどの個人情報が含まれます。他人に渡したり、SNS等にそのまま公開したりしないでください。
+          </p>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>2. lolwatchで通報件数を検索する(すぐ確認できる)</h2>
+        <div className="card">
+          <p>
+            Riot ID(名前#タグ)で検索すると、lolwatchに投稿された通報の件数・内容・モデレーターの判定結果を確認できます。
+          </p>
+          <form action="/players" method="get" style={{ marginTop: "1rem" }}>
+            <input type="hidden" name="period" value="all" />
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="q">Riot ID(名前#タグ)</label>
+                <input type="text" id="q" name="q" placeholder="例: Faker#KR1" required />
+              </div>
+            </div>
+            <div className="form-actions">
+              <button className="btn" type="submit">
+                通報件数を検索
+              </button>
+            </div>
+          </form>
+          <p className="muted" style={{ marginTop: "0.75rem" }}>
+            ※ ここで表示されるのは、lolwatchのユーザーが投稿した通報の件数です。ゲーム内でRiotに送られた通報の件数とは別物です。
+            検索して見つからない場合、lolwatchではまだ通報されていません。
           </p>
         </div>
       </section>
