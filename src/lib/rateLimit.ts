@@ -372,3 +372,35 @@ export function checkSummonerMatchesRateLimit(ip: string): RateLimitResult {
 
   return { allowed: true };
 }
+
+// 通報回数の匿名統計(POST /api/riot-report-stats)用。統計は匿名でIPをDBに残さない方針のため、
+// 試合検索と同じくインメモリのスライディングウィンドウで、適当な識別子を大量に作っての水増しを抑える。
+const RIOT_STAT_WINDOW_MS = 60 * 60 * 1000;
+const RIOT_STAT_MAX_REQUESTS = 5;
+const riotStatHistory = new Map<string, number[]>();
+
+export function checkRiotStatRateLimit(ip: string): RateLimitResult {
+  const now = Date.now();
+  const since = now - RIOT_STAT_WINDOW_MS;
+  const timestamps = (riotStatHistory.get(ip) ?? []).filter((t) => t >= since);
+
+  if (timestamps.length >= RIOT_STAT_MAX_REQUESTS) {
+    return {
+      allowed: false,
+      reason: "送信回数が多すぎます。しばらくしてから再度お試しください。",
+    };
+  }
+
+  timestamps.push(now);
+  riotStatHistory.set(ip, timestamps);
+
+  if (Math.random() < 0.01) {
+    for (const [key, values] of riotStatHistory) {
+      if (values.every((t) => t < since)) {
+        riotStatHistory.delete(key);
+      }
+    }
+  }
+
+  return { allowed: true };
+}

@@ -5,6 +5,7 @@
 // 含まれるため、ファイルはサーバーへ一切送信せず、必要な数ファイルだけを展開する。
 import { useState } from "react";
 import { unzip } from "fflate";
+import { RiotReportCompare } from "./riot-report-compare";
 
 type GroupedReports = {
   reports_made: Record<string, number>;
@@ -25,14 +26,18 @@ type GameKey = "lol" | "tft" | "valorant";
 type ParsedData = {
   reports: Partial<Record<GameKey, GroupedReports>>;
   penalties: Penalty[] | null;
+  // Riot ID(+地域)のSHA-256。匿名統計で同じアカウントの重複登録を防ぐためだけに使う。
+  // Riot ID自体はこのコンポーネントの外に出さない。
+  riotIdHash: string | null;
 };
 
 // zip内のパス(末尾一致で探す。展開ツールによって先頭にフォルダが付く場合があるため)。
-const TARGET_FILES: Record<GameKey | "penalties", string> = {
+const TARGET_FILES: Record<GameKey | "penalties" | "summoner", string> = {
   lol: "leagueoflegends/grouped_reports.json",
   tft: "teamfighttactics/tft_grouped_reports.json",
   valorant: "valorant/valorant_grouped_reports.json",
   penalties: "penalties/penalty_history.json",
+  summoner: "leagueoflegends/summoner.json",
 };
 
 const GAME_LABELS: Record<GameKey, string> = {
@@ -116,6 +121,17 @@ function unzipTargets(data: Uint8Array): Promise<Record<string, Uint8Array>> {
   });
 }
 
+async function hashRiotId(summonerText: string | null): Promise<string | null> {
+  if (!summonerText) return null;
+  const json: unknown = JSON.parse(summonerText);
+  if (typeof json !== "object" || json === null) return null;
+  const { riot_id, lol_platform } = json as Record<string, unknown>;
+  if (typeof riot_id !== "string" || riot_id === "") return null;
+  const source = `${typeof lol_platform === "string" ? lol_platform : ""}:${riot_id.normalize("NFKC").toLowerCase()}`;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function parseZip(file: File): Promise<ParsedData> {
   const files = await unzipTargets(new Uint8Array(await file.arrayBuffer()));
   const decoder = new TextDecoder();
@@ -135,7 +151,7 @@ async function parseZip(file: File): Promise<ParsedData> {
   const penaltiesJson: unknown = penaltiesText ? JSON.parse(penaltiesText) : null;
   const penalties = Array.isArray(penaltiesJson) ? (penaltiesJson as Penalty[]) : null;
 
-  return { reports, penalties };
+  return { reports, penalties, riotIdHash: await hashRiotId(read(TARGET_FILES.summoner)) };
 }
 
 function sum(counts: Record<string, number>): number {
@@ -278,6 +294,15 @@ export function RiotDataReader() {
           {visibleGames.map((game) => (
             <GameReports key={game} game={game} reports={result.reports[game]!} />
           ))}
+
+          {result.reports.lol && result.riotIdHash && (
+            <RiotReportCompare
+              riotIdHash={result.riotIdHash}
+              receivedByCategory={result.reports.lol.reports_received}
+              madeByCategory={result.reports.lol.reports_made}
+              penaltyCount={result.penalties?.length ?? 0}
+            />
+          )}
 
           <div className="riot-data-game">
             <h3>ペナルティ履歴</h3>

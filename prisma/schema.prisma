@@ -14,9 +14,9 @@ model Player {
   platform  String
   createdAt DateTime @default(now())
 
-  nameHistory      PlayerNameHistory[]
-  reports          Report[]
-  rankActivity     RankActivityCheck[]
+  nameHistory  PlayerNameHistory[]
+  reports      Report[]
+  rankActivity RankActivityCheck[]
 
   @@index([platform])
 }
@@ -49,33 +49,33 @@ enum ReportCategory {
 // 一般ユーザーからの通報。固定カテゴリ+任意の目安時間+任意の短いコメント。
 // 即時公開だが、投稿元IP/deviceIdは表示せず内部保持のみ(発信者情報開示請求への備え)。
 model Report {
-  id         String          @id @default(uuid())
-  playerId   String
-  player     Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  category   ReportCategory
+  id                       String         @id @default(uuid())
+  playerId                 String
+  player                   Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  category                 ReportCategory
   // 対象の試合。通報者がLoLクライアント上で特定したmatchIdを入力し、
   // その試合の参加者一覧(Riot APIで1回取得)から対象アカウントを選ぶ形で必ず紐付く。
-  matchId       String
-  championName  String
-  queueId       Int
+  matchId                  String
+  championName             String
+  queueId                  Int
   // 通報された時点でのソロ/デュオランク(ソロ/デュオ未参加なら"UNRANKED")。
   // Riot API問い合わせに失敗した場合はnull(取得できなかったという意味で、
   // "UNRANKED"とは区別する)。統計の「通報されたユーザーのランク」集計に使う。
-  reportedTier String?
+  reportedTier             String?
   // 問題のシーンの試合内経過時間(秒)。通報者が試合タイムラインを見て任意入力する目安。
   incidentTimestampSeconds Int?
   // 何を主張したいかの補足。即時・無検証で公開されるため短文(300字)に制限する。
-  comment    String?
+  comment                  String?
   // リプレイにはチャットログ等が残らないため、通報者が任意で添付する参考URL
   // (X投稿・YouTube動画・imgur画像等)。自前ではファイルを保持せず、
   // モデレーターがリプレイと合わせて確認する参考証跡としてリンクを貼るのみ。
   // http/httpsのみ許可。
-  referenceUrl String?
-  deviceId   String
-  posterIp   String
-  createdAt  DateTime        @default(now())
-  hiddenAt   DateTime?
-  hiddenReason String?
+  referenceUrl             String?
+  deviceId                 String
+  posterIp                 String
+  createdAt                DateTime       @default(now())
+  hiddenAt                 DateTime?
+  hiddenReason             String?
 
   moderatorReviews ModeratorReview[]
   votes            ReportVote[]
@@ -162,14 +162,14 @@ enum ModeratorVerdict {
 // 特定の通報(=特定の試合)に対する評価として紐付ける。一般ユーザーの通報(Report)
 // とはUI上明確に区別して表示する。
 model ModeratorReview {
-  id                String           @id @default(uuid())
-  reportId          String
-  report            Report           @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  moderatorId       String
-  moderator         Moderator        @relation(fields: [moderatorId], references: [id])
-  verdict           ModeratorVerdict
-  rationale         String
-  createdAt         DateTime         @default(now())
+  id          String           @id @default(uuid())
+  reportId    String
+  report      Report           @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  moderatorId String
+  moderator   Moderator        @relation(fields: [moderatorId], references: [id])
+  verdict     ModeratorVerdict
+  rationale   String
+  createdAt   DateTime         @default(now())
 
   objections ReviewObjection[]
   comments   ReviewComment[]
@@ -239,20 +239,20 @@ model ReviewCommentReport {
 // (デプロイ・クラッシュ復帰等)で同じ日に二重実行されても再投稿しないようにする
 // (workerはwhile true; sleep 86400のループで、起動直後に必ず1回実行されるため)。
 model DailyXPost {
-  id        String   @id @default(uuid())
-  dateKey   String   @unique
-  postedAt  DateTime @default(now())
+  id       String   @id @default(uuid())
+  dateKey  String   @unique
+  postedAt DateTime @default(now())
 }
 
 // 「通報がちゃんと機能してランク参加できなくなっているか」の監視。
 // 直近のランク参加有無をバッチで定期確認して記録する。
 model RankActivityCheck {
-  id                 String   @id @default(uuid())
-  playerId           String
-  player             Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  checkedAt          DateTime @default(now())
-  isActiveInRanked   Boolean
-  lastRankedMatchAt  DateTime?
+  id                   String    @id @default(uuid())
+  playerId             String
+  player               Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  checkedAt            DateTime  @default(now())
+  isActiveInRanked     Boolean
+  lastRankedMatchAt    DateTime?
   // 最新の(非表示でない)通報の日時と、それ以降にランクマッチへ出場しているか。
   // トップページの「トロール撲滅数」(通報後ランクに参加できていない人数)の集計に使う。
   // 公開中の通報がないプレイヤー・この列の追加前のチェックではnull。
@@ -288,27 +288,27 @@ enum ArticleKind {
 // 重複防止の対象であり続ける(削除すると一覧から消えてAIに再度拾われうるため、
 // 重複記事は削除ではなくarchivedAtで残すことを想定)。
 model Article {
-  id          String          @id @default(uuid())
-  title       String
-  body        String
+  id           String           @id @default(uuid())
+  title        String
+  body         String
   // 固定enumではなくモデレーターが自由入力するタグ(例: "AI関連", "ペナルティ制度")。
   // 炎上案件の話題は事前に種類を列挙しきれないため、通報のReportCategoryとは
   // 違って自由入力+絞り込み用の一覧表示に留める。
-  tags         String[]        @default([])
-  kind         ArticleKind     @default(INCIDENT)
+  tags         String[]         @default([])
+  kind         ArticleKind      @default(INCIDENT)
   // 炎上そのものが起きた日(記事の公開日=publishedAtとは別)。一覧の並び順はこちらの降順。
   // kind=JUDGMENTの記事は特定の実在案件を指さないため常にnull。
-  incidentDate DateTime?       @db.Date
+  incidentDate DateTime?        @db.Date
   severity     ArticleSeverity?
   moderatorId  String
-  moderator    Moderator       @relation(fields: [moderatorId], references: [id])
+  moderator    Moderator        @relation(fields: [moderatorId], references: [id])
   publishedAt  DateTime?
   archivedAt   DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
   // GA4の実測PVをscripts/sync-article-pageviews.tsで定期同期した値(直近60日のローリング窓)。
   // タグ別の人気度を集計し、自動投稿エージェントがジャンルを試行錯誤する材料にする。
-  pageViews    Int             @default(0)
+  pageViews    Int              @default(0)
 
   comments ArticleComment[]
   votes    ArticleVote[]
@@ -338,15 +338,15 @@ model ArticleVote {
 // 即時公開。問題があれば一般ユーザーがArticleCommentReportで通報し、
 // モデレーターがhiddenAtで非表示にする(Reportのhidden運用と同じ方針)。
 model ArticleComment {
-  id           String    @id @default(uuid())
-  articleId    String
-  article      Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  body         String
-  deviceId     String
-  posterIp     String
-  createdAt    DateTime  @default(now())
-  hiddenAt     DateTime?
-  hiddenReason String?
+  id              String    @id @default(uuid())
+  articleId       String
+  article         Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  body            String
+  deviceId        String
+  posterIp        String
+  createdAt       DateTime  @default(now())
+  hiddenAt        DateTime?
+  hiddenReason    String?
   // 投稿時点でそのdeviceIdがこの記事に投じていたArticleVote.score(1〜5)のスナップショット。
   // 未投票なら null。事後にVoteを変更してもコメント側の表示は投稿時点のまま固定するため、
   // リレーションではなくスナップショット値として持つ。
@@ -400,4 +400,23 @@ model CalibrationAnswer {
 
   @@unique([attemptId, scenarioKey])
   @@index([scenarioKey])
+}
+
+// /how-to-check-reports で、Riotのデータリクエストのzipから読み取った「通報された回数」等を
+// 本人の同意のもと匿名で集めた統計(「あなたは上位○%」の表示用)。
+// Riot ID・IPアドレスは保存しない。accountKeyはブラウザでRiot IDをSHA-256したものを
+// サーバー側の秘密鍵でさらにHMACした値で、同一アカウントの重複登録を防ぐ(再送信は上書き)ためだけに使う。
+// 値は自己申告(zipの改ざんは検知できない)なので、統計としてのみ扱い個人とは結びつけない。
+model RiotReportStat {
+  id                 String   @id @default(uuid())
+  accountKey         String   @unique
+  receivedTotal      Int
+  madeTotal          Int
+  receivedByCategory Json
+  madeByCategory     Json
+  penaltyCount       Int
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([receivedTotal])
 }
