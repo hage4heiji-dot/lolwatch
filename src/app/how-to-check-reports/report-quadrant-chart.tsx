@@ -12,11 +12,22 @@ const PAD_TOP = 10;
 const PAD_RIGHT = 10;
 const PLOT_W = SIZE - PAD_LEFT - PAD_RIGHT;
 const PLOT_H = SIZE - PAD_TOP - PAD_BOTTOM;
-const INSET = 10;
+// 0回の点が四隅の象限ラベル(特に左下の「平和主義型」)に重ならない程度の内側余白。
+const INSET = 24;
 
-// 回数は一部の人に大きく偏るので平方根スケールにして、少ない側の差も見えるようにする。
-function scale(value: number, max: number): number {
-  return Math.sqrt(Math.max(0, value)) / Math.sqrt(max);
+// 0〜1に正規化する。境界(boundary)がちょうど0.5(グラフの中心)に来るよう、境界の前後で別々に伸ばす。
+// 回数は一部の人に大きく偏るので、それぞれの半分の中では平方根スケールにして少ない側の差も見えるようにする。
+function scale(value: number, boundary: number, max: number): number {
+  const v = Math.sqrt(Math.max(0, value));
+  const b = Math.sqrt(boundary);
+  if (v <= b) return 0.5 * (v / b);
+  return 0.5 + 0.5 * Math.min(1, (v - b) / (Math.sqrt(max) - b));
+}
+
+// 回数は整数で、判定は「中央値より多いか」なので、境界線は floor(中央値)+0.5 に引く。
+// こうすると中央値ちょうどの点が線の上に乗らず、判定どおりの側に描かれる。
+function boundaryOf(median: number): number {
+  return Math.floor(median) + 0.5;
 }
 
 // 象限ラベルの位置(グラフの四隅)。
@@ -37,16 +48,20 @@ export function ReportQuadrantChart({
   meLabel?: string;
 }) {
   const { myMade, medianReceived, medianMade, type, lean, points } = quadrant;
-  // 中央線がグラフの端に張り付かないよう、最大値は中央値の2倍以上にしておく。
-  // 最大値の点が枠の端に張り付かないよう、少し(1.2倍)余裕をもたせる。
-  const maxX = Math.max(1, myMade, medianMade * 2, ...points.map((p) => p[0])) * 1.2;
-  const maxY = Math.max(1, myReceived, medianReceived * 2, ...points.map((p) => p[1])) * 1.2;
+  const boundaryX = boundaryOf(medianMade);
+  const boundaryY = boundaryOf(medianReceived);
+  // 上半分(右半分)の目盛り用の最大値。最大値の点が枠の端に張り付かないよう少し(1.2倍)余裕をもたせ、
+  // 境界より多い点がいない場合でも上半分が潰れないよう境界の2倍以上にしておく。
+  const maxX = Math.max(boundaryX * 2, myMade, ...points.map((p) => p[0])) * 1.2;
+  const maxY = Math.max(boundaryY * 2, myReceived, ...points.map((p) => p[1])) * 1.2;
   // 0回の点が枠線に重なって欠けないよう、枠の内側に少し余白(INSET)をとって描く。
-  const px = (v: number) => PAD_LEFT + INSET + scale(v, maxX) * (PLOT_W - INSET * 2);
-  const py = (v: number) => PAD_TOP + PLOT_H - INSET - scale(v, maxY) * (PLOT_H - INSET * 2);
+  const px = (v: number) => PAD_LEFT + INSET + scale(v, boundaryX, maxX) * (PLOT_W - INSET * 2);
+  const py = (v: number) =>
+    PAD_TOP + PLOT_H - INSET - scale(v, boundaryY, maxY) * (PLOT_H - INSET * 2);
 
-  const midX = px(medianMade);
-  const midY = py(medianReceived);
+  // 境界線は常にグラフの中心。
+  const midX = px(boundaryX);
+  const midY = py(boundaryY);
   const myX = px(myMade);
   const myY = py(myReceived);
 
