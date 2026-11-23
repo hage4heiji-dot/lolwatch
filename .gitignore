@@ -49,3 +49,6 @@ next-env.d.ts
 
 # prisma generated client (regenerated from schema.prisma via `prisma generate`)
 /src/generated/prisma
+
+# Riotのデータリクエストで取得した個人データ(検証用)。誤ってコミットしないよう除外
+docs/*.zip

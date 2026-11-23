@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RiotDataReader } from "./riot-data-reader";
 
 // 「lol 通報された回数」等で検索して来る人向けの解説ページ。
 // Riot公式で確認できる範囲(データリクエスト)と、lolwatch上の通報件数の違いを整理し、
@@ -27,7 +28,11 @@ export default function HowToCheckReportsPage() {
         <div className="card">
           <p>
             Riot Gamesには、自分のアカウントに関するデータをまとめて取り寄せる「データリクエスト」の仕組みがあります。
-            ゲーム内での通報に関する記録も、ここで取り寄せるデータに含まれている場合があります。
+            取り寄せたデータには、ゲーム内で
+            <strong>通報された回数・通報した回数(理由別)</strong>
+            と
+            <strong>ペナルティ履歴</strong>
+            が含まれています。
           </p>
           <ol className="data-request-steps">
             <li className="data-request-step">
@@ -64,12 +69,11 @@ export default function HowToCheckReportsPage() {
             <li className="data-request-step">
               <span className="data-request-step-num">4</span>
               <div className="data-request-step-body">
-                <strong>
-                  lolwatchで読み込んで集計する <span className="badge">準備中</span>
-                </strong>
+                <strong>lolwatchで読み込んで集計する</strong>
                 <p className="muted">
-                  届いたファイルをこのページで読み込むと、通報に関する記録を集計して表示する機能を準備しています。ファイルはお使いのブラウザの中だけで処理し、サーバーには送信しない方式にする予定です。
+                  届いたzipファイルを展開せずにそのまま選ぶと、通報された回数・通報した回数(理由別)とペナルティ履歴を表示します。
                 </p>
+                <RiotDataReader />
               </div>
             </li>
           </ol>

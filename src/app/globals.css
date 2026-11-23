@@ -2637,3 +2637,39 @@ a:has(> .calibration-banner):hover .calibration-banner {
     align-self: stretch;
   }
 }
+
+/* --- 通報回数の解説ページ: Riotデータの読み込み結果 --- */
+.riot-data-file-btn {
+  align-self: flex-start;
+  margin-top: 0.6rem;
+}
+
+.riot-data-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.riot-data-game h3 {
+  margin-bottom: 0.6rem;
+}
+
+.riot-data-totals {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.riot-data-penalties {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.riot-data-penalties li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
