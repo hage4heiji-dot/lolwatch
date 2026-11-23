@@ -18,6 +18,8 @@ const SITE_URL = "https://lol-watch.com";
 type Props = {
   // summoner.jsonが無いzipではnull(重複を防げないので送信はさせない)。
   riotIdHash: string | null;
+  // サモナーレベル取得のためだけに送るRiot ID(サーバーでは保存しない)。
+  riotId: { name: string; platform: string } | null;
   receivedByCategory: Record<string, number>;
   madeByCategory: Record<string, number>;
   penaltyCount: number;
@@ -28,7 +30,7 @@ function sum(m: Record<string, number>): number {
 }
 
 export function RiotReportCompare(props: Props) {
-  const { riotIdHash, receivedByCategory, madeByCategory, penaltyCount } = props;
+  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount } = props;
   const [comparison, setComparison] = useState<RiotReportComparison | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,13 @@ export function RiotReportCompare(props: Props) {
       const res = await fetch("/api/riot-report-stats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ riotIdHash, receivedByCategory, madeByCategory, penaltyCount }),
+        body: JSON.stringify({
+          riotIdHash,
+          riotId: riotId ?? undefined,
+          receivedByCategory,
+          madeByCategory,
+          penaltyCount,
+        }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.comparison) {
@@ -71,6 +79,7 @@ export function RiotReportCompare(props: Props) {
         topPercent={comparison?.topPercent ?? null}
         quadrantType={comparison?.quadrant?.type ?? null}
         lean={comparison?.quadrant?.lean ?? "none"}
+        per100={comparison?.perLevel.myPer100 ?? null}
         participants={comparison?.participants ?? null}
       />
 
@@ -91,17 +100,19 @@ export function RiotReportCompare(props: Props) {
           )}
           {error && <p className="error-text">{error}</p>}
           <details className="riot-compare-details">
-            <summary>送信される内容(匿名)</summary>
+            <summary>送信される内容</summary>
             <ul>
               <li>LoLで通報された回数・通報した回数(理由別)とペナルティの件数</li>
               <li>
-                同じアカウントが二重に数えられないための識別子(Riot IDから作った元に戻せない値。Riot
-                ID自体は送信しません)
+                同じアカウントが二重に数えられないための識別子(Riot IDから作った元に戻せない値)
+              </li>
+              <li>
+                Riot ID(サモナーレベルをRiot
+                APIで調べるためだけに一時的に使います。lolwatchには保存しません)
               </li>
             </ul>
             <p>
-              zipファイルそのもの、Riot
-              ID、メールアドレスなどは送信しません。送信した数値は統計にのみ使い、個人とは結びつけません。
+              zipファイルそのものやメールアドレスなどは送信しません。保存するのは回数・サモナーレベル・識別子だけで、統計にのみ使い、個人とは結びつけません。
             </p>
           </details>
         </div>

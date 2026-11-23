@@ -8,6 +8,7 @@ import {
   type QuadrantKey,
   type ReportLean,
 } from "@/lib/reportCountTitle";
+import { reportsPer100Levels } from "@/lib/reportChartScale";
 
 // これ未満の参加人数では順位を出さない(数人だと「上位○%」が意味を持たず、
 // 数値から個人を推測されやすくもなるため)。
@@ -47,6 +48,16 @@ export type RiotReportComparison = {
     // 参加者の [通報した回数, 通報された回数, 傾向]。匿名の点としてだけ使う。
     points: [number, number, ReportLean][];
   } | null;
+  // 「レベル100あたりの通報された回数」(サモナーレベルを試合数の目安にした指標)。
+  perLevel: {
+    // 自分のレベルが取れなかった場合はnull(その場合も他の参加者の点は返す)。
+    myLevel: number | null;
+    myPer100: number | null;
+    // レベルあたりで見たときの「上位○%」。レベルが分かる参加者が足りない・自分のレベル不明ならnull。
+    topPercent: number | null;
+    // レベルが分かる参加者の [通報された回数, レベル100あたり, 傾向]。
+    points: [number, number, ReportLean][];
+  };
 };
 
 // ブラウザから届くRiot IDのSHA-256(16進)を、サーバーの秘密鍵でHMACして保存用のキーにする。
@@ -90,10 +101,16 @@ export async function getRiotReportComparison(
   myReceived: number,
   myMade: number,
   myReceivedByCategory: Record<string, number>,
+  myLevel: number | null,
 ): Promise<RiotReportComparison> {
   // 参加者数が数万規模になるまでは全件の値だけ取ってアプリ側で集計して十分。
   const rows = await prisma.riotReportStat.findMany({
-    select: { receivedTotal: true, madeTotal: true, receivedByCategory: true },
+    select: {
+      receivedTotal: true,
+      madeTotal: true,
+      receivedByCategory: true,
+      summonerLevel: true,
+    },
   });
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
   const participants = values.length;
@@ -111,6 +128,30 @@ export async function getRiotReportComparison(
         ],
     );
   const myLean = getReportLean(myReceivedByCategory);
+
+  // レベル100あたりの通報された回数。レベルが分かる参加者だけで集計する。
+  const perLevelRows = rows
+    .map((r) => ({
+      received: r.receivedTotal,
+      per100: reportsPer100Levels(r.receivedTotal, r.summonerLevel),
+      lean: getReportLean(asCountMap(r.receivedByCategory)),
+    }))
+    .filter((r): r is { received: number; per100: number; lean: ReportLean } => r.per100 !== null);
+  const myPer100 = reportsPer100Levels(myReceived, myLevel);
+  const perLevelStep = Math.max(1, Math.ceil(perLevelRows.length / MAX_QUADRANT_POINTS));
+  const perLevel: RiotReportComparison["perLevel"] = {
+    myLevel,
+    myPer100,
+    topPercent:
+      myPer100 !== null && perLevelRows.length >= MIN_PARTICIPANTS_FOR_RANKING
+        ? Math.round(
+            (perLevelRows.filter((r) => r.per100 >= myPer100).length / perLevelRows.length) * 1000,
+          ) / 10
+        : null,
+    points: perLevelRows
+      .filter((_, i) => i % perLevelStep === 0)
+      .map((r) => [r.received, r.per100, r.lean] as [number, number, ReportLean]),
+  };
 
   if (participants < MIN_PARTICIPANTS_FOR_RANKING) {
     return {
@@ -135,6 +176,7 @@ export async function getRiotReportComparison(
         provisional: true,
         points,
       },
+      perLevel,
     };
   }
 
@@ -169,6 +211,7 @@ export async function getRiotReportComparison(
       provisional: false,
       points,
     },
+    perLevel,
   };
 }
 
@@ -184,6 +227,7 @@ export async function getRiotReportStatForShare(id: string) {
       madeTotal: true,
       receivedByCategory: true,
       penaltyCount: true,
+      summonerLevel: true,
     },
   });
 }

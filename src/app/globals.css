@@ -2789,8 +2789,8 @@ a:has(> .calibration-banner):hover .calibration-banner {
 
 .rc-card-stats {
   display: grid;
-  /* 理由名は長いので1行全体を使い、残り2項目を下に並べる。 */
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 理由名は長いので1行全体を使い、残り3項目を下に並べる。 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   margin: 0;
   padding-top: 0.9rem;

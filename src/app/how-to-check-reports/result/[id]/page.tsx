@@ -38,6 +38,7 @@ export default async function ReportCountResultPage({ params }: Params) {
     stat.receivedTotal,
     stat.madeTotal,
     asCountMap(stat.receivedByCategory),
+    stat.summonerLevel,
   );
 
   return (
@@ -52,6 +53,7 @@ export default async function ReportCountResultPage({ params }: Params) {
         participants={comparison.participants}
         quadrantType={comparison.quadrant?.type ?? null}
         lean={comparison.quadrant?.lean ?? "none"}
+        per100={comparison.perLevel.myPer100}
       />
 
       {comparison.quadrant && <ComparisonSection comparison={comparison} subject="この人" />}

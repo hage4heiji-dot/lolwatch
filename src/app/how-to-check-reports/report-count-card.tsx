@@ -23,11 +23,13 @@ export type ReportCountCardProps = {
   quadrantType?: QuadrantKey | null;
   // 通報された理由の傾向(タイプ名の頭に付く)。
   lean?: ReportLean;
+  // レベル100あたりの通報された回数。未送信・レベル不明ならnull。
+  per100?: number | null;
 };
 
 export function ReportCountCard(props: ReportCountCardProps) {
   const { received, made, penaltyCount, topCategory, topPercent, participants } = props;
-  const { quadrantType, lean = "none" } = props;
+  const { quadrantType, lean = "none", per100 = null } = props;
   const { title, tone } = getReportCountTitle(received);
   const colors = TONE_COLORS[tone];
   const style = { "--rc-accent": colors.accent, "--rc-glow": colors.glow } as CSSProperties;
@@ -90,6 +92,10 @@ export function ReportCountCard(props: ReportCountCardProps) {
         <div>
           <dt>ペナルティ</dt>
           <dd>{penaltyCount}件</dd>
+        </div>
+        <div>
+          <dt>Lv100あたり</dt>
+          <dd>{per100 !== null ? `${per100}回` : "-"}</dd>
         </div>
       </dl>
 

@@ -415,6 +415,9 @@ model RiotReportStat {
   receivedByCategory Json
   madeByCategory     Json
   penaltyCount       Int
+  // Riot APIで取得したサモナーレベル(試合数の目安。「レベル100あたりの通報された回数」に使う)。
+  // 取得に失敗した場合や、この列を追加する前に送信されたデータはnull。
+  summonerLevel      Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
