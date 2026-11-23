@@ -27,11 +27,10 @@ export default function HowToCheckReportsPage() {
         <h2>1. Riot公式のデータリクエストで確認する</h2>
         <div className="card">
           <p>
-            Riot Gamesには、自分のアカウントに関するデータをまとめて取り寄せる「データリクエスト」の仕組みがあります。
+            Riot
+            Gamesには、自分のアカウントに関するデータをまとめて取り寄せる「データリクエスト」の仕組みがあります。
             取り寄せたデータには、ゲーム内で
-            <strong>通報された回数・通報した回数(理由別)</strong>
-            と
-            <strong>ペナルティ履歴</strong>
+            <strong>通報された回数・通報した回数(理由別)</strong>と<strong>ペナルティ履歴</strong>
             が含まれています。
           </p>
           <ol className="data-request-steps">
@@ -87,7 +86,8 @@ export default function HowToCheckReportsPage() {
             <li>サポートとコミュニケーション(チケット、チャット、メッセージのログ)</li>
           </ul>
           <p className="muted" style={{ marginTop: "0.75rem" }}>
-            ※ ファイルにはメールアドレスやチャットログなどの個人情報が含まれます。他人に渡したり、SNS等にそのまま公開したりしないでください。
+            ※
+            ファイルにはメールアドレスやチャットログなどの個人情報が含まれます。他人に渡したり、SNS等にそのまま公開したりしないでください。
           </p>
         </div>
       </section>
@@ -96,7 +96,8 @@ export default function HowToCheckReportsPage() {
         <h2>2. lolwatchで通報件数を検索する(すぐ確認できる)</h2>
         <div className="card">
           <p>
-            Riot ID(名前#タグ)で検索すると、lolwatchに投稿された通報の件数・内容・モデレーターの判定結果を確認できます。
+            Riot
+            ID(名前#タグ)で検索すると、lolwatchに投稿された通報の件数・内容・モデレーターの判定結果を確認できます。
           </p>
           <form action="/players" method="get" style={{ marginTop: "1rem" }}>
             <input type="hidden" name="period" value="all" />
@@ -113,7 +114,8 @@ export default function HowToCheckReportsPage() {
             </div>
           </form>
           <p className="muted" style={{ marginTop: "0.75rem" }}>
-            ※ ここで表示されるのは、lolwatchのユーザーが投稿した通報の件数です。ゲーム内でRiotに送られた通報の件数とは別物です。
+            ※
+            ここで表示されるのは、lolwatchのユーザーが投稿した通報の件数です。ゲーム内でRiotに送られた通報の件数とは別物です。
             検索して見つからない場合、lolwatchではまだ通報されていません。
           </p>
         </div>

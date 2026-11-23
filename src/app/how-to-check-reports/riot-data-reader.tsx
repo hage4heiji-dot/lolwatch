@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { unzip } from "fflate";
 import { RiotReportCompare } from "./riot-report-compare";
+import { RIOT_REPORT_CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@/lib/reportCountTitle";
 
 type GroupedReports = {
   reports_made: Record<string, number>;
@@ -44,24 +45,6 @@ const GAME_LABELS: Record<GameKey, string> = {
   lol: "League of Legends",
   tft: "チームファイト タクティクス",
   valorant: "VALORANT",
-};
-
-// Riot側のカテゴリ名 → 表示名。未知のカテゴリは元の値をそのまま出す。
-const REPORT_CATEGORY_LABELS: Record<string, string> = {
-  ASSISTING_ENEMY_TEAM: "敵チームへの協力",
-  BOTTING: "Bot・自動操作",
-  LEAVING_AFK: "放置・途中離脱",
-  RANK_MANIPULATION: "ランク操作",
-  VERBAL_ABUSE: "暴言",
-  NEGATIVE_ATTITUDE: "ネガティブな態度",
-  HATE_SPEECH: "ヘイトスピーチ",
-  INAPPROPRIATE_NAME: "不適切な名前",
-  OFFENSIVE_NAME: "不適切な名前",
-  INTENTIONAL_FEEDING: "故意のフィード",
-  CHEATING: "チート",
-  THIRD_PARTY_TOOLS: "外部ツールの使用",
-  SPAMMING: "スパム",
-  GRIEFING: "妨害行為",
 };
 
 const PENALTY_REASON_LABELS: Record<string, string> = {
@@ -113,10 +96,8 @@ function parseGroupedReports(text: string): GroupedReports | null {
 function unzipTargets(data: Uint8Array): Promise<Record<string, Uint8Array>> {
   const targets = Object.values(TARGET_FILES);
   return new Promise((resolve, reject) => {
-    unzip(
-      data,
-      { filter: (file) => targets.some((t) => file.name.endsWith(t)) },
-      (err, files) => (err ? reject(err) : resolve(files)),
+    unzip(data, { filter: (file) => targets.some((t) => file.name.endsWith(t)) }, (err, files) =>
+      err ? reject(err) : resolve(files),
     );
   });
 }
@@ -151,7 +132,11 @@ async function parseZip(file: File): Promise<ParsedData> {
   const penaltiesJson: unknown = penaltiesText ? JSON.parse(penaltiesText) : null;
   const penalties = Array.isArray(penaltiesJson) ? (penaltiesJson as Penalty[]) : null;
 
-  return { reports, penalties, riotIdHash: await hashRiotId(read(TARGET_FILES.summoner)) };
+  return {
+    reports,
+    penalties,
+    riotIdHash: await hashRiotId(read(TARGET_FILES.summoner)),
+  };
 }
 
 function sum(counts: Record<string, number>): number {
@@ -166,7 +151,11 @@ function formatDate(value: string | null | undefined): string {
   if (!value) return "-";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "numeric", day: "numeric" });
+  return d.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
 }
 
 function CountBars({ counts }: { counts: Record<string, number> }) {
@@ -188,26 +177,37 @@ function CountBars({ counts }: { counts: Record<string, number> }) {
   );
 }
 
-function GameReports({ game, reports }: { game: GameKey; reports: GroupedReports }) {
+// showTotals=false はLoL用(合計は上の結果カードに出すので内訳だけ表示する)。
+function GameReports({
+  game,
+  reports,
+  showTotals = true,
+}: {
+  game: GameKey;
+  reports: GroupedReports;
+  showTotals?: boolean;
+}) {
   const received = sum(reports.reports_received);
   const made = sum(reports.reports_made);
   return (
     <div className="riot-data-game">
-      <h3>{GAME_LABELS[game]}</h3>
-      <div className="stat-grid riot-data-totals">
-        <div className="card stat-card">
-          <p className="stat-card-icon">🚩</p>
-          <p className={`stat-card-value${received > 0 ? " stat-card-value-danger" : ""}`}>
-            {received}回
-          </p>
-          <p className="muted">通報された回数</p>
+      <h3>{showTotals ? GAME_LABELS[game] : `${GAME_LABELS[game]} の内訳`}</h3>
+      {showTotals && (
+        <div className="stat-grid riot-data-totals">
+          <div className="card stat-card">
+            <p className="stat-card-icon">🚩</p>
+            <p className={`stat-card-value${received > 0 ? " stat-card-value-danger" : ""}`}>
+              {received}回
+            </p>
+            <p className="muted">通報された回数</p>
+          </div>
+          <div className="card stat-card">
+            <p className="stat-card-icon">📢</p>
+            <p className="stat-card-value">{made}回</p>
+            <p className="muted">通報した回数</p>
+          </div>
         </div>
-        <div className="card stat-card">
-          <p className="stat-card-icon">📢</p>
-          <p className="stat-card-value">{made}回</p>
-          <p className="muted">通報した回数</p>
-        </div>
-      </div>
+      )}
       {received > 0 && (
         <>
           <p style={{ marginTop: "0.75rem" }}>
@@ -279,7 +279,8 @@ export function RiotDataReader() {
         />
       </label>
       <p className="muted" style={{ marginTop: "0.5rem" }}>
-        🔒 ファイルはお使いのブラウザの中だけで読み込みます。lolwatchのサーバーには送信・保存されません。
+        🔒
+        ファイルはお使いのブラウザの中だけで読み込みます。lolwatchのサーバーには送信・保存されません。
       </p>
 
       {loading && <p style={{ marginTop: "1rem" }}>読み込み中…</p>}
@@ -291,11 +292,7 @@ export function RiotDataReader() {
 
       {result && (
         <div className="riot-data-result">
-          {visibleGames.map((game) => (
-            <GameReports key={game} game={game} reports={result.reports[game]!} />
-          ))}
-
-          {result.reports.lol && result.riotIdHash && (
+          {result.reports.lol && (
             <RiotReportCompare
               riotIdHash={result.riotIdHash}
               receivedByCategory={result.reports.lol.reports_received}
@@ -303,6 +300,15 @@ export function RiotDataReader() {
               penaltyCount={result.penalties?.length ?? 0}
             />
           )}
+
+          {visibleGames.map((game) => (
+            <GameReports
+              key={game}
+              game={game}
+              reports={result.reports[game]!}
+              showTotals={game !== "lol"}
+            />
+          ))}
 
           <div className="riot-data-game">
             <h3>ペナルティ履歴</h3>
@@ -324,7 +330,8 @@ export function RiotDataReader() {
           </div>
 
           <p className="muted">
-            ※ 回数はRiotのデータに含まれる集計値をそのまま表示しています。いつからの集計か、通報がどう扱われたかは含まれていません。
+            ※
+            回数はRiotのデータに含まれる集計値をそのまま表示しています。いつからの集計か、通報がどう扱われたかは含まれていません。
           </p>
         </div>
       )}

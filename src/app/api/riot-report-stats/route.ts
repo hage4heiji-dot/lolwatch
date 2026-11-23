@@ -48,12 +48,14 @@ export async function POST(request: NextRequest) {
 
   const accountKey = toAccountKey(riotIdHash);
   const data = { receivedTotal, madeTotal, receivedByCategory, madeByCategory, penaltyCount };
-  await prisma.riotReportStat.upsert({
+  const row = await prisma.riotReportStat.upsert({
     where: { accountKey },
     create: { accountKey, ...data },
     update: data,
+    select: { id: true },
   });
 
   const comparison = await getRiotReportComparison(receivedTotal);
-  return NextResponse.json({ ok: true, comparison });
+  // idは共有ページ(/how-to-check-reports/result/[id])用。同じアカウントなら再送信しても変わらない。
+  return NextResponse.json({ ok: true, id: row.id, comparison });
 }

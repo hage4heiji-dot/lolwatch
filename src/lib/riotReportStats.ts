@@ -85,3 +85,19 @@ export async function getRiotReportComparison(myReceived: number): Promise<RiotR
     distribution: counts.map((count, i) => ({ label: bucketLabel(i), count, isMine: i === myBucket })),
   };
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 共有ページ用。accountKeyは返さない(共有URLから識別子をたどれないようにする)。
+export async function getRiotReportStatForShare(id: string) {
+  if (!UUID_RE.test(id)) return null;
+  return prisma.riotReportStat.findUnique({
+    where: { id },
+    select: {
+      receivedTotal: true,
+      madeTotal: true,
+      receivedByCategory: true,
+      penaltyCount: true,
+    },
+  });
+}
