@@ -9,6 +9,7 @@ import {
   type ReportLean,
 } from "@/lib/reportCountTitle";
 import { reportsPer100Levels } from "@/lib/reportChartScale";
+import { chatRates, type ChatSummary } from "@/lib/chatStats";
 
 // これ未満の参加人数では順位を出さない(数人だと「上位○%」が意味を持たず、
 // 数値から個人を推測されやすくもなるため)。
@@ -58,6 +59,14 @@ export type RiotReportComparison = {
     // レベルが分かる参加者の [通報された回数, レベル100あたり, 傾向]。
     points: [number, number, ReportLean][];
   };
+  // チャットログ(直近の試合ぶん)の要約と、参加者平均との比較。
+  chat: {
+    mine: ChatSummary | null;
+    // チャットログを送ってくれた参加者数
+    participants: number;
+    // 参加者平均(チャットありの参加者がMIN_PARTICIPANTS_FOR_RANKING未満ならnull)
+    average: { activeRate: number; perGame: number; harshPer100Games: number } | null;
+  };
 };
 
 // ブラウザから届くRiot IDのSHA-256(16進)を、サーバーの秘密鍵でHMACして保存用のキーにする。
@@ -102,6 +111,7 @@ export async function getRiotReportComparison(
   myMade: number,
   myReceivedByCategory: Record<string, number>,
   myLevel: number | null,
+  myChat: ChatSummary | null,
 ): Promise<RiotReportComparison> {
   // 参加者数が数万規模になるまでは全件の値だけ取ってアプリ側で集計して十分。
   const rows = await prisma.riotReportStat.findMany({
@@ -110,6 +120,11 @@ export async function getRiotReportComparison(
       madeTotal: true,
       receivedByCategory: true,
       summonerLevel: true,
+      chatGames: true,
+      chatActiveGames: true,
+      chatMessages: true,
+      chatAllMessages: true,
+      chatHarshMessages: true,
     },
   });
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
@@ -139,6 +154,34 @@ export async function getRiotReportComparison(
     .filter((r): r is { received: number; per100: number; lean: ReportLean } => r.per100 !== null);
   const myPer100 = reportsPer100Levels(myReceived, myLevel);
   const perLevelStep = Math.max(1, Math.ceil(perLevelRows.length / MAX_QUADRANT_POINTS));
+  const chatRows = rows.flatMap((r) => {
+    const summary = chatSummaryFromRow(r);
+    return summary ? [summary] : [];
+  });
+  const chat: RiotReportComparison["chat"] = {
+    mine: myChat,
+    participants: chatRows.length,
+    average:
+      chatRows.length >= MIN_PARTICIPANTS_FOR_RANKING
+        ? {
+            activeRate:
+              Math.round(
+                (chatRows.reduce((a, c) => a + chatRates(c).activeRate, 0) / chatRows.length) * 10,
+              ) / 10,
+            perGame:
+              Math.round(
+                (chatRows.reduce((a, c) => a + chatRates(c).perGame, 0) / chatRows.length) * 100,
+              ) / 100,
+            harshPer100Games:
+              Math.round(
+                (chatRows.reduce((a, c) => a + (c.harshMessages / c.games) * 100, 0) /
+                  chatRows.length) *
+                  10,
+              ) / 10,
+          }
+        : null,
+  };
+
   const perLevel: RiotReportComparison["perLevel"] = {
     myLevel,
     myPer100,
@@ -177,6 +220,7 @@ export async function getRiotReportComparison(
         points,
       },
       perLevel,
+      chat,
     };
   }
 
@@ -212,6 +256,7 @@ export async function getRiotReportComparison(
       points,
     },
     perLevel,
+    chat,
   };
 }
 
@@ -228,6 +273,29 @@ export async function getRiotReportStatForShare(id: string) {
       receivedByCategory: true,
       penaltyCount: true,
       summonerLevel: true,
+      chatGames: true,
+      chatActiveGames: true,
+      chatMessages: true,
+      chatAllMessages: true,
+      chatHarshMessages: true,
     },
   });
+}
+
+// DBの行からチャット要約を組み立てる(チャットログが無かった人はnull)。
+export function chatSummaryFromRow(row: {
+  chatGames: number | null;
+  chatActiveGames: number | null;
+  chatMessages: number | null;
+  chatAllMessages: number | null;
+  chatHarshMessages: number | null;
+}): ChatSummary | null {
+  if (!row.chatGames) return null;
+  return {
+    games: row.chatGames,
+    activeGames: row.chatActiveGames ?? 0,
+    messages: row.chatMessages ?? 0,
+    allMessages: row.chatAllMessages ?? 0,
+    harshMessages: row.chatHarshMessages ?? 0,
+  };
 }

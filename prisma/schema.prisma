@@ -418,6 +418,12 @@ model RiotReportStat {
   // Riot APIで取得したサモナーレベル(試合数の目安。「レベル100あたりの通報された回数」に使う)。
   // 取得に失敗した場合や、この列を追加する前に送信されたデータはnull。
   summonerLevel      Int?
+  // チャットログ(直近の試合ぶん)の要約。本文は保存しない。チャットログが無い・列追加前のデータはnull。
+  chatGames          Int?
+  chatActiveGames    Int?
+  chatMessages       Int?
+  chatAllMessages    Int?
+  chatHarshMessages  Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/ip";
 import { checkRiotStatRateLimit } from "@/lib/rateLimit";
-import { getRiotReportComparison, toAccountKey } from "@/lib/riotReportStats";
+import { chatSummaryFromRow, getRiotReportComparison, toAccountKey } from "@/lib/riotReportStats";
 import { getAccountByRiotId, getSummonerByPuuid } from "@/lib/riot";
 
 // Riotのデータリクエストから読み取った通報回数を、本人の同意のもと匿名で登録し、
@@ -54,6 +54,20 @@ const requestSchema = z.object({
   receivedByCategory: countMap,
   madeByCategory: countMap,
   penaltyCount: z.number().int().min(0).max(1000),
+  // チャットログの要約(数値のみ。本文は受け取らない)。
+  chat: z
+    .object({
+      games: z.number().int().min(1).max(10_000),
+      activeGames: z.number().int().min(0).max(10_000),
+      messages: z.number().int().min(0).max(1_000_000),
+      allMessages: z.number().int().min(0).max(1_000_000),
+      harshMessages: z.number().int().min(0).max(1_000_000),
+    })
+    .refine(
+      (c) =>
+        c.activeGames <= c.games && c.allMessages <= c.messages && c.harshMessages <= c.messages,
+    )
+    .optional(),
 });
 
 // ブラウザ側(riot-data-reader.tsxのhashRiotId)と同じ方法でハッシュし、
@@ -100,7 +114,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: rateCheck.reason }, { status: 429 });
   }
 
-  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount } = parsed.data;
+  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount, chat } =
+    parsed.data;
   if (riotId && hashRiotId(riotId.name, riotId.platform) !== riotIdHash) {
     return NextResponse.json({ error: "送信内容が不正です。" }, { status: 400 });
   }
@@ -124,12 +139,29 @@ export async function POST(request: NextRequest) {
     penaltyCount,
     // 取得に失敗した再送信で、前回取れていたレベルを消さないようにする。
     ...(summonerLevel !== null ? { summonerLevel } : {}),
+    ...(chat
+      ? {
+          chatGames: chat.games,
+          chatActiveGames: chat.activeGames,
+          chatMessages: chat.messages,
+          chatAllMessages: chat.allMessages,
+          chatHarshMessages: chat.harshMessages,
+        }
+      : {}),
   };
   const row = await prisma.riotReportStat.upsert({
     where: { accountKey },
     create: { accountKey, ...data },
     update: data,
-    select: { id: true, summonerLevel: true },
+    select: {
+      id: true,
+      summonerLevel: true,
+      chatGames: true,
+      chatActiveGames: true,
+      chatMessages: true,
+      chatAllMessages: true,
+      chatHarshMessages: true,
+    },
   });
 
   const comparison = await getRiotReportComparison(
@@ -137,6 +169,7 @@ export async function POST(request: NextRequest) {
     madeTotal,
     receivedByCategory,
     row.summonerLevel,
+    chatSummaryFromRow(row),
   );
   // idは共有ページ(/how-to-check-reports/result/[id])用。同じアカウントなら再送信しても変わらない。
   return NextResponse.json({ ok: true, id: row.id, comparison });

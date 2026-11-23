@@ -2930,7 +2930,7 @@ a:has(> .calibration-banner):hover .calibration-banner {
 
 .rc-card-type-name {
   display: block;
-  white-space: nowrap;
+
   font-size: 1.05rem;
   font-weight: 900;
 }
@@ -3043,4 +3043,79 @@ a:has(> .calibration-banner):hover .calibration-banner {
   width: 0.65rem;
   height: 0.65rem;
   border-radius: 999px;
+}
+
+/* --- 通報回数: チャットの傾向 --- */
+.rc-card-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rc-card-chat-label {
+  font-size: 0.68rem;
+  color: rgba(243, 243, 247, 0.6);
+}
+
+.chat-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.chat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.chat-tile-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.chat-tile-value {
+  font-size: 1.1rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chat-tile-avg {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.chat-tile-label {
+  white-space: pre-line;
+}
+
+/* タイプ名の「プレイ系」「・バチバチ交戦型」を塊として扱い、塊の間でだけ折り返す。 */
+.rc-card-type-part {
+  display: inline-block;
+}
+
+.rc-card-type > span:last-child {
+  min-width: 0;
+}
+
+/* 項目の途中では折り返さず、項目の間でだけ折り返す。 */
+.rc-card-chat-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.8rem;
+}
+
+.rc-card-chat-items > span {
+  white-space: nowrap;
 }

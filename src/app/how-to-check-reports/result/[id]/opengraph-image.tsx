@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { loadGoogleFontJP } from "@/lib/ogFont";
 import {
   asCountMap,
+  chatSummaryFromRow,
   getRiotReportComparison,
   getRiotReportStatForShare,
 } from "@/lib/riotReportStats";
@@ -13,6 +14,7 @@ import {
   type ReportLean,
 } from "@/lib/reportCountTitle";
 import { buildPerLevelAxes, buildQuadrantAxes } from "@/lib/reportChartScale";
+import { chatRates } from "@/lib/chatStats";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -20,7 +22,7 @@ export const alt = "LoLで通報された回数";
 // 順位は参加者の増減で少しずつ変わるが、共有画像としては10分程度のずれで十分。
 export const revalidate = 600;
 
-const CHART_SIZE = 250;
+const CHART_SIZE = 236;
 const CHART_INSET = 16;
 
 type Dot = { x: number; y: number; color: string };
@@ -150,6 +152,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         made,
         asCountMap(stat.receivedByCategory),
         stat.summonerLevel,
+        chatSummaryFromRow(stat),
       ).catch(() => null)
     : null;
 
@@ -206,6 +209,17 @@ export default async function Image({ params }: { params: Promise<{ id: string }
 
   // 小さいグラフの四隅に入るよう、象限名は短縮形にする。
   const corners = { tl: "うっかり", tr: "バチバチ", bl: "平和主義", br: "風紀委員" };
+  // チャットの要約(絵文字はフォントに無いので使わない)。
+  const chat = comparison?.chat.mine ?? null;
+  const chatTiles = chat
+    ? [
+        { label: "発言した試合", value: `${chatRates(chat).activeRate}%` },
+        { label: "1試合の発言", value: `${chatRates(chat).perGame}回` },
+        { label: "強めの言葉", value: `${chat.harshMessages}回` },
+      ]
+    : [];
+  const chatCaption = chat ? `チャット(直近${chat.games}試合)` : "";
+
   const texts = [
     "LOLWATCHLoL 通報された回数回称号タイプあなたは何回?lol-watch.com0123456789.%",
     "4象限レベルあたり通報した回数横縦・",
@@ -214,6 +228,8 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     typeText,
     per100Text,
     Object.values(corners).join(""),
+    chatCaption,
+    chatTiles.map((t) => t.label + t.value).join(""),
   ].join("");
   const fontData = await loadGoogleFontJP(texts, 900).catch(() => null);
 
@@ -292,33 +308,63 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      {/* 右: 4象限と散布図 */}
+      {/* 右: 4象限と散布図、その下にチャットの要約 */}
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
           flex: 1,
-          justifyContent: "space-between",
-          alignItems: "center",
+          justifyContent: "center",
           marginLeft: 20,
         }}
       >
-        <MiniChart
-          caption="4象限"
-          axisLabel="横: 通報した回数 ・ 縦: 通報された回数"
-          dots={quadrantDots}
-          me={quadrantMe}
-          accent={colors.accent}
-          centerLines
-          corners={corners}
-        />
-        <MiniChart
-          caption="レベルあたり"
-          axisLabel="横: 通報された回数 ・ 縦: Lv100あたり"
-          dots={perLevelDots}
-          me={perLevelMe}
-          accent={colors.accent}
-          centerLines={false}
-        />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <MiniChart
+            caption="4象限"
+            axisLabel="横: 通報した回数 ・ 縦: 通報された回数"
+            dots={quadrantDots}
+            me={quadrantMe}
+            accent={colors.accent}
+            centerLines
+            corners={corners}
+          />
+          <MiniChart
+            caption="レベルあたり"
+            axisLabel="横: 通報された回数 ・ 縦: Lv100あたり"
+            dots={perLevelDots}
+            me={perLevelMe}
+            accent={colors.accent}
+            centerLines={false}
+          />
+        </div>
+        {chat && (
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 18 }}>
+            <div style={{ display: "flex", fontSize: 18, color: "rgba(243,243,247,0.65)" }}>
+              {chatCaption}
+            </div>
+            <div style={{ display: "flex", marginTop: 8 }}>
+              {chatTiles.map((t, i) => (
+                <div
+                  key={t.label}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    flex: 1,
+                    marginLeft: i === 0 ? 0 : 10,
+                    padding: "8px 0",
+                    borderRadius: 10,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <span style={{ fontSize: 16, color: "rgba(243,243,247,0.65)" }}>{t.label}</span>
+                  <span style={{ fontSize: 30, color: "#ffffff" }}>{t.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     {

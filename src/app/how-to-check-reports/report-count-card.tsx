@@ -9,6 +9,7 @@ import {
   type QuadrantKey,
   type ReportLean,
 } from "@/lib/reportCountTitle";
+import { chatRates, type ChatSummary } from "@/lib/chatStats";
 
 export type ReportCountCardProps = {
   received: number;
@@ -25,11 +26,14 @@ export type ReportCountCardProps = {
   lean?: ReportLean;
   // レベル100あたりの通報された回数。未送信・レベル不明ならnull。
   per100?: number | null;
+  // チャットログの要約。zipに無ければnull。
+  chat?: ChatSummary | null;
 };
 
 export function ReportCountCard(props: ReportCountCardProps) {
   const { received, made, penaltyCount, topCategory, topPercent, participants } = props;
-  const { quadrantType, lean = "none", per100 = null } = props;
+  const { quadrantType, lean = "none", per100 = null, chat = null } = props;
+  const chatInfo = chat ? chatRates(chat) : null;
   const { title, tone } = getReportCountTitle(received);
   const colors = TONE_COLORS[tone];
   const style = { "--rc-accent": colors.accent, "--rc-glow": colors.glow } as CSSProperties;
@@ -67,7 +71,17 @@ export function ReportCountCard(props: ReportCountCardProps) {
           <span className="rc-card-type-emoji">{QUADRANTS[quadrantType].emoji}</span>
           <span>
             <span className="rc-card-type-label">タイプ</span>
-            <span className="rc-card-type-name">{getTypeName(quadrantType, lean)}</span>
+            <span className="rc-card-type-name">
+              {/* 狭い画面では「プレイ系・」の後で折り返す */}
+              {getTypeName(quadrantType, lean)
+                .split("・")
+                .map((part, i) => (
+                  <span key={i} className="rc-card-type-part">
+                    {i > 0 ? "・" : ""}
+                    {part}
+                  </span>
+                ))}
+            </span>
           </span>
         </div>
       )}
@@ -98,6 +112,23 @@ export function ReportCountCard(props: ReportCountCardProps) {
           <dd>{per100 !== null ? `${per100}回` : "-"}</dd>
         </div>
       </dl>
+
+      {chat && chatInfo && (
+        <div className="rc-card-chat">
+          <span className="rc-card-chat-label">💬 チャット(直近{chat.games}試合)</span>
+          <span className="rc-card-chat-items">
+            <span>
+              発言した試合 <strong>{chatInfo.activeRate}%</strong>
+            </span>
+            <span>
+              1試合 <strong>{chatInfo.perGame}回</strong>
+            </span>
+            <span>
+              強めの言葉 <strong>{chat.harshMessages}回</strong>
+            </span>
+          </span>
+        </div>
+      )}
 
       <div className="rc-card-foot">lol-watch.com で自分の通報回数を調べる</div>
     </div>

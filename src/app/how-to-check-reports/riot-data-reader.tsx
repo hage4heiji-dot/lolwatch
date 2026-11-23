@@ -5,6 +5,7 @@
 // 含まれるため、ファイルはサーバーへ一切送信せず、必要な数ファイルだけを展開する。
 import { useState } from "react";
 import { unzip } from "fflate";
+import { summarizeChatLogs, type ChatSummary } from "@/lib/chatStats";
 import { RiotReportCompare } from "./riot-report-compare";
 import { RIOT_REPORT_CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@/lib/reportCountTitle";
 
@@ -31,7 +32,12 @@ type ParsedData = {
   riotIdHash: string | null;
   // Riot ID("名前#タグ")と地域。本人が「比べる」を押したときだけ、サモナーレベル取得のために送信する。
   riotId: { name: string; platform: string } | null;
+  // LoLのチャットログ(直近の試合ぶん)の要約。本文はここで数値にしてから捨てる。
+  chat: ChatSummary | null;
 };
+
+// 試合ごとのチャットログ(1試合1ファイル)が入っているフォルダ。
+const CHAT_LOG_DIR = "leagueoflegends/chat_logs_v2_uc/";
 
 // zip内のパス(末尾一致で探す。展開ツールによって先頭にフォルダが付く場合があるため)。
 const TARGET_FILES: Record<GameKey | "penalties" | "summoner", string> = {
@@ -97,8 +103,14 @@ function parseGroupedReports(text: string): GroupedReports | null {
 function unzipTargets(data: Uint8Array): Promise<Record<string, Uint8Array>> {
   const targets = Object.values(TARGET_FILES);
   return new Promise((resolve, reject) => {
-    unzip(data, { filter: (file) => targets.some((t) => file.name.endsWith(t)) }, (err, files) =>
-      err ? reject(err) : resolve(files),
+    unzip(
+      data,
+      {
+        filter: (file) =>
+          targets.some((t) => file.name.endsWith(t)) ||
+          (file.name.includes(CHAT_LOG_DIR) && file.name.endsWith(".json")),
+      },
+      (err, files) => (err ? reject(err) : resolve(files)),
     );
   });
 }
@@ -142,7 +154,12 @@ async function parseZip(file: File): Promise<ParsedData> {
   const penalties = Array.isArray(penaltiesJson) ? (penaltiesJson as Penalty[]) : null;
 
   const riotId = readRiotId(read(TARGET_FILES.summoner));
-  return { reports, penalties, riotIdHash: await hashRiotId(riotId), riotId };
+  const chat = summarizeChatLogs(
+    Object.keys(files)
+      .filter((n) => n.includes(CHAT_LOG_DIR))
+      .map((n) => decoder.decode(files[n])),
+  );
+  return { reports, penalties, riotIdHash: await hashRiotId(riotId), riotId, chat };
 }
 
 function sum(counts: Record<string, number>): number {
@@ -302,6 +319,7 @@ export function RiotDataReader() {
             <RiotReportCompare
               riotIdHash={result.riotIdHash}
               riotId={result.riotId}
+              chat={result.chat}
               receivedByCategory={result.reports.lol.reports_received}
               madeByCategory={result.reports.lol.reports_made}
               penaltyCount={result.penalties?.length ?? 0}

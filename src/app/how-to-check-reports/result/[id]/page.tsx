@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   asCountMap,
+  chatSummaryFromRow,
   getRiotReportComparison,
   getRiotReportStatForShare,
 } from "@/lib/riotReportStats";
@@ -39,6 +40,7 @@ export default async function ReportCountResultPage({ params }: Params) {
     stat.madeTotal,
     asCountMap(stat.receivedByCategory),
     stat.summonerLevel,
+    chatSummaryFromRow(stat),
   );
 
   return (
@@ -54,6 +56,7 @@ export default async function ReportCountResultPage({ params }: Params) {
         quadrantType={comparison.quadrant?.type ?? null}
         lean={comparison.quadrant?.lean ?? "none"}
         per100={comparison.perLevel.myPer100}
+        chat={comparison.chat.mine}
       />
 
       {comparison.quadrant && <ComparisonSection comparison={comparison} subject="この人" />}

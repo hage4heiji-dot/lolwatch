@@ -12,6 +12,7 @@ import {
 } from "@/lib/reportCountTitle";
 import { ComparisonSection } from "./comparison-section";
 import { ReportCountCard } from "./report-count-card";
+import type { ChatSummary } from "@/lib/chatStats";
 
 const SITE_URL = "https://lol-watch.com";
 
@@ -20,6 +21,8 @@ type Props = {
   riotIdHash: string | null;
   // サモナーレベル取得のためだけに送るRiot ID(サーバーでは保存しない)。
   riotId: { name: string; platform: string } | null;
+  // チャットログの要約(数値のみ)。zipにチャットログが無ければnull。
+  chat: ChatSummary | null;
   receivedByCategory: Record<string, number>;
   madeByCategory: Record<string, number>;
   penaltyCount: number;
@@ -30,7 +33,7 @@ function sum(m: Record<string, number>): number {
 }
 
 export function RiotReportCompare(props: Props) {
-  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount } = props;
+  const { riotIdHash, riotId, chat, receivedByCategory, madeByCategory, penaltyCount } = props;
   const [comparison, setComparison] = useState<RiotReportComparison | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +53,7 @@ export function RiotReportCompare(props: Props) {
         body: JSON.stringify({
           riotIdHash,
           riotId: riotId ?? undefined,
+          chat: chat ?? undefined,
           receivedByCategory,
           madeByCategory,
           penaltyCount,
@@ -80,6 +84,7 @@ export function RiotReportCompare(props: Props) {
         quadrantType={comparison?.quadrant?.type ?? null}
         lean={comparison?.quadrant?.lean ?? "none"}
         per100={comparison?.perLevel.myPer100 ?? null}
+        chat={chat}
         participants={comparison?.participants ?? null}
       />
 
@@ -103,6 +108,9 @@ export function RiotReportCompare(props: Props) {
             <summary>送信される内容</summary>
             <ul>
               <li>LoLで通報された回数・通報した回数(理由別)とペナルティの件数</li>
+              <li>
+                チャットの集計値(発言した試合数・発言数・全体チャット数・強めの言葉の数)。メッセージの本文は送信しません
+              </li>
               <li>
                 同じアカウントが二重に数えられないための識別子(Riot IDから作った元に戻せない値)
               </li>

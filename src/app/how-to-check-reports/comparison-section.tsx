@@ -5,6 +5,7 @@ import { getTypeName, LEANS, QUADRANTS } from "@/lib/reportCountTitle";
 import { MIN_PARTICIPANTS_FOR_RANKING_LABEL } from "./constants";
 import { ReportQuadrantChart } from "./report-quadrant-chart";
 import { ReportPerLevelChart } from "./report-per-level-chart";
+import { chatRates } from "@/lib/chatStats";
 
 // subjectは共有ページ(他人が見る)では「この人」にする。
 export function ComparisonSection({
@@ -81,6 +82,7 @@ export function ComparisonSection({
         )}
       </div>
       <PerLevelSection comparison={comparison} subject={subject} />
+      <ChatSection comparison={comparison} subject={subject} />
     </>
   );
 }
@@ -119,6 +121,63 @@ function PerLevelSection({
       <p className="muted" style={{ fontSize: "0.8rem" }}>
         ※
         Riotのデータには試合数が含まれないため、サモナーレベルを試合数の目安にしています。右上ほど「回数が多く、しかも遊んだ量の割に多い」、右下ほど「回数は多いが、たくさん遊んでいるぶん多い」ことを表します。
+      </p>
+    </div>
+  );
+}
+
+// チャットログ(直近の試合ぶん)の要約。参加者が集まれば平均と並べる。
+function ChatSection({
+  comparison,
+  subject,
+}: {
+  comparison: RiotReportComparison;
+  subject: string;
+}) {
+  const { mine, average, participants } = comparison.chat;
+  if (!mine) return null;
+  const rates = chatRates(mine);
+  const harshPer100 = Math.round((mine.harshMessages / mine.games) * 1000) / 10;
+  const tiles = [
+    {
+      label: "発言した試合",
+      value: `${rates.activeRate}%`,
+      avg: average ? `${average.activeRate}%` : null,
+    },
+    {
+      label: "1試合の発言",
+      value: `${rates.perGame}回`,
+      avg: average ? `${average.perGame}回` : null,
+    },
+    {
+      label: "強めの言葉\n(100試合あたり)",
+      value: `${harshPer100}回`,
+      avg: average ? `${average.harshPer100Games}回` : null,
+    },
+  ];
+  return (
+    <div className="card riot-compare-dist">
+      <h3>💬 チャットの傾向</h3>
+      <p className="muted" style={{ marginBottom: "0.75rem" }}>
+        Riotのデータに含まれる直近{mine.games}試合のチャット({subject}
+        の発言のみ)を集計しました。発言{mine.messages}
+        回のうち、全体チャットは{mine.allMessages}回です。
+      </p>
+      <div className="chat-tiles">
+        {tiles.map((t) => (
+          <div className="chat-tile" key={t.label}>
+            <span className="chat-tile-label">{t.label}</span>
+            <span className="chat-tile-value">{t.value}</span>
+            <span className="chat-tile-avg">{t.avg ? `平均 ${t.avg}` : "\u00a0"}</span>
+          </div>
+        ))}
+      </div>
+      <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.75rem" }}>
+        ※
+        「強めの言葉」は「死ね」「ゴミ」「noob」など決まった言葉が含まれる発言を数えた簡易判定で、文脈は考慮していません。
+        {average
+          ? `平均はチャットログを送信した参加者${participants}人のものです。`
+          : `平均は、チャットログを送信した参加者が10人集まると表示されます(現在${participants}人)。`}
       </p>
     </div>
   );
