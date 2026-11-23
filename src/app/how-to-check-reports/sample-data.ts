@@ -3,6 +3,7 @@
 import type { RiotReportComparison } from "@/lib/riotReportStats";
 import type { ChatSummary, HarshSample } from "@/lib/chatStats";
 import type { ReportLean } from "@/lib/reportCountTitle";
+import { buildReceivedDistribution } from "@/lib/reportChartScale";
 
 export const SAMPLE_RECEIVED_BY_CATEGORY: Record<string, number> = {
   ASSISTING_ENEMY_TEAM: 6,
@@ -80,7 +81,7 @@ export const SAMPLE_COMPARISON: RiotReportComparison = {
   topPercent: 22.9,
   average: 9.4,
   median: 5,
-  distribution: null,
+  distribution: buildReceivedDistribution([...points.quadrant.slice(1).map((p) => p[1]), 18], 18),
   quadrant: {
     myMade: 9,
     medianReceived: 5,

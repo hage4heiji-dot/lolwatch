@@ -3933,3 +3933,75 @@ a:has(> .calibration-banner):hover .calibration-banner {
   gap: 0.5rem;
   flex-wrap: wrap;
 }
+
+/* 比較欄: 通報された回数の分布(縦棒) */
+.rq-hist {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 4px;
+  height: 190px;
+  padding: 0.4rem 0.2rem 1.4rem;
+  margin-top: 0.4rem;
+}
+
+.rq-hist-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rq-hist-count {
+  font-size: 0.62rem;
+  color: var(--rq-muted);
+  white-space: nowrap;
+}
+
+.rq-hist-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--rq-line);
+}
+
+.rq-hist-track i {
+  display: block;
+  width: 100%;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.12));
+}
+
+.rq-hist-col-me .rq-hist-track i {
+  background: linear-gradient(180deg, #ffd166, #ff5a5f);
+  box-shadow: 0 0 14px rgba(255, 120, 80, 0.55);
+}
+
+.rq-hist-col-me .rq-hist-count {
+  color: #ffd166;
+  font-weight: 800;
+}
+
+.rq-hist-label {
+  font-size: 0.58rem;
+  color: var(--rq-muted);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+.rq-hist-me {
+  position: absolute;
+  bottom: -1.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #ff5a5f;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  white-space: nowrap;
+}

@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { RiotReportComparison } from "@/lib/riotReportStats";
 import { getTypeName, LEANS, QUADRANTS } from "@/lib/reportCountTitle";
 import { chatRates } from "@/lib/chatStats";
+import { DISTRIBUTION_STEP } from "@/lib/reportChartScale";
 import { MIN_PARTICIPANTS_FOR_RANKING_LABEL } from "./constants";
 import { ReportQuadrantChart } from "./report-quadrant-chart";
 import { ReportPerLevelChart } from "./report-per-level-chart";
@@ -119,9 +120,64 @@ export function ComparisonSection({
           点はほかの参加者で、色は通報された理由の傾向です。個人は特定できません。
         </p>
       </Panel>
+      <DistributionSection comparison={comparison} subject={subject} />
       <PerLevelSection comparison={comparison} subject={subject} />
       <ChatSection comparison={comparison} subject={subject} />
     </>
+  );
+}
+
+// 通報された回数の分布(20回刻みの棒グラフ)。自分のいる棒だけ色を付ける。
+function DistributionSection({
+  comparison,
+  subject,
+}: {
+  comparison: RiotReportComparison;
+  subject: string;
+}) {
+  const { distribution, participants, myReceived } = comparison;
+  if (!distribution || distribution.length === 0) return null;
+  const max = Math.max(...distribution.map((b) => b.count), 1);
+  return (
+    <Panel
+      kicker={`DISTRIBUTION ・ ${DISTRIBUTION_STEP}回ごと`}
+      title="通報された回数の分布"
+      badge={`${subject} ${myReceived}回`}
+      accent="#ffb547"
+    >
+      <div
+        className="rq-hist"
+        role="img"
+        aria-label={`通報された回数の分布。${subject}は${
+          distribution.find((b) => b.isMine)?.label ?? ""
+        }回の区間`}
+      >
+        {distribution.map((bin) => (
+          <div className={`rq-hist-col${bin.isMine ? " rq-hist-col-me" : ""}`} key={bin.label}>
+            <span className="rq-hist-count">{bin.count}人</span>
+            <div className="rq-hist-track">
+              <i
+                style={{ height: `${Math.max((bin.count / max) * 100, bin.count > 0 ? 4 : 0)}%` }}
+              />
+            </div>
+            {/* 本数が多いとスマホで入りきらないので下限の数字だけにする(最後は「180+」) */}
+            <span className="rq-hist-label">
+              {distribution.length > 5
+                ? bin.label.endsWith("〜")
+                  ? `${bin.label.slice(0, -1)}+`
+                  : bin.label.split("〜")[0]
+                : bin.label}
+            </span>
+            {bin.isMine && <span className="rq-hist-me">{subject}</span>}
+          </div>
+        ))}
+      </div>
+      <p className="rq-note">
+        ※ 横は通報された回数(累計、{DISTRIBUTION_STEP}
+        回ごとの区間)、縦はその区間の人数です。lolwatchでデータを送信した参加者
+        {participants}人の分布です。
+      </p>
+    </Panel>
   );
 }
 

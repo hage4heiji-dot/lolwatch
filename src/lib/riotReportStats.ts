@@ -8,15 +8,16 @@ import {
   type QuadrantKey,
   type ReportLean,
 } from "@/lib/reportCountTitle";
-import { reportsPer100Levels } from "@/lib/reportChartScale";
+import {
+  buildReceivedDistribution,
+  reportsPer100Levels,
+  type DistributionBin,
+} from "@/lib/reportChartScale";
 import { chatRates, type ChatSummary } from "@/lib/chatStats";
 
 // これ未満の参加人数では順位を出さない(数人だと「上位○%」が意味を持たず、
 // 数値から個人を推測されやすくもなるため)。
 export const MIN_PARTICIPANTS_FOR_RANKING = 10;
-
-// 分布表示の区切り(下限値)。最後の区切り以上はまとめて「◯回以上」とする。
-const DISTRIBUTION_BUCKETS = [0, 1, 5, 10, 20, 50, 100];
 
 // 参加者が少なく中央値が使えない間の仮の境界線(この値より多ければ「多い」側)。
 // 中央値の代わりにタイプを出せるようにするためのもの。
@@ -35,7 +36,8 @@ export type RiotReportComparison = {
   topPercent: number | null;
   average: number | null;
   median: number | null;
-  distribution: { label: string; count: number; isMine: boolean }[] | null;
+  // 通報された回数の分布(20回刻み)。参加者が少ない間も出す(人数を数えるだけで個人は特定できない)。
+  distribution: DistributionBin[] | null;
   // 通報された回数(縦)×通報した回数(横)の4象限。参加者不足ならnull。
   quadrant: {
     myMade: number;
@@ -75,22 +77,6 @@ export function toAccountKey(riotIdHash: string): string {
   const secret = process.env.RIOT_STAT_HMAC_SECRET;
   if (!secret) throw new Error("RIOT_STAT_HMAC_SECRET が設定されていません");
   return createHmac("sha256", secret).update(riotIdHash).digest("hex");
-}
-
-function bucketLabel(index: number): string {
-  const min = DISTRIBUTION_BUCKETS[index];
-  const next = DISTRIBUTION_BUCKETS[index + 1];
-  if (next === undefined) return `${min}回以上`;
-  if (next - min === 1) return `${min}回`;
-  return `${min}〜${next - 1}回`;
-}
-
-function bucketIndex(value: number): number {
-  let index = 0;
-  DISTRIBUTION_BUCKETS.forEach((min, i) => {
-    if (value >= min) index = i;
-  });
-  return index;
 }
 
 // DBのJson列(理由別の回数)を数値のマップとして読む。想定外の形の値は無視する。
@@ -204,7 +190,7 @@ export async function getRiotReportComparison(
       topPercent: null,
       average: null,
       median: null,
-      distribution: null,
+      distribution: buildReceivedDistribution(values, myReceived),
       quadrant: {
         myMade,
         medianReceived: PROVISIONAL_BOUNDARY.received,
@@ -229,10 +215,6 @@ export async function getRiotReportComparison(
   const median = medianOf(values);
   const medianMade = medianOf(rows.map((r) => r.madeTotal).sort((a, b) => a - b));
 
-  const counts = DISTRIBUTION_BUCKETS.map(() => 0);
-  for (const v of values) counts[bucketIndex(v)]++;
-  const myBucket = bucketIndex(myReceived);
-
   const round1 = (n: number) => Math.round(n * 10) / 10;
   return {
     participants,
@@ -241,11 +223,7 @@ export async function getRiotReportComparison(
     topPercent: round1((atLeastMe / participants) * 100),
     average: round1(values.reduce((a, b) => a + b, 0) / participants),
     median,
-    distribution: counts.map((count, i) => ({
-      label: bucketLabel(i),
-      count,
-      isMine: i === myBucket,
-    })),
+    distribution: buildReceivedDistribution(values, myReceived),
     quadrant: {
       myMade,
       medianReceived: median,

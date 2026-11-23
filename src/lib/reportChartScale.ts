@@ -63,3 +63,29 @@ export function reportsPer100Levels(received: number, level: number | null): num
   if (!level || level <= 0) return null;
   return Math.round((received / level) * 1000) / 10;
 }
+
+// 「通報された回数」の分布(棒グラフ)の刻み幅と最大本数。最後の棒は「◯〜」にまとめる。
+export const DISTRIBUTION_STEP = 20;
+const DISTRIBUTION_MAX_BINS = 10;
+
+export type DistributionBin = { label: string; count: number; isMine: boolean };
+
+// 参加者の通報された回数を DISTRIBUTION_STEP 刻みで数える。棒の本数は最大値(自分を含む)に
+// 合わせて決め、多すぎる場合は最後の棒を「◯〜」にまとめる。
+export function buildReceivedDistribution(values: number[], myReceived: number): DistributionBin[] {
+  const max = values.reduce((m, v) => Math.max(m, v), Math.max(myReceived, 0));
+  const bins = Math.min(Math.floor(max / DISTRIBUTION_STEP) + 1, DISTRIBUTION_MAX_BINS);
+  const indexOf = (v: number) => Math.min(Math.floor(v / DISTRIBUTION_STEP), bins - 1);
+  const counts = Array.from({ length: bins }, () => 0);
+  for (const v of values) counts[indexOf(v)]++;
+  const myIndex = indexOf(myReceived);
+  return counts.map((count, i) => {
+    const min = i * DISTRIBUTION_STEP;
+    const isLast = i === bins - 1 && max >= (i + 1) * DISTRIBUTION_STEP;
+    return {
+      label: isLast ? `${min}〜` : `${min}〜${min + DISTRIBUTION_STEP - 1}`,
+      count,
+      isMine: i === myIndex,
+    };
+  });
+}
