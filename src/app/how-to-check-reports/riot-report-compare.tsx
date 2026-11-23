@@ -3,7 +3,7 @@
 // 読み込んだ「通報された回数」を結果カードで表示し、本人が同意した場合だけ匿名で送信して
 // 他の参加者と比べた位置(上位○%・分布)を出す。送信後はXで共有できるようにする。
 import { useState } from "react";
-import type { RiotReportComparison } from "@/lib/riotReportStats";
+import type { RiotReportComparison, SpendSummary } from "@/lib/riotReportStats";
 import {
   buildShareText,
   topCategory,
@@ -23,6 +23,8 @@ type Props = {
   riotId: { name: string; platform: string } | null;
   // チャットログの要約(数値のみ)。zipにチャットログが無ければnull。
   chat: ChatSummary | null;
+  // LoLの累計課金額(円)と購入回数。履歴が無い・日本円以外ならnull。
+  spend: SpendSummary | null;
   receivedByCategory: Record<string, number>;
   madeByCategory: Record<string, number>;
   penaltyCount: number;
@@ -35,7 +37,8 @@ function sum(m: Record<string, number>): number {
 }
 
 export function RiotReportCompare(props: Props) {
-  const { riotIdHash, riotId, chat, receivedByCategory, madeByCategory, penaltyCount } = props;
+  const { riotIdHash, riotId, chat, spend, receivedByCategory, madeByCategory, penaltyCount } =
+    props;
   const [comparison, setComparison] = useState<RiotReportComparison | null>(
     props.sampleComparison ?? null,
   );
@@ -59,6 +62,7 @@ export function RiotReportCompare(props: Props) {
           riotIdHash,
           riotId: riotId ?? undefined,
           chat: chat ?? undefined,
+          spend: spend ?? undefined,
           receivedByCategory,
           madeByCategory,
           penaltyCount,
@@ -124,9 +128,12 @@ export function RiotReportCompare(props: Props) {
                 Riot ID(サモナーレベルをRiot
                 APIで調べるためだけに一時的に使います。lolwatchには保存しません)
               </li>
+              <li>
+                LoLの累計課金額(RP購入履歴の合計額と購入回数)。決済手段や購入日時は送信しません。共有ページには表示されません
+              </li>
             </ul>
             <p>
-              zipファイルそのものやメールアドレスなどは送信しません。保存するのは回数・サモナーレベル・識別子だけで、統計にのみ使い、個人とは結びつけません。
+              zipファイルそのものやメールアドレスなどは送信しません。保存するのは回数・金額の合計・サモナーレベル・識別子だけで、統計にのみ使い、個人とは結びつけません。
             </p>
           </details>
         </div>

@@ -424,6 +424,9 @@ model RiotReportStat {
   chatMessages       Int?
   chatAllMessages    Int?
   chatHarshMessages  Int?
+  // LoLのRP購入履歴の合計額(円)と購入回数。日本円以外の履歴がある人・未送信の人はnull。
+  spendYen           Int?
+  spendPurchases     Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

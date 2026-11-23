@@ -68,6 +68,13 @@ const requestSchema = z.object({
         c.activeGames <= c.games && c.allMessages <= c.messages && c.harshMessages <= c.messages,
     )
     .optional(),
+  // LoLの累計課金額(RP購入履歴の合計、円)と購入回数。日本円の履歴だけのときに送られる。
+  spend: z
+    .object({
+      yen: z.number().int().min(0).max(100_000_000),
+      purchases: z.number().int().min(0).max(100_000),
+    })
+    .optional(),
 });
 
 // ブラウザ側(riot-data-reader.tsxのhashRiotId)と同じ方法でハッシュし、
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: rateCheck.reason }, { status: 429 });
   }
 
-  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount, chat } =
+  const { riotIdHash, riotId, receivedByCategory, madeByCategory, penaltyCount, chat, spend } =
     parsed.data;
   if (riotId && hashRiotId(riotId.name, riotId.platform) !== riotIdHash) {
     return NextResponse.json({ error: "送信内容が不正です。" }, { status: 400 });
@@ -148,6 +155,7 @@ export async function POST(request: NextRequest) {
           chatHarshMessages: chat.harshMessages,
         }
       : {}),
+    ...(spend ? { spendYen: spend.yen, spendPurchases: spend.purchases } : {}),
   };
   const row = await prisma.riotReportStat.upsert({
     where: { accountKey },
@@ -171,6 +179,7 @@ export async function POST(request: NextRequest) {
     receivedByCategory,
     row.summonerLevel,
     chatSummaryFromRow(row),
+    spend ?? null,
   );
   // idは共有ページ(/how-to-check-reports/result/[id])用。同じアカウントなら再送信しても変わらない。
   // versionは共有URLの末尾(?v=)に付ける。Xは同じURLのカード画像を長く使い回すので、

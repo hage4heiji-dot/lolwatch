@@ -4,7 +4,12 @@ import type { CSSProperties, ReactNode } from "react";
 import type { RiotReportComparison } from "@/lib/riotReportStats";
 import { getTypeName, LEANS, QUADRANTS } from "@/lib/reportCountTitle";
 import { chatRates } from "@/lib/chatStats";
-import { DISTRIBUTION_STEP } from "@/lib/reportChartScale";
+import {
+  DISTRIBUTION_STEP,
+  formatManYen,
+  SPEND_DISTRIBUTION_STEP,
+  type DistributionBin,
+} from "@/lib/reportChartScale";
 import { MIN_PARTICIPANTS_FOR_RANKING_LABEL } from "./constants";
 import { ReportQuadrantChart } from "./report-quadrant-chart";
 import { ReportPerLevelChart } from "./report-per-level-chart";
@@ -123,11 +128,41 @@ export function ComparisonSection({
       <DistributionSection comparison={comparison} subject={subject} />
       <PerLevelSection comparison={comparison} subject={subject} />
       <ChatSection comparison={comparison} subject={subject} />
+      <SpendSection comparison={comparison} subject={subject} />
     </>
   );
 }
 
-// 通報された回数の分布(20回刻みの棒グラフ)。自分のいる棒だけ色を付ける。
+// 縦棒グラフ。自分のいる棒だけ色を付ける。labelsを渡すと棒の下の文字を差し替える。
+function Histogram({
+  bins,
+  subject,
+  ariaLabel,
+  labels,
+}: {
+  bins: DistributionBin[];
+  subject: string;
+  ariaLabel: string;
+  labels?: string[];
+}) {
+  const max = Math.max(...bins.map((b) => b.count), 1);
+  return (
+    <div className="rq-hist" role="img" aria-label={ariaLabel}>
+      {bins.map((bin, i) => (
+        <div className={`rq-hist-col${bin.isMine ? " rq-hist-col-me" : ""}`} key={bin.label}>
+          <span className="rq-hist-count">{bin.count}人</span>
+          <div className="rq-hist-track">
+            <i style={{ height: `${Math.max((bin.count / max) * 100, bin.count > 0 ? 4 : 0)}%` }} />
+          </div>
+          <span className="rq-hist-label">{labels?.[i] ?? bin.label}</span>
+          {bin.isMine && <span className="rq-hist-me">{subject}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 通報された回数の分布(20回刻みの棒グラフ)。
 function DistributionSection({
   comparison,
   subject,
@@ -137,7 +172,13 @@ function DistributionSection({
 }) {
   const { distribution, participants, myReceived } = comparison;
   if (!distribution || distribution.length === 0) return null;
-  const max = Math.max(...distribution.map((b) => b.count), 1);
+  // 本数が多いとスマホで入りきらないので下限の数字だけにする(最後は「180+」)
+  const labels =
+    distribution.length > 5
+      ? distribution.map((b) =>
+          b.label.endsWith("〜") ? `${b.label.slice(0, -1)}+` : b.label.split("〜")[0],
+        )
+      : undefined;
   return (
     <Panel
       kicker={`DISTRIBUTION ・ ${DISTRIBUTION_STEP}回ごと`}
@@ -145,37 +186,69 @@ function DistributionSection({
       badge={`${subject} ${myReceived}回`}
       accent="#ffb547"
     >
-      <div
-        className="rq-hist"
-        role="img"
-        aria-label={`通報された回数の分布。${subject}は${
+      <Histogram
+        bins={distribution}
+        subject={subject}
+        labels={labels}
+        ariaLabel={`通報された回数の分布。${subject}は${
           distribution.find((b) => b.isMine)?.label ?? ""
         }回の区間`}
-      >
-        {distribution.map((bin) => (
-          <div className={`rq-hist-col${bin.isMine ? " rq-hist-col-me" : ""}`} key={bin.label}>
-            <span className="rq-hist-count">{bin.count}人</span>
-            <div className="rq-hist-track">
-              <i
-                style={{ height: `${Math.max((bin.count / max) * 100, bin.count > 0 ? 4 : 0)}%` }}
-              />
-            </div>
-            {/* 本数が多いとスマホで入りきらないので下限の数字だけにする(最後は「180+」) */}
-            <span className="rq-hist-label">
-              {distribution.length > 5
-                ? bin.label.endsWith("〜")
-                  ? `${bin.label.slice(0, -1)}+`
-                  : bin.label.split("〜")[0]
-                : bin.label}
-            </span>
-            {bin.isMine && <span className="rq-hist-me">{subject}</span>}
-          </div>
-        ))}
-      </div>
+      />
       <p className="rq-note">
-        ※ 横は通報された回数(累計、{DISTRIBUTION_STEP}
-        回ごとの区間)、縦はその区間の人数です。lolwatchでデータを送信した参加者
-        {participants}人の分布です。
+        ※ 横は通報された回数(累計、{DISTRIBUTION_STEP}回ごとの区間)、縦はその区間の人数です。
+        lolwatchでデータを送信した参加者{participants}人の分布です。
+      </p>
+    </Panel>
+  );
+}
+
+// LoLの累計課金額(RP購入履歴の合計)の分布。本人の画面だけで出す(共有ページではmineがnull)。
+function SpendSection({
+  comparison,
+  subject,
+}: {
+  comparison: RiotReportComparison;
+  subject: string;
+}) {
+  const spend = comparison.spend;
+  if (!spend?.mine || !spend.distribution) return null;
+  const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
+  return (
+    <Panel
+      kicker={`SPENDING ・ ${formatManYen(SPEND_DISTRIBUTION_STEP)}円ごと`}
+      title="LoLの累計課金額"
+      badge={`購入 ${spend.mine.purchases}回`}
+      accent="#4fd1a5"
+    >
+      <div className="rq-metric">
+        <span className="rq-metric-value">{spend.mine.yen.toLocaleString("ja-JP")}</span>
+        <span className="rq-metric-unit">円</span>
+        {spend.topPercent !== null && (
+          <span className="rq-metric-rank">上位 {spend.topPercent}%</span>
+        )}
+      </div>
+      <Histogram
+        bins={spend.distribution}
+        subject={subject}
+        ariaLabel={`累計課金額の分布。${subject}は${yen(spend.mine.yen)}`}
+      />
+      {spend.average !== null && spend.median !== null && (
+        <MiniStats
+          items={[
+            { label: "平均", value: `${formatManYen(spend.average)}円` },
+            { label: "中央値", value: `${formatManYen(spend.median)}円` },
+            { label: "参加者", value: `${spend.participants}人` },
+          ]}
+        />
+      )}
+      <p className="rq-note">
+        ※
+        RiotのデータにあるRP購入履歴(日本円)の合計です。返金やギフト、プリペイドカードの扱いは反映されていない場合があります。横は
+        {formatManYen(SPEND_DISTRIBUTION_STEP)}円ごとの区間、縦はその区間の人数です。
+        {spend.topPercent === null
+          ? `順位と平均は、課金額を送った参加者が${MIN_PARTICIPANTS_FOR_RANKING_LABEL}集まると表示されます(現在${spend.participants}人)。`
+          : ""}
+        この欄は共有ページには表示されません。
       </p>
     </Panel>
   );

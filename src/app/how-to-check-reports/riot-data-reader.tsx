@@ -4,6 +4,7 @@
 // ペナルティ履歴を表示する。zipにはメールアドレスやログイン履歴など多くの個人情報が
 // 含まれるため、ファイルはサーバーへ一切送信せず、必要な数ファイルだけを展開する。
 import { useState } from "react";
+import type { SpendSummary } from "@/lib/riotReportStats";
 import { unzip } from "fflate";
 import { analyzeChatLogs, type ChatSummary, type HarshSample } from "@/lib/chatStats";
 import { HarshSamples } from "./harsh-samples";
@@ -14,6 +15,7 @@ import {
   SAMPLE_MADE_BY_CATEGORY,
   SAMPLE_PENALTIES,
   SAMPLE_RECEIVED_BY_CATEGORY,
+  SAMPLE_SPEND,
 } from "./sample-data";
 import { RiotReportCompare } from "./riot-report-compare";
 import { RIOT_REPORT_CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@/lib/reportCountTitle";
@@ -45,18 +47,21 @@ type ParsedData = {
   chat: ChatSummary | null;
   // 強めの言葉と判定された発言の例(画面に出すだけで送信しない)。
   harshSamples: HarshSample[];
+  // LoLのRP購入履歴の合計(円)と購入回数。履歴ファイルが無い・日本円以外が混ざる場合はnull。
+  spend: SpendSummary | null;
 };
 
 // 試合ごとのチャットログ(1試合1ファイル)が入っているフォルダ。
 const CHAT_LOG_DIR = "leagueoflegends/chat_logs_v2_uc/";
 
 // zip内のパス(末尾一致で探す。展開ツールによって先頭にフォルダが付く場合があるため)。
-const TARGET_FILES: Record<GameKey | "penalties" | "summoner", string> = {
+const TARGET_FILES: Record<GameKey | "penalties" | "summoner" | "spend", string> = {
   lol: "leagueoflegends/grouped_reports.json",
   tft: "teamfighttactics/tft_grouped_reports.json",
   valorant: "valorant/valorant_grouped_reports.json",
   penalties: "penalties/penalty_history.json",
   summoner: "leagueoflegends/summoner.json",
+  spend: "leagueoflegends/rp_purchase_history_uc.json",
 };
 
 const GAME_LABELS: Record<GameKey, string> = {
@@ -135,6 +140,23 @@ function readRiotId(summonerText: string | null): { name: string; platform: stri
   return { name: riot_id, platform: typeof lol_platform === "string" ? lol_platform : "" };
 }
 
+// RP購入履歴(1件ごとに金額と通貨)を合計する。比べられるよう日本円だけの場合に限る。
+// 決済手段やIPアドレスなどほかの項目は読まない。
+function readSpend(text: string | null): SpendSummary | null {
+  if (!text) return null;
+  const json: unknown = JSON.parse(text);
+  if (!Array.isArray(json)) return null;
+  let yen = 0;
+  for (const entry of json) {
+    if (typeof entry !== "object" || entry === null) return null;
+    const { amount, currency_type } = entry as Record<string, unknown>;
+    const value = typeof amount === "number" ? amount : Number(amount);
+    if (currency_type !== "JPY" || !Number.isFinite(value) || value < 0) return null;
+    yen += value;
+  }
+  return { yen: Math.round(yen), purchases: json.length };
+}
+
 // サーバー側(api/riot-report-stats/route.tsのhashRiotId)と同じ方法でハッシュする。
 async function hashRiotId(
   riotId: { name: string; platform: string } | null,
@@ -170,7 +192,15 @@ async function parseZip(file: File): Promise<ParsedData> {
       .filter((n) => n.includes(CHAT_LOG_DIR))
       .map((n) => decoder.decode(files[n])),
   );
-  return { reports, penalties, riotIdHash: await hashRiotId(riotId), riotId, chat, harshSamples };
+  return {
+    reports,
+    penalties,
+    riotIdHash: await hashRiotId(riotId),
+    riotId,
+    chat,
+    harshSamples,
+    spend: readSpend(read(TARGET_FILES.spend)),
+  };
 }
 
 function sum(counts: Record<string, number>): number {
@@ -272,6 +302,7 @@ const SAMPLE_RESULT: ParsedData = {
   riotId: null,
   chat: SAMPLE_CHAT,
   harshSamples: SAMPLE_HARSH,
+  spend: SAMPLE_SPEND,
 };
 
 export function RiotDataReader() {
@@ -373,6 +404,7 @@ export function RiotDataReader() {
               riotIdHash={result.riotIdHash}
               riotId={result.riotId}
               chat={result.chat}
+              spend={result.spend}
               receivedByCategory={result.reports.lol.reports_received}
               madeByCategory={result.reports.lol.reports_made}
               penaltyCount={result.penalties?.length ?? 0}

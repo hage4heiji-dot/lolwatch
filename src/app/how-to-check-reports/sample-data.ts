@@ -1,9 +1,9 @@
 // 「サンプルを見る」用の架空データ。zipを選ぶ前に結果画面の見た目を確認してもらうためのもので、
 // 実在のプレイヤーとは関係ない。サーバーへは一切送信しない。
-import type { RiotReportComparison } from "@/lib/riotReportStats";
+import type { RiotReportComparison, SpendSummary } from "@/lib/riotReportStats";
 import type { ChatSummary, HarshSample } from "@/lib/chatStats";
 import type { ReportLean } from "@/lib/reportCountTitle";
-import { buildReceivedDistribution } from "@/lib/reportChartScale";
+import { buildReceivedDistribution, buildSpendDistribution } from "@/lib/reportChartScale";
 
 export const SAMPLE_RECEIVED_BY_CATEGORY: Record<string, number> = {
   ASSISTING_ENEMY_TEAM: 6,
@@ -36,6 +36,30 @@ export const SAMPLE_CHAT: ChatSummary = {
   allMessages: 6,
   harshMessages: 3,
 };
+
+export const SAMPLE_SPEND: SpendSummary = { yen: 48_100, purchases: 21 };
+
+// 参加者の課金額(円)。0円の人が多く、一部が大きい分布にする。
+const SAMPLE_SPEND_VALUES = (() => {
+  const rand = seeded(7);
+  return Array.from({ length: 39 }, () => {
+    const r = rand();
+    return r < 0.3 ? 0 : Math.round((Math.pow(rand(), 2.4) * 260_000) / 650) * 650;
+  });
+})();
+
+function sampleSpendComparison(): RiotReportComparison["spend"] {
+  const values = [...SAMPLE_SPEND_VALUES, SAMPLE_SPEND.yen].sort((a, b) => a - b);
+  const n = values.length;
+  return {
+    mine: SAMPLE_SPEND,
+    participants: n,
+    topPercent: Math.round((values.filter((v) => v >= SAMPLE_SPEND.yen).length / n) * 1000) / 10,
+    average: Math.round(values.reduce((a, b) => a + b, 0) / n),
+    median: values[Math.floor(n / 2)],
+    distribution: buildSpendDistribution(values, SAMPLE_SPEND.yen),
+  };
+}
 
 export const SAMPLE_HARSH: HarshSample[] = [
   { phase: "試合中", word: "下手くそ", text: "下手くそすぎて草" },
@@ -102,4 +126,5 @@ export const SAMPLE_COMPARISON: RiotReportComparison = {
     participants: 41,
     average: { activeRate: 31.5, perGame: 0.74, harshPer100Games: 2.1 },
   },
+  spend: sampleSpendComparison(),
 };

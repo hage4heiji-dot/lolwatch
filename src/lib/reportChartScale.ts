@@ -67,25 +67,47 @@ export function reportsPer100Levels(received: number, level: number | null): num
 // 「通報された回数」の分布(棒グラフ)の刻み幅と最大本数。最後の棒は「◯〜」にまとめる。
 export const DISTRIBUTION_STEP = 20;
 const DISTRIBUTION_MAX_BINS = 10;
+// 累計課金額(円)の分布の刻み幅。
+export const SPEND_DISTRIBUTION_STEP = 20_000;
 
 export type DistributionBin = { label: string; count: number; isMine: boolean };
 
-// 参加者の通報された回数を DISTRIBUTION_STEP 刻みで数える。棒の本数は最大値(自分を含む)に
-// 合わせて決め、多すぎる場合は最後の棒を「◯〜」にまとめる。
-export function buildReceivedDistribution(values: number[], myReceived: number): DistributionBin[] {
-  const max = values.reduce((m, v) => Math.max(m, v), Math.max(myReceived, 0));
-  const bins = Math.min(Math.floor(max / DISTRIBUTION_STEP) + 1, DISTRIBUTION_MAX_BINS);
-  const indexOf = (v: number) => Math.min(Math.floor(v / DISTRIBUTION_STEP), bins - 1);
+// 値を step 刻みで数える。棒の本数は最大値(自分を含む)に合わせて決め、
+// 多すぎる場合は最後の棒を「◯〜」にまとめる。labelは区間の下限と、最後の開いた区間かを受け取って作る。
+function buildDistribution(
+  values: number[],
+  mine: number,
+  step: number,
+  label: (min: number, open: boolean) => string,
+): DistributionBin[] {
+  const max = values.reduce((m, v) => Math.max(m, v), Math.max(mine, 0));
+  const bins = Math.min(Math.floor(max / step) + 1, DISTRIBUTION_MAX_BINS);
+  const indexOf = (v: number) => Math.min(Math.floor(Math.max(v, 0) / step), bins - 1);
   const counts = Array.from({ length: bins }, () => 0);
   for (const v of values) counts[indexOf(v)]++;
-  const myIndex = indexOf(myReceived);
+  const myIndex = indexOf(mine);
   return counts.map((count, i) => {
-    const min = i * DISTRIBUTION_STEP;
-    const isLast = i === bins - 1 && max >= (i + 1) * DISTRIBUTION_STEP;
-    return {
-      label: isLast ? `${min}〜` : `${min}〜${min + DISTRIBUTION_STEP - 1}`,
-      count,
-      isMine: i === myIndex,
-    };
+    const min = i * step;
+    const open = i === bins - 1 && max >= (i + 1) * step;
+    return { label: label(min, open), count, isMine: i === myIndex };
   });
+}
+
+export function buildReceivedDistribution(values: number[], myReceived: number): DistributionBin[] {
+  return buildDistribution(values, myReceived, DISTRIBUTION_STEP, (min, open) =>
+    open ? `${min}〜` : `${min}〜${min + DISTRIBUTION_STEP - 1}`,
+  );
+}
+
+// 円を「2万」「1.5万」のような短い表記にする(棒グラフの目盛り用)。
+export function formatManYen(yen: number): string {
+  if (yen === 0) return "0";
+  if (yen < 10_000) return `${yen.toLocaleString("ja-JP")}`;
+  return `${Math.round((yen / 10_000) * 10) / 10}万`;
+}
+
+export function buildSpendDistribution(values: number[], mySpend: number): DistributionBin[] {
+  return buildDistribution(values, mySpend, SPEND_DISTRIBUTION_STEP, (min, open) =>
+    open ? `${formatManYen(min)}+` : formatManYen(min),
+  );
 }

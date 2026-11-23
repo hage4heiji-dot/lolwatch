@@ -10,6 +10,7 @@ import {
 } from "@/lib/reportCountTitle";
 import {
   buildReceivedDistribution,
+  buildSpendDistribution,
   reportsPer100Levels,
   type DistributionBin,
 } from "@/lib/reportChartScale";
@@ -69,7 +70,23 @@ export type RiotReportComparison = {
     // 参加者平均(チャットありの参加者がMIN_PARTICIPANTS_FOR_RANKING未満ならnull)
     average: { activeRate: number; perGame: number; harshPer100Games: number } | null;
   };
+  // LoLの累計課金額(RP購入履歴の合計、円)。本人の画面にだけ出す(共有ページ・OGPには出さない)。
+  spend: {
+    // 本人の課金額。比較に使わない場合(共有ページ・データなし)はnull。
+    mine: SpendSummary | null;
+    // 課金額を送ってくれた参加者数
+    participants: number;
+    // 課金額が自分以上の人の割合(%)。参加者不足ならnull。
+    topPercent: number | null;
+    // 参加者の平均・中央値(円)。参加者不足ならnull。
+    average: number | null;
+    median: number | null;
+    // 2万円刻みの分布。mineがnullならnull。
+    distribution: DistributionBin[] | null;
+  };
 };
+
+export type SpendSummary = { yen: number; purchases: number };
 
 // ブラウザから届くRiot IDのSHA-256(16進)を、サーバーの秘密鍵でHMACして保存用のキーにする。
 // DBだけが漏れても、既知のRiot ID一覧と突き合わせて誰のデータか特定できないようにするため。
@@ -98,6 +115,7 @@ export async function getRiotReportComparison(
   myReceivedByCategory: Record<string, number>,
   myLevel: number | null,
   myChat: ChatSummary | null,
+  mySpend: SpendSummary | null = null,
 ): Promise<RiotReportComparison> {
   // 参加者数が数万規模になるまでは全件の値だけ取ってアプリ側で集計して十分。
   const rows = await prisma.riotReportStat.findMany({
@@ -111,6 +129,7 @@ export async function getRiotReportComparison(
       chatMessages: true,
       chatAllMessages: true,
       chatHarshMessages: true,
+      spendYen: true,
     },
   });
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
@@ -168,6 +187,24 @@ export async function getRiotReportComparison(
         : null,
   };
 
+  const spendValues = rows.flatMap((r) => (r.spendYen === null ? [] : [r.spendYen]));
+  const spendEnough = spendValues.length >= MIN_PARTICIPANTS_FOR_RANKING;
+  const spend: RiotReportComparison["spend"] = {
+    mine: mySpend,
+    participants: spendValues.length,
+    topPercent:
+      mySpend && spendEnough
+        ? Math.round(
+            (spendValues.filter((v) => v >= mySpend.yen).length / spendValues.length) * 1000,
+          ) / 10
+        : null,
+    average: spendEnough
+      ? Math.round(spendValues.reduce((a, b) => a + b, 0) / spendValues.length)
+      : null,
+    median: spendEnough ? Math.round(medianOf([...spendValues].sort((a, b) => a - b))) : null,
+    distribution: mySpend ? buildSpendDistribution(spendValues, mySpend.yen) : null,
+  };
+
   const perLevel: RiotReportComparison["perLevel"] = {
     myLevel,
     myPer100,
@@ -207,6 +244,7 @@ export async function getRiotReportComparison(
       },
       perLevel,
       chat,
+      spend,
     };
   }
 
@@ -235,6 +273,7 @@ export async function getRiotReportComparison(
     },
     perLevel,
     chat,
+    spend,
   };
 }
 

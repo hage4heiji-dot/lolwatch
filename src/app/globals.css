@@ -3321,6 +3321,7 @@ a:has(> .calibration-banner):hover .calibration-banner {
   margin: 0.15rem 0 0;
   font-size: 1.05rem;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .rq-note {
