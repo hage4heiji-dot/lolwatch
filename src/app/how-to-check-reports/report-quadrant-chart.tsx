@@ -1,7 +1,7 @@
 // 通報した回数(横)×通報された回数(縦)の4象限グラフ。他の参加者は匿名の点で描き、自分を強調する。
 // 状態を持たないSVGなので、読み込み直後の画面(クライアント)と共有ページ(サーバー)の両方で使える。
 import type { RiotReportComparison } from "@/lib/riotReportStats";
-import { QUADRANTS, type QuadrantKey } from "@/lib/reportCountTitle";
+import { getTypeName, LEANS, QUADRANTS, type QuadrantKey } from "@/lib/reportCountTitle";
 
 type Quadrant = NonNullable<RiotReportComparison["quadrant"]>;
 
@@ -36,7 +36,7 @@ export function ReportQuadrantChart({
   myReceived: number;
   meLabel?: string;
 }) {
-  const { myMade, medianReceived, medianMade, type, points } = quadrant;
+  const { myMade, medianReceived, medianMade, type, lean, points } = quadrant;
   // 中央線がグラフの端に張り付かないよう、最大値は中央値の2倍以上にしておく。
   // 最大値の点が枠の端に張り付かないよう、少し(1.2倍)余裕をもたせる。
   const maxX = Math.max(1, myMade, medianMade * 2, ...points.map((p) => p[0])) * 1.2;
@@ -59,64 +59,81 @@ export function ReportQuadrantChart({
   }[type];
 
   return (
-    <svg
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
-      className="rq-chart"
-      role="img"
-      aria-label={`4象限グラフ。${meLabel}は${QUADRANTS[type].name}`}
-    >
-      <rect x={PAD_LEFT} y={PAD_TOP} width={PLOT_W} height={PLOT_H} className="rq-plot" />
-      <rect
-        x={highlight.x}
-        y={highlight.y}
-        width={highlight.w}
-        height={highlight.h}
-        className="rq-highlight"
-      />
+    <>
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        className="rq-chart"
+        role="img"
+        aria-label={`4象限グラフ。${meLabel}は${getTypeName(type, lean)}`}
+      >
+        <rect x={PAD_LEFT} y={PAD_TOP} width={PLOT_W} height={PLOT_H} className="rq-plot" />
+        <rect
+          x={highlight.x}
+          y={highlight.y}
+          width={highlight.w}
+          height={highlight.h}
+          className="rq-highlight"
+        />
 
-      <line x1={midX} x2={midX} y1={PAD_TOP} y2={PAD_TOP + PLOT_H} className="rq-median" />
-      <line x1={PAD_LEFT} x2={SIZE - PAD_RIGHT} y1={midY} y2={midY} className="rq-median" />
+        <line x1={midX} x2={midX} y1={PAD_TOP} y2={PAD_TOP + PLOT_H} className="rq-median" />
+        <line x1={PAD_LEFT} x2={SIZE - PAD_RIGHT} y1={midY} y2={midY} className="rq-median" />
 
-      {(Object.keys(CORNERS) as QuadrantKey[]).map((key) => (
+        {(Object.keys(CORNERS) as QuadrantKey[]).map((key) => (
+          <text
+            key={key}
+            x={CORNERS[key].x}
+            y={CORNERS[key].y}
+            textAnchor={CORNERS[key].anchor}
+            className={`rq-label${key === type ? " rq-label-active" : ""}`}
+          >
+            {QUADRANTS[key].emoji} {QUADRANTS[key].name}
+          </text>
+        ))}
+
+        {points.map(([x, y, pointLean], i) => (
+          <circle
+            key={i}
+            cx={px(x)}
+            cy={py(y)}
+            r={3.6}
+            fill={LEANS[pointLean].color}
+            className="rq-point"
+          />
+        ))}
+
+        <circle cx={myX} cy={myY} r={11} className="rq-me-ring" />
+        <circle cx={myX} cy={myY} r={6.5} fill={LEANS[lean].color} className="rq-me" />
         <text
-          key={key}
-          x={CORNERS[key].x}
-          y={CORNERS[key].y}
-          textAnchor={CORNERS[key].anchor}
-          className={`rq-label${key === type ? " rq-label-active" : ""}`}
+          x={myX}
+          // 上端付近では文字が枠外に切れるので、点の下に出す。
+          y={myY < PAD_TOP + 30 ? myY + 24 : myY - 15}
+          textAnchor={myX > SIZE - 50 ? "end" : myX < PAD_LEFT + 30 ? "start" : "middle"}
+          className="rq-me-label"
         >
-          {QUADRANTS[key].emoji} {QUADRANTS[key].name}
+          {meLabel}
         </text>
-      ))}
 
-      {points.map(([x, y], i) => (
-        <circle key={i} cx={px(x)} cy={py(y)} r={3.2} className="rq-point" />
-      ))}
-
-      <circle cx={myX} cy={myY} r={11} className="rq-me-ring" />
-      <circle cx={myX} cy={myY} r={6} className="rq-me" />
-      <text
-        x={myX}
-        // 上端付近では文字が枠外に切れるので、点の下に出す。
-        y={myY < PAD_TOP + 30 ? myY + 24 : myY - 15}
-        textAnchor={myX > SIZE - 50 ? "end" : myX < PAD_LEFT + 30 ? "start" : "middle"}
-        className="rq-me-label"
-      >
-        {meLabel}
-      </text>
-
-      <text x={PAD_LEFT + PLOT_W / 2} y={SIZE - 8} textAnchor="middle" className="rq-axis">
-        通報した回数 →
-      </text>
-      <text
-        x={12}
-        y={PAD_TOP + PLOT_H / 2}
-        textAnchor="middle"
-        transform={`rotate(-90 12 ${PAD_TOP + PLOT_H / 2})`}
-        className="rq-axis"
-      >
-        通報された回数 →
-      </text>
-    </svg>
+        <text x={PAD_LEFT + PLOT_W / 2} y={SIZE - 8} textAnchor="middle" className="rq-axis">
+          通報した回数 →
+        </text>
+        <text
+          x={12}
+          y={PAD_TOP + PLOT_H / 2}
+          textAnchor="middle"
+          transform={`rotate(-90 12 ${PAD_TOP + PLOT_H / 2})`}
+          className="rq-axis"
+        >
+          通報された回数 →
+        </text>
+      </svg>
+      <ul className="rq-legend">
+        {(["conduct", "play", "none"] as const).map((key) => (
+          <li key={key}>
+            <span className="rq-legend-dot" style={{ background: LEANS[key].color }} />
+            {key === "none" ? "傾向なし" : `${LEANS[key].label}の通報が多い`}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

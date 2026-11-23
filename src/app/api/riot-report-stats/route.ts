@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
 
-  const comparison = await getRiotReportComparison(receivedTotal, madeTotal);
+  const comparison = await getRiotReportComparison(receivedTotal, madeTotal, receivedByCategory);
   // idは共有ページ(/how-to-check-reports/result/[id])用。同じアカウントなら再送信しても変わらない。
   return NextResponse.json({ ok: true, id: row.id, comparison });
 }

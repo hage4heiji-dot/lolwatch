@@ -1,7 +1,7 @@
 // 「みんなとの比較」欄。4象限グラフとタイプの説明を出す。
 // 読み込み直後の画面と共有ページの両方で使うため状態は持たない。
 import type { RiotReportComparison } from "@/lib/riotReportStats";
-import { QUADRANTS } from "@/lib/reportCountTitle";
+import { getTypeName, LEANS, QUADRANTS } from "@/lib/reportCountTitle";
 import { MIN_PARTICIPANTS_FOR_RANKING_LABEL } from "./constants";
 import { ReportQuadrantChart } from "./report-quadrant-chart";
 
@@ -34,26 +34,39 @@ export function ComparisonSection({
         <span className="rq-type-emoji">{type.emoji}</span>
         <div>
           <p className="rq-type-name">
-            {subject}は「{type.name}」
+            {subject}は「{getTypeName(quadrant.type, quadrant.lean)}」
           </p>
           <p className="muted">{type.description}</p>
         </div>
       </div>
+      {quadrant.lean !== "none" && (
+        <p className="rq-lean">
+          通報された理由は
+          <strong style={{ color: LEANS[quadrant.lean].color }}>
+            {LEANS[quadrant.lean].emoji} {LEANS[quadrant.lean].label}
+          </strong>
+          が多め(
+          {quadrant.lean === "conduct"
+            ? "暴言・態度など"
+            : "放置・敵チームへの協力・ランク操作など"}
+          )
+        </p>
+      )}
       <ReportQuadrantChart quadrant={quadrant} myReceived={myReceived} meLabel={subject} />
       {quadrant.provisional ? (
         <p className="muted" style={{ fontSize: "0.8rem" }}>
           ※ 参加者が{MIN_PARTICIPANTS_FOR_RANKING_LABEL}
           集まるまでは、仮の境界線(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
           {quadrant.medianMade}
-          回より多いかどうか)でタイプを判定しています。集まった後は参加者の中央値で判定するため、タイプが変わることがあります。灰色の点はほかの参加者です(現在の参加者
+          回より多いかどうか)でタイプを判定しています。集まった後は参加者の中央値で判定するため、タイプが変わることがあります。点はほかの参加者で、色は通報された理由の傾向です(現在の参加者
           {participants}人)。
         </p>
       ) : (
         <>
           <p className="muted" style={{ fontSize: "0.8rem" }}>
             点線は参加者の中央値(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
-            {quadrant.medianMade}回)です。灰色の点はほかの参加者({participants}
-            人)で、個人は特定できません。
+            {quadrant.medianMade}回)です。点はほかの参加者({participants}
+            人)で、色は通報された理由の傾向です。個人は特定できません。
           </p>
           <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
             {subject}より多く通報されている人は{moreThanMePercent}%。通報された回数の平均は{average}

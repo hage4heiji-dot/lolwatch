@@ -2,7 +2,12 @@
 // (/how-to-check-reports の「みんなと比べる」用)。
 import { createHmac } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { getQuadrant, type QuadrantKey } from "@/lib/reportCountTitle";
+import {
+  getQuadrant,
+  getReportLean,
+  type QuadrantKey,
+  type ReportLean,
+} from "@/lib/reportCountTitle";
 
 // これ未満の参加人数では順位を出さない(数人だと「上位○%」が意味を持たず、
 // 数値から個人を推測されやすくもなるため)。
@@ -35,10 +40,12 @@ export type RiotReportComparison = {
     medianReceived: number;
     medianMade: number;
     type: QuadrantKey;
+    // 通報された理由の傾向(言動系/プレイ系)。タイプ名の頭と点の色に使う。
+    lean: ReportLean;
     // trueなら境界線は中央値ではなくPROVISIONAL_BOUNDARY(参加者不足の間)。
     provisional: boolean;
-    // 他の参加者の [通報した回数, 通報された回数]。匿名の点としてだけ使う。
-    points: [number, number][];
+    // 参加者の [通報した回数, 通報された回数, 傾向]。匿名の点としてだけ使う。
+    points: [number, number, ReportLean][];
   } | null;
 };
 
@@ -66,6 +73,14 @@ function bucketIndex(value: number): number {
   return index;
 }
 
+// DBのJson列(理由別の回数)を数値のマップとして読む。想定外の形の値は無視する。
+export function asCountMap(value: unknown): Record<string, number> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter((e): e is [string, number] => typeof e[1] === "number"),
+  );
+}
+
 function medianOf(sorted: number[]): number {
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
@@ -74,10 +89,11 @@ function medianOf(sorted: number[]): number {
 export async function getRiotReportComparison(
   myReceived: number,
   myMade: number,
+  myReceivedByCategory: Record<string, number>,
 ): Promise<RiotReportComparison> {
   // 参加者数が数万規模になるまでは全件の値だけ取ってアプリ側で集計して十分。
   const rows = await prisma.riotReportStat.findMany({
-    select: { receivedTotal: true, madeTotal: true },
+    select: { receivedTotal: true, madeTotal: true, receivedByCategory: true },
   });
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
   const participants = values.length;
@@ -86,7 +102,15 @@ export async function getRiotReportComparison(
   const step = Math.max(1, Math.ceil(rows.length / MAX_QUADRANT_POINTS));
   const points = rows
     .filter((_, i) => i % step === 0)
-    .map((r) => [r.madeTotal, r.receivedTotal] as [number, number]);
+    .map(
+      (r) =>
+        [r.madeTotal, r.receivedTotal, getReportLean(asCountMap(r.receivedByCategory))] as [
+          number,
+          number,
+          ReportLean,
+        ],
+    );
+  const myLean = getReportLean(myReceivedByCategory);
 
   if (participants < MIN_PARTICIPANTS_FOR_RANKING) {
     return {
@@ -107,6 +131,7 @@ export async function getRiotReportComparison(
           PROVISIONAL_BOUNDARY.received,
           PROVISIONAL_BOUNDARY.made,
         ),
+        lean: myLean,
         provisional: true,
         points,
       },
@@ -140,6 +165,7 @@ export async function getRiotReportComparison(
       medianReceived: median,
       medianMade,
       type: getQuadrant(myReceived, myMade, median, medianMade),
+      lean: myLean,
       provisional: false,
       points,
     },

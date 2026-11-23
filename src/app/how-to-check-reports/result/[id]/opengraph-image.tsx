@@ -1,20 +1,17 @@
 import { ImageResponse } from "next/og";
 import { loadGoogleFontJP } from "@/lib/ogFont";
-import { getRiotReportComparison, getRiotReportStatForShare } from "@/lib/riotReportStats";
-import { getReportCountTitle, QUADRANTS, topCategory, TONE_COLORS } from "@/lib/reportCountTitle";
+import {
+  asCountMap,
+  getRiotReportComparison,
+  getRiotReportStatForShare,
+} from "@/lib/riotReportStats";
+import { getReportCountTitle, getTypeName, topCategory, TONE_COLORS } from "@/lib/reportCountTitle";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "LoLで通報された回数";
 // 順位は参加者の増減で少しずつ変わるが、共有画像としては10分程度のずれで十分。
 export const revalidate = 600;
-
-function asCounts(value: unknown): Record<string, number> {
-  if (typeof value !== "object" || value === null) return {};
-  return Object.fromEntries(
-    Object.entries(value).filter((e): e is [string, number] => typeof e[1] === "number"),
-  );
-}
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,9 +21,13 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const { title, tone } = getReportCountTitle(received);
   const colors = TONE_COLORS[tone];
   const comparison = stat
-    ? await getRiotReportComparison(received, stat.madeTotal).catch(() => null)
+    ? await getRiotReportComparison(
+        received,
+        stat.madeTotal,
+        asCountMap(stat.receivedByCategory),
+      ).catch(() => null)
     : null;
-  const top = stat ? topCategory(asCounts(stat.receivedByCategory)) : null;
+  const top = stat ? topCategory(asCountMap(stat.receivedByCategory)) : null;
 
   const rankText = !comparison
     ? ""
@@ -38,7 +39,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const topText = top ? `最も多い理由: ${top.label} ${top.count}回` : "";
   // 絵文字はフォントに含まれないため、画像では名前だけ出す。
   const typeText = comparison?.quadrant
-    ? `タイプ: ${QUADRANTS[comparison.quadrant.type].name}`
+    ? `タイプ: ${getTypeName(comparison.quadrant.type, comparison.quadrant.lean)}`
     : "";
 
   const texts = `LOLWATCHLoL 通報された回数回称号${title}${rankText}${topText}${typeText}あなたは何回?lol-watch.com0123456789`;
@@ -90,6 +91,23 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               称号
             </span>
             <span style={{ fontSize: 64, marginTop: 12 }}>{title}</span>
+            {/* タイプ名は「プレイ系・…」と長くなるので、順位の横ではなく称号の下に置く。 */}
+            {typeText && (
+              <span
+                style={{
+                  display: "flex",
+                  fontSize: 32,
+                  marginTop: 14,
+                  color: "#ffffff",
+                  padding: "6px 20px",
+                  borderRadius: 12,
+                  border: `2px solid ${colors.accent}`,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {typeText}
+              </span>
+            )}
           </div>
         </div>
 
@@ -103,21 +121,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             marginTop: 8,
           }}
         >
-          <span>{rankText}</span>
-          {typeText && (
-            <span
-              style={{
-                display: "flex",
-                fontSize: 36,
-                color: "#ffffff",
-                padding: "8px 22px",
-                borderRadius: 14,
-                border: `2px solid ${colors.accent}`,
-              }}
-            >
-              {typeText}
-            </span>
-          )}
+          <span style={{ whiteSpace: "nowrap" }}>{rankText}</span>
         </div>
 
         <div

@@ -65,11 +65,12 @@ export function buildShareText(
   received: number,
   topPercent: number | null,
   quadrantType: QuadrantKey | null = null,
+  lean: ReportLean = "none",
 ): string {
   const { title } = getReportCountTitle(received);
   const rank = topPercent !== null && received > 0 ? `(上位${topPercent}%)` : "";
   const type = quadrantType
-    ? `\nタイプは${QUADRANTS[quadrantType].emoji}${QUADRANTS[quadrantType].name}`
+    ? `\nタイプは${QUADRANTS[quadrantType].emoji}${getTypeName(quadrantType, lean)}`
     : "";
   return `LoLで自分が通報された回数を調べたら${received}回、称号は「${title}」でした${rank}${type}\nあなたは何回?\n#LoL #lolwatch`;
 }
@@ -113,4 +114,54 @@ export function getQuadrant(
   if (highMade) return "guardian";
   if (highReceived) return "oops";
   return "peace";
+}
+
+// 通報された理由の傾向。4象限の点の色と、タイプ名の頭に付ける。
+export type ReportLean = "conduct" | "play" | "none";
+
+const CONDUCT_CATEGORIES = new Set([
+  "VERBAL_ABUSE",
+  "NEGATIVE_ATTITUDE",
+  "HATE_SPEECH",
+  "INAPPROPRIATE_NAME",
+  "OFFENSIVE_NAME",
+  "SPAMMING",
+]);
+
+const PLAY_CATEGORIES = new Set([
+  "ASSISTING_ENEMY_TEAM",
+  "LEAVING_AFK",
+  "RANK_MANIPULATION",
+  "INTENTIONAL_FEEDING",
+  "GRIEFING",
+  "BOTTING",
+  "CHEATING",
+  "THIRD_PARTY_TOOLS",
+]);
+
+export const LEANS: Record<ReportLean, { emoji: string; label: string; color: string }> = {
+  conduct: { emoji: "💬", label: "言動系", color: "#e0459b" },
+  play: { emoji: "🎮", label: "プレイ系", color: "#f08c1a" },
+  none: { emoji: "", label: "傾向なし", color: "#9a9aa2" },
+};
+
+// 通報された理由を言動系/プレイ系に分け、多いほうを傾向とする(同数・0回・未知のカテゴリのみなら"none")。
+export function getReportLean(receivedByCategory: Record<string, number>): ReportLean {
+  let conduct = 0;
+  let play = 0;
+  for (const [key, count] of Object.entries(receivedByCategory)) {
+    if (CONDUCT_CATEGORIES.has(key)) conduct += count;
+    else if (PLAY_CATEGORIES.has(key)) play += count;
+  }
+  if (conduct > play) return "conduct";
+  if (play > conduct) return "play";
+  return "none";
+}
+
+// タイプの表示名。通報された回数が多い象限(clash/oops)だけ傾向を頭に付ける
+// (「言動系・平和主義型」のような不自然な組み合わせを避けるため)。
+export function getTypeName(type: QuadrantKey, lean: ReportLean): string {
+  const base = QUADRANTS[type].name;
+  if (lean === "none" || (type !== "clash" && type !== "oops")) return base;
+  return `${LEANS[lean].label}・${base}`;
 }

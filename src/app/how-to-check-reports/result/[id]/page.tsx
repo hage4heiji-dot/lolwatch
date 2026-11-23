@@ -1,7 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getRiotReportComparison, getRiotReportStatForShare } from "@/lib/riotReportStats";
+import {
+  asCountMap,
+  getRiotReportComparison,
+  getRiotReportStatForShare,
+} from "@/lib/riotReportStats";
 import { getReportCountTitle, topCategory } from "@/lib/reportCountTitle";
 import { ReportCountCard } from "../../report-count-card";
 import { ComparisonSection } from "../../comparison-section";
@@ -10,13 +14,6 @@ import { ComparisonSection } from "../../comparison-section";
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
-
-function asCounts(value: unknown): Record<string, number> {
-  if (typeof value !== "object" || value === null) return {};
-  return Object.fromEntries(
-    Object.entries(value).filter((e): e is [string, number] => typeof e[1] === "number"),
-  );
-}
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
@@ -37,7 +34,11 @@ export default async function ReportCountResultPage({ params }: Params) {
   const stat = await getRiotReportStatForShare(id);
   if (!stat) notFound();
 
-  const comparison = await getRiotReportComparison(stat.receivedTotal, stat.madeTotal);
+  const comparison = await getRiotReportComparison(
+    stat.receivedTotal,
+    stat.madeTotal,
+    asCountMap(stat.receivedByCategory),
+  );
 
   return (
     <div className="rc-result-page">
@@ -46,10 +47,11 @@ export default async function ReportCountResultPage({ params }: Params) {
         received={stat.receivedTotal}
         made={stat.madeTotal}
         penaltyCount={stat.penaltyCount}
-        topCategory={topCategory(asCounts(stat.receivedByCategory))}
+        topCategory={topCategory(asCountMap(stat.receivedByCategory))}
         topPercent={comparison.topPercent}
         participants={comparison.participants}
         quadrantType={comparison.quadrant?.type ?? null}
+        lean={comparison.quadrant?.lean ?? "none"}
       />
 
       {comparison.quadrant && <ComparisonSection comparison={comparison} subject="この人" />}

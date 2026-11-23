@@ -2988,9 +2988,9 @@ a:has(> .calibration-banner):hover .calibration-banner {
   font-weight: 900;
 }
 
+/* 色は点ごとにfill属性で指定する(通報された理由の傾向)。ここでfillを指定すると上書きしてしまう。 */
 .rq-point {
-  fill: var(--muted);
-  opacity: 0.35;
+  opacity: 0.7;
 }
 
 .rq-me-ring {
@@ -3001,9 +3001,8 @@ a:has(> .calibration-banner):hover .calibration-banner {
 }
 
 .rq-me {
-  fill: var(--danger);
   stroke: #fff;
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .rq-me-label {
@@ -3015,4 +3014,33 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .rq-axis {
   font-size: 10px;
   fill: var(--muted);
+}
+
+.rq-lean {
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.rq-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.rq-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rq-legend-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
 }

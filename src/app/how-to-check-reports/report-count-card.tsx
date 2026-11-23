@@ -3,9 +3,11 @@
 import type { CSSProperties } from "react";
 import {
   getReportCountTitle,
+  getTypeName,
   QUADRANTS,
   TONE_COLORS,
   type QuadrantKey,
+  type ReportLean,
 } from "@/lib/reportCountTitle";
 
 export type ReportCountCardProps = {
@@ -19,11 +21,13 @@ export type ReportCountCardProps = {
   participants: number | null;
   // 4象限のタイプ。参加者不足・未送信ならnull。
   quadrantType?: QuadrantKey | null;
+  // 通報された理由の傾向(タイプ名の頭に付く)。
+  lean?: ReportLean;
 };
 
 export function ReportCountCard(props: ReportCountCardProps) {
-  const { received, made, penaltyCount, topCategory, topPercent, participants, quadrantType } =
-    props;
+  const { received, made, penaltyCount, topCategory, topPercent, participants } = props;
+  const { quadrantType, lean = "none" } = props;
   const { title, tone } = getReportCountTitle(received);
   const colors = TONE_COLORS[tone];
   const style = { "--rc-accent": colors.accent, "--rc-glow": colors.glow } as CSSProperties;
@@ -61,7 +65,7 @@ export function ReportCountCard(props: ReportCountCardProps) {
           <span className="rc-card-type-emoji">{QUADRANTS[quadrantType].emoji}</span>
           <span>
             <span className="rc-card-type-label">タイプ</span>
-            <span className="rc-card-type-name">{QUADRANTS[quadrantType].name}</span>
+            <span className="rc-card-type-name">{getTypeName(quadrantType, lean)}</span>
           </span>
         </div>
       )}

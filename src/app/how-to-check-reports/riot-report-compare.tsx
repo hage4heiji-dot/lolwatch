@@ -4,7 +4,12 @@
 // 他の参加者と比べた位置(上位○%・分布)を出す。送信後はXで共有できるようにする。
 import { useState } from "react";
 import type { RiotReportComparison } from "@/lib/riotReportStats";
-import { buildShareText, topCategory, type QuadrantKey } from "@/lib/reportCountTitle";
+import {
+  buildShareText,
+  topCategory,
+  type QuadrantKey,
+  type ReportLean,
+} from "@/lib/reportCountTitle";
 import { ComparisonSection } from "./comparison-section";
 import { ReportCountCard } from "./report-count-card";
 
@@ -65,6 +70,7 @@ export function RiotReportCompare(props: Props) {
         topCategory={topCategory(receivedByCategory)}
         topPercent={comparison?.topPercent ?? null}
         quadrantType={comparison?.quadrant?.type ?? null}
+        lean={comparison?.quadrant?.lean ?? "none"}
         participants={comparison?.participants ?? null}
       />
 
@@ -107,6 +113,7 @@ export function RiotReportCompare(props: Props) {
               received={received}
               topPercent={comparison.topPercent}
               quadrantType={comparison.quadrant?.type ?? null}
+              lean={comparison.quadrant?.lean ?? "none"}
             />
           )}
           <ComparisonSection comparison={comparison} />
@@ -121,16 +128,18 @@ function ShareActions({
   received,
   topPercent,
   quadrantType,
+  lean,
 }: {
   shareId: string;
   received: number;
   topPercent: number | null;
   quadrantType: QuadrantKey | null;
+  lean: ReportLean;
 }) {
   const [copied, setCopied] = useState(false);
   const url = `${SITE_URL}/how-to-check-reports/result/${shareId}`;
   const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(
-    buildShareText(received, topPercent, quadrantType),
+    buildShareText(received, topPercent, quadrantType, lean),
   )}&url=${encodeURIComponent(url)}`;
 
   async function copy() {
