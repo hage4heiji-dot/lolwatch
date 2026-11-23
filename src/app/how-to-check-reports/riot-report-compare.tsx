@@ -35,6 +35,7 @@ function sum(m: Record<string, number>): number {
 export function RiotReportCompare(props: Props) {
   const { riotIdHash, riotId, chat, receivedByCategory, madeByCategory, penaltyCount } = props;
   const [comparison, setComparison] = useState<RiotReportComparison | null>(null);
+  // 共有ページのパス末尾("<id>?v=<version>")。
   const [shareId, setShareId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -65,7 +66,8 @@ export function RiotReportCompare(props: Props) {
         return;
       }
       setComparison(body.comparison);
-      setShareId(body.id ?? null);
+      // ?v= は送り直すたびに変わる値。Xが古いカード画像を使い回さないようにURLを変える。
+      setShareId(body.id ? (body.version ? `${body.id}?v=${body.version}` : body.id) : null);
     } catch {
       setError("送信に失敗しました。時間をおいて再度お試しください。");
     } finally {

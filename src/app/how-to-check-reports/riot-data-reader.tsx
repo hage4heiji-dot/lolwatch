@@ -5,7 +5,8 @@
 // 含まれるため、ファイルはサーバーへ一切送信せず、必要な数ファイルだけを展開する。
 import { useState } from "react";
 import { unzip } from "fflate";
-import { summarizeChatLogs, type ChatSummary } from "@/lib/chatStats";
+import { analyzeChatLogs, type ChatSummary, type HarshSample } from "@/lib/chatStats";
+import { HarshSamples } from "./harsh-samples";
 import { RiotReportCompare } from "./riot-report-compare";
 import { RIOT_REPORT_CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@/lib/reportCountTitle";
 
@@ -34,6 +35,8 @@ type ParsedData = {
   riotId: { name: string; platform: string } | null;
   // LoLのチャットログ(直近の試合ぶん)の要約。本文はここで数値にしてから捨てる。
   chat: ChatSummary | null;
+  // 強めの言葉と判定された発言の例(画面に出すだけで送信しない)。
+  harshSamples: HarshSample[];
 };
 
 // 試合ごとのチャットログ(1試合1ファイル)が入っているフォルダ。
@@ -154,12 +157,12 @@ async function parseZip(file: File): Promise<ParsedData> {
   const penalties = Array.isArray(penaltiesJson) ? (penaltiesJson as Penalty[]) : null;
 
   const riotId = readRiotId(read(TARGET_FILES.summoner));
-  const chat = summarizeChatLogs(
+  const { summary: chat, harshSamples } = analyzeChatLogs(
     Object.keys(files)
       .filter((n) => n.includes(CHAT_LOG_DIR))
       .map((n) => decoder.decode(files[n])),
   );
-  return { reports, penalties, riotIdHash: await hashRiotId(riotId), riotId, chat };
+  return { reports, penalties, riotIdHash: await hashRiotId(riotId), riotId, chat, harshSamples };
 }
 
 function sum(counts: Record<string, number>): number {
@@ -325,6 +328,8 @@ export function RiotDataReader() {
               penaltyCount={result.penalties?.length ?? 0}
             />
           )}
+
+          {result.chat && <HarshSamples chat={result.chat} samples={result.harshSamples} />}
 
           {visibleGames.map((game) => (
             <GameReports

@@ -19,8 +19,8 @@ import { chatRates } from "@/lib/chatStats";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "LoLで通報された回数";
-// 順位は参加者の増減で少しずつ変わるが、共有画像としては10分程度のずれで十分。
-export const revalidate = 600;
+// 送り直した直後に共有されることが多いので、使い回しは1分程度にとどめる。
+export const revalidate = 60;
 
 const CHART_SIZE = 236;
 const CHART_INSET = 16;

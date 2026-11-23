@@ -59,7 +59,7 @@ export default async function ReportCountResultPage({ params }: Params) {
         chat={comparison.chat.mine}
       />
 
-      {comparison.quadrant && <ComparisonSection comparison={comparison} subject="この人" />}
+      {comparison.quadrant && <ComparisonSection comparison={comparison} />}
 
       <Link href="/how-to-check-reports" className="game-cta rc-result-cta">
         <span className="game-cta-title">🔍 あなたは何回通報されてる?</span>

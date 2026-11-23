@@ -3119,3 +3119,60 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .rc-card-chat-items > span {
   white-space: nowrap;
 }
+
+/* --- 通報回数: 強めの言葉の判定(本人の画面だけ) --- */
+.harsh-samples h3 {
+  margin-bottom: 0.5rem;
+}
+
+.harsh-list {
+  list-style: none;
+  margin: 0.6rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.harsh-list li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+
+.harsh-phase {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.harsh-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.harsh-mark {
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 800;
+  padding: 0 0.15rem;
+  border-radius: 3px;
+}
+
+.harsh-note {
+  font-size: 0.8rem;
+}
+
+.harsh-words {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.harsh-words summary {
+  cursor: pointer;
+  color: var(--muted);
+}

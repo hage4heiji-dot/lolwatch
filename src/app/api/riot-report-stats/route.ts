@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
     update: data,
     select: {
       id: true,
+      updatedAt: true,
       summonerLevel: true,
       chatGames: true,
       chatActiveGames: true,
@@ -172,5 +173,7 @@ export async function POST(request: NextRequest) {
     chatSummaryFromRow(row),
   );
   // idは共有ページ(/how-to-check-reports/result/[id])用。同じアカウントなら再送信しても変わらない。
-  return NextResponse.json({ ok: true, id: row.id, comparison });
+  // versionは共有URLの末尾(?v=)に付ける。Xは同じURLのカード画像を長く使い回すので、
+  // 送り直すたびにURLを変えて新しいOGP画像を取りに来させる。
+  return NextResponse.json({ ok: true, id: row.id, version: row.updatedAt.getTime(), comparison });
 }
