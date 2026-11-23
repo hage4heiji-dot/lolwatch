@@ -3924,3 +3924,12 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .watchlist-tally-item {
   white-space: nowrap;
 }
+
+/* モデレーター審査ページ: 対象試合の行(試合情報・勝敗・KDA) */
+.review-match-line {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

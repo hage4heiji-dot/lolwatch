@@ -4,6 +4,7 @@ import { requireModerator } from "@/lib/moderatorAuth";
 import { findReviewsByModerator, ModeratorReviewListSort } from "@/lib/moderatorReviewList";
 import { prisma } from "@/lib/prisma";
 import { VERDICT_LABELS, VERDICT_BADGE_CLASS, VERDICT_ICONS } from "@/lib/moderatorVerdicts";
+import { championNameJa } from "@/lib/championNamesJa";
 
 const PAGE_SIZE = 20;
 
@@ -131,7 +132,7 @@ export default async function ModeratorReviewListPage({
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : review.report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
-                        {review.report.championName} ・ {review.report.matchId}
+                        {championNameJa(review.report.championName)} ・ {review.report.matchId}
                       </p>
                     </td>
                     <td>

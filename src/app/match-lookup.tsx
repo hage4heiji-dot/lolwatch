@@ -11,6 +11,7 @@ import { formatMatchTime, parseMatchTime } from "@/lib/matchTime";
 import { isSafeReferenceUrl, REFERENCE_URL_ALLOWED_DOMAINS_LABEL } from "@/lib/referenceUrl";
 import { KillTimeline } from "./kill-timeline";
 import type { MatchDetail, MatchKillEvent, MatchParticipant } from "@/lib/riot";
+import { championNameJa } from "@/lib/championNamesJa";
 
 // DDragon側に存在しないチャンピオン名(表記揺れの取りこぼしや今後の新規チャンピオン反映漏れ等)
 // が来ても壊れた画像アイコンを表示しないよう、読み込み失敗時はプレースホルダーに切り替える。
@@ -32,7 +33,7 @@ function ChampionIcon({
       <span
         className={`champion-icon champion-icon-fallback ${className}`}
         style={{ width: size, height: size, fontSize: size * 0.4 }}
-        title={championName}
+        title={championNameJa(championName)}
       >
         ?
       </span>
@@ -43,7 +44,7 @@ function ChampionIcon({
     <Image
       className={`champion-icon ${className}`}
       src={getChampionIconUrl(ddragonVersion, championName)}
-      alt={championName}
+      alt={championNameJa(championName)}
       width={size}
       height={size}
       onError={() => setFailed(true)}
@@ -96,7 +97,7 @@ function TeamSection({
               <span className="riot-id">
                 {p.riotIdGameName} <span className="muted">#{p.riotIdTagLine}</span>
               </span>
-              <span className="champion-name">{p.championName}</span>
+              <span className="champion-name">{championNameJa(p.championName)}</span>
             </span>
             <span className="kda">
               <span className="kda-kills">{p.kills}</span>

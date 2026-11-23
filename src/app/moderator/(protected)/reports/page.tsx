@@ -10,6 +10,7 @@ import type {
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import { ReportCategory } from "@/generated/prisma";
+import { championNameJa } from "@/lib/championNamesJa";
 
 const PAGE_SIZE = 30;
 
@@ -231,7 +232,7 @@ export default async function AdminReportsPage({
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
-                        {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
+                        {championNameJa(report.championName)} ・ {queueLabel(report.queueId)} ・ {report.matchId}
                       </p>
                     </td>
                     <td>

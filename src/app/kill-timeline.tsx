@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { MatchKillEvent, MatchParticipant } from "@/lib/riot";
 import { formatMatchTime } from "@/lib/matchTime";
 import { getChampionIconUrl } from "@/lib/ddragon";
+import { championNameJa } from "@/lib/championNamesJa";
 
 const LANE_COUNT = 3;
 const LANE_HEIGHT_PX = 42;
@@ -90,10 +91,10 @@ export function KillTimeline({
                   : "team-unknown";
             const left = `${(kill.timestampSeconds / gameDurationSeconds) * 100}%`;
             const killerLabel = killer
-              ? `${killer.riotIdGameName}(${killer.championName})`
+              ? `${killer.riotIdGameName}(${championNameJa(killer.championName)})`
               : "タワー/モンスター";
             const victimLabel = victim
-              ? `${victim.riotIdGameName}(${victim.championName})`
+              ? `${victim.riotIdGameName}(${championNameJa(victim.championName)})`
               : "不明";
 
             return (

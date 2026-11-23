@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getChampionIconUrl } from "@/lib/ddragon";
 import type { MatchParticipant } from "@/lib/riot";
+import { championNameJa } from "@/lib/championNamesJa";
 
 function ScoreboardTeam({
   teamId,
@@ -35,7 +36,7 @@ function ScoreboardTeam({
           <Image
             className={`champion-icon ${teamClass}`}
             src={getChampionIconUrl(ddragonVersion, p.championName)}
-            alt={p.championName}
+            alt={championNameJa(p.championName)}
             width={22}
             height={22}
           />
@@ -43,7 +44,7 @@ function ScoreboardTeam({
             <span className="riot-id">
               {p.riotIdGameName} <span className="muted">#{p.riotIdTagLine}</span>
             </span>
-            <span className="champion-name">{p.championName}</span>
+            <span className="champion-name">{championNameJa(p.championName)}</span>
           </span>
           <span className="kda">
             <span className="kda-kills">{p.kills}</span>

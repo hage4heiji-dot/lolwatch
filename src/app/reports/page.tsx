@@ -6,6 +6,7 @@ import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
 import type { ReportedPlayersVerdictFilter } from "@/lib/playerProfile";
 import { ModeratorVerdict, ReportCategory } from "@/generated/prisma";
+import { championNameJa } from "@/lib/championNamesJa";
 
 const PAGE_SIZE = 30;
 const VERDICT_FILTER_VALUES: ReportedPlayersVerdictFilter[] = [
@@ -192,7 +193,7 @@ export default async function ReportsPage({
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : report.player.puuid}
                       </Link>
                       <p className="muted" style={{ marginTop: "0.2rem" }}>
-                        {report.championName} ・ {queueLabel(report.queueId)}
+                        {championNameJa(report.championName)} ・ {queueLabel(report.queueId)}
                       </p>
                     </td>
                     <td>

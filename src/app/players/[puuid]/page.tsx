@@ -33,6 +33,7 @@ import { ReportEditForm } from "@/app/report-edit-form";
 import { MatchScoreboard } from "@/app/match-scoreboard";
 import { ShareButtons } from "@/app/share-buttons";
 import { RankWatchPanel } from "./rank-watch-panel";
+import { championNameJa } from "@/lib/championNamesJa";
 
 const SITE_URL = "https://lol-watch.com";
 
@@ -268,7 +269,7 @@ export default async function PlayerProfilePage({
                     {CATEGORY_ICONS[report.category]} {CATEGORY_LABELS[report.category]}
                   </span>
                   <span className="report-summary-match">
-                    {report.championName} ・ {queueLabel(report.queueId)}
+                    {championNameJa(report.championName)} ・ {queueLabel(report.queueId)}
                   </span>
                   {latestReview && (
                     <span className={VERDICT_BADGE_CLASS[latestReview.verdict]}>
@@ -294,7 +295,7 @@ export default async function PlayerProfilePage({
                     }}
                   >
                     <span>
-                      対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・{" "}
+                      対象試合: {championNameJa(report.championName)} ・ {queueLabel(report.queueId)} ・{" "}
                       {report.matchId}
                     </span>
                     {participant && (

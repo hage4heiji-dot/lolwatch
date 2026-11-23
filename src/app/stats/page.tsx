@@ -20,6 +20,7 @@ import {
   isPeriodFilter,
   periodFilterSince,
 } from "@/lib/periodFilter";
+import { championNameJa } from "@/lib/championNamesJa";
 
 // 日次推移グラフの表示日数。期間フィルタが7日/30日より短い場合はそれに合わせ、
 // 「全期間」選択時は見やすさのため直近30日分に固定する。
@@ -298,7 +299,9 @@ export default async function StatsPage({
           {topChampions.length === 0 ? (
             <p className="rq-note">まだ通報はありません。</p>
           ) : (
-            <BarList rows={topChampions.map((c) => ({ label: c.name, count: c.count }))} />
+            <BarList
+              rows={topChampions.map((c) => ({ label: championNameJa(c.name), count: c.count }))}
+            />
           )}
         </Panel>
       </div>

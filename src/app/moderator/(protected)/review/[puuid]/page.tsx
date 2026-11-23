@@ -1,6 +1,14 @@
 import { notFound } from "next/navigation";
 import { findPlayerByPuuid } from "@/lib/playerProfile";
-import { getAccountByPuuid, RiotApiError } from "@/lib/riot";
+import {
+  getAccountByPuuid,
+  getLatestDdragonVersion,
+  getMatchDetail,
+  RiotApiError,
+} from "@/lib/riot";
+import { FALLBACK_DDRAGON_VERSION } from "@/lib/ddragon";
+import { MatchScoreboard } from "@/app/match-scoreboard";
+import { championNameJa } from "@/lib/championNamesJa";
 import { getSessionModerator } from "@/lib/moderatorAuth";
 import { CATEGORY_LABELS } from "@/lib/reportCategories";
 import { queueLabel } from "@/lib/matchQueues";
@@ -12,13 +20,6 @@ import { HideCommentControl } from "../../hide-comment-control";
 import { hideReviewCommentAction, unhideReviewCommentAction } from "./moderation-actions";
 import { ReviewCommentReplyForm } from "./review-comment-reply-form";
 import { VERDICT_LABELS } from "@/lib/moderatorVerdicts";
-
-function replayScriptHref(matchId: string, incidentTimestampSeconds: number | null): string {
-  const base = `/api/moderator/replay-script/${encodeURIComponent(matchId)}`;
-  return incidentTimestampSeconds !== null
-    ? `${base}?t=${incidentTimestampSeconds}`
-    : base;
-}
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -53,6 +54,18 @@ export default async function ModeratorReviewPage({
     }
   }
 
+  // スコアをこのページだけで確認できるよう、通報された試合の詳細をまとめて取得する。
+  // 取得に失敗した試合はスコアなしで表示する(ページ自体は落とさない)。
+  const uniqueMatchIds = [...new Set((player?.reports ?? []).map((r) => r.matchId))];
+  const [matchDetailResults, ddragonVersion] = await Promise.all([
+    Promise.allSettled(uniqueMatchIds.map(getMatchDetail)),
+    getLatestDdragonVersion().catch(() => FALLBACK_DDRAGON_VERSION),
+  ]);
+  const matchDetailByMatchId = new Map<string, Awaited<ReturnType<typeof getMatchDetail>>>();
+  matchDetailResults.forEach((result, i) => {
+    if (result.status === "fulfilled") matchDetailByMatchId.set(uniqueMatchIds[i], result.value);
+  });
+
   return (
     <div>
       <h1>{displayName} をレビュー</h1>
@@ -63,180 +76,250 @@ export default async function ModeratorReviewPage({
       <section className="section">
         <h2>通報一覧</h2>
         {!player || player.reports.length === 0 ? (
-          <p className="muted">通報はまだありません。評価できる対象がないため、このページでは何もできません。</p>
+          <p className="muted">
+            通報はまだありません。評価できる対象がないため、このページでは何もできません。
+          </p>
         ) : (
-          player.reports.map((report) => (
-            <div className="card" key={report.id} style={report.hiddenAt ? { opacity: 0.6 } : undefined}>
-              <span className="badge">{CATEGORY_LABELS[report.category]}</span>
-              <p style={{ marginTop: "0.5rem" }}>
-                対象試合: {report.championName} ・ {queueLabel(report.queueId)} ・ {report.matchId}
-              </p>
-              {report.incidentTimestampSeconds !== null && (
-                <p style={{ marginTop: "0.5rem" }}>
-                  問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
-                </p>
-              )}
-              {report.comment && (
-                <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
-              )}
-              <p className="muted" style={{ marginTop: "0.5rem" }}>
-                {formatDateTime(report.createdAt)}
-              </p>
-              <p style={{ marginTop: "0.5rem" }}>
-                <a
-                  className="btn btn-secondary"
-                  style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                  href={replayScriptHref(report.matchId, report.incidentTimestampSeconds)}
-                  download
-                >
-                  リプレイ起動スクリプトをダウンロード(.ps1)
-                </a>
-                <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
-                  手元のPCでLeagueクライアントにログインした状態で実行してください。未検証の仕組みのため、動作しない場合があります。リプレイにはチャットログ等は記録されません。
-                </span>
-              </p>
-              {report.referenceUrl ? (
-                <p style={{ marginTop: "0.5rem" }}>
-                  <a
-                    className="btn btn-secondary"
-                    style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
-                    href={report.referenceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    通報者が添付した参考URLを見る
-                  </a>
-                  <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
-                    チャット等、リプレイに残らない証跡はこちらで確認してください。
+          player.reports.map((report) => {
+            const matchDetail = matchDetailByMatchId.get(report.matchId);
+            const participant = matchDetail?.participants.find((p) => p.puuid === puuid);
+            return (
+              <div
+                className="card"
+                key={report.id}
+                style={report.hiddenAt ? { opacity: 0.6 } : undefined}
+              >
+                <span className="badge">{CATEGORY_LABELS[report.category]}</span>
+                <p className="review-match-line">
+                  <span>
+                    対象試合: {championNameJa(report.championName)} ・ {queueLabel(report.queueId)}{" "}
+                    ・ {report.matchId}
                   </span>
-                </p>
-              ) : (
-                <p className="muted" style={{ marginTop: "0.5rem" }}>
-                  参考URLは添付されていません(チャット等が争点の場合、リプレイのみでは確認できません)。
-                </p>
-              )}
-
-              {report.deletionRequests.length > 0 && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <span className="badge badge-verified-guilty">
-                    🗑️ 削除申請 {report.deletionRequests.length}件
-                  </span>
-                  <ul style={{ marginTop: "0.35rem", paddingLeft: "1.2rem" }}>
-                    {report.deletionRequests.map((d) => (
-                      <li key={d.id} className="muted" style={{ marginTop: "0.2rem" }}>
-                        {d.reason}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {moderator?.isAdmin ? (
-                <HideReportControl
-                  reportId={report.id}
-                  puuid={puuid}
-                  hiddenAt={report.hiddenAt ? report.hiddenAt.toISOString() : null}
-                  hiddenReason={report.hiddenReason}
-                />
-              ) : (
-                report.hiddenAt && (
-                  <p className="muted" style={{ marginTop: "0.5rem" }}>
-                    この通報は非表示になっています{report.hiddenReason ? `(理由: ${report.hiddenReason})` : ""}。
-                  </p>
-                )
-              )}
-
-              {report.moderatorReviews.length > 0 && (
-                <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
-                  <p className="muted" style={{ marginBottom: "0.35rem" }}>この通報への評価:</p>
-                  {report.moderatorReviews.map((review) => (
-                    <ModeratorReviewCard
-                      key={review.id}
-                      reviewId={review.id}
-                      puuid={puuid}
-                      verdict={review.verdict}
-                      rationale={review.rationale}
-                      moderatorDisplayName={review.moderator.displayName}
-                      createdAtLabel={formatDateTime(review.createdAt)}
-                      canEdit={review.moderatorId === moderator?.id}
-                    />
-                  ))}
-                  {report.moderatorReviews.map((review) =>
-                    review.comments.length === 0 ? null : (
-                      <div
-                        key={`comments-${review.id}`}
-                        style={{
-                          marginTop: "0.75rem",
-                          paddingLeft: "0.75rem",
-                          borderLeft: "2px solid var(--border)",
-                        }}
+                  {participant && (
+                    <>
+                      <span
+                        className={`team-result ${participant.win ? "result-win" : "result-lose"}`}
                       >
-                        <p className="muted" style={{ fontSize: "0.85rem" }}>
-                          💬 {VERDICT_LABELS[review.verdict]}の判定へのコメント({review.comments.length}件)
-                        </p>
-                        {review.comments
-                          .filter((comment) => !comment.parentId)
-                          .map((comment) => (
-                            <div key={comment.id} style={{ marginTop: "0.6rem" }}>
-                              <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
-                              <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
-                                {formatDateTime(comment.createdAt)}
-                                {comment._count.reports > 0 ? ` ・ 通報${comment._count.reports}件` : ""}
-                              </p>
-                              <HideCommentControl
-                                commentId={comment.id}
-                                hideAction={hideReviewCommentAction.bind(null, comment.id, puuid)}
-                                unhideAction={unhideReviewCommentAction.bind(null, comment.id, puuid)}
-                                hiddenAt={comment.hiddenAt?.toISOString() ?? null}
-                                hiddenReason={comment.hiddenReason}
-                              />
-                              {review.comments
-                                .filter((reply) => reply.parentId === comment.id)
-                                .map((reply) => (
-                                  <div
-                                    key={reply.id}
-                                    style={{
-                                      marginTop: "0.6rem",
-                                      marginLeft: "1rem",
-                                      paddingLeft: "0.75rem",
-                                      borderLeft: "2px solid var(--border)",
-                                    }}
-                                  >
-                                    <span className="badge">⚔️ {reply.moderator?.displayName}</span>
-                                    <p style={{ marginTop: "0.35rem", whiteSpace: "pre-wrap" }}>{reply.body}</p>
-                                    <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
-                                      {formatDateTime(reply.createdAt)}
-                                    </p>
-                                    <HideCommentControl
-                                      commentId={reply.id}
-                                      hideAction={hideReviewCommentAction.bind(null, reply.id, puuid)}
-                                      unhideAction={unhideReviewCommentAction.bind(null, reply.id, puuid)}
-                                      hiddenAt={reply.hiddenAt?.toISOString() ?? null}
-                                      hiddenReason={reply.hiddenReason}
-                                    />
-                                  </div>
-                                ))}
-                              {!comment.hiddenAt && (
-                                <div style={{ marginLeft: "1rem" }}>
-                                  <ReviewCommentReplyForm commentId={comment.id} puuid={puuid} />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    ),
+                        {participant.win ? "勝利" : "敗北"}
+                      </span>
+                      <span className="kda">
+                        <span className="kda-kills">{participant.kills}</span>
+                        <span className="kda-sep">/</span>
+                        <span className="kda-deaths">{participant.deaths}</span>
+                        <span className="kda-sep">/</span>
+                        <span className="kda-assists">{participant.assists}</span>
+                      </span>
+                    </>
                   )}
-                </div>
-              )}
-
-              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
-                <p className="muted" style={{ marginBottom: "0.5rem" }}>
-                  {report.moderatorReviews.length > 0 ? "この通報を再評価する" : "この通報を評価する"}
                 </p>
-                <ReviewForm reportId={report.id} puuid={puuid} />
+                {matchDetail ? (
+                  <MatchScoreboard
+                    participants={matchDetail.participants}
+                    ddragonVersion={ddragonVersion}
+                    highlightPuuid={puuid}
+                  />
+                ) : (
+                  <p className="muted" style={{ marginTop: "0.5rem" }}>
+                    試合の詳細を取得できませんでした(Riot
+                    APIの保存期間切れや一時的なエラーの可能性があります)。
+                  </p>
+                )}
+                {report.incidentTimestampSeconds !== null && (
+                  <p style={{ marginTop: "0.5rem" }}>
+                    問題のシーンの目安時間: {formatMatchTime(report.incidentTimestampSeconds)}
+                  </p>
+                )}
+                {report.comment && (
+                  <p style={{ marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>{report.comment}</p>
+                )}
+                <p className="muted" style={{ marginTop: "0.5rem" }}>
+                  {formatDateTime(report.createdAt)}
+                </p>
+                {report.referenceUrl ? (
+                  <p style={{ marginTop: "0.5rem" }}>
+                    <a
+                      className="btn btn-secondary"
+                      style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}
+                      href={report.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      通報者が添付した参考URLを見る
+                    </a>
+                    <span className="muted" style={{ display: "block", marginTop: "0.35rem" }}>
+                      チャット等、スコアに表れない証跡はこちらで確認してください。
+                    </span>
+                  </p>
+                ) : (
+                  <p className="muted" style={{ marginTop: "0.5rem" }}>
+                    参考URLは添付されていません。
+                  </p>
+                )}
+
+                {report.deletionRequests.length > 0 && (
+                  <div style={{ marginTop: "0.5rem" }}>
+                    <span className="badge badge-verified-guilty">
+                      🗑️ 削除申請 {report.deletionRequests.length}件
+                    </span>
+                    <ul style={{ marginTop: "0.35rem", paddingLeft: "1.2rem" }}>
+                      {report.deletionRequests.map((d) => (
+                        <li key={d.id} className="muted" style={{ marginTop: "0.2rem" }}>
+                          {d.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {moderator?.isAdmin ? (
+                  <HideReportControl
+                    reportId={report.id}
+                    puuid={puuid}
+                    hiddenAt={report.hiddenAt ? report.hiddenAt.toISOString() : null}
+                    hiddenReason={report.hiddenReason}
+                  />
+                ) : (
+                  report.hiddenAt && (
+                    <p className="muted" style={{ marginTop: "0.5rem" }}>
+                      この通報は非表示になっています
+                      {report.hiddenReason ? `(理由: ${report.hiddenReason})` : ""}。
+                    </p>
+                  )
+                )}
+
+                {report.moderatorReviews.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: "0.75rem",
+                      paddingTop: "0.75rem",
+                      borderTop: "1px solid var(--border)",
+                    }}
+                  >
+                    <p className="muted" style={{ marginBottom: "0.35rem" }}>
+                      この通報への評価:
+                    </p>
+                    {report.moderatorReviews.map((review) => (
+                      <ModeratorReviewCard
+                        key={review.id}
+                        reviewId={review.id}
+                        puuid={puuid}
+                        verdict={review.verdict}
+                        rationale={review.rationale}
+                        moderatorDisplayName={review.moderator.displayName}
+                        createdAtLabel={formatDateTime(review.createdAt)}
+                        canEdit={review.moderatorId === moderator?.id}
+                      />
+                    ))}
+                    {report.moderatorReviews.map((review) =>
+                      review.comments.length === 0 ? null : (
+                        <div
+                          key={`comments-${review.id}`}
+                          style={{
+                            marginTop: "0.75rem",
+                            paddingLeft: "0.75rem",
+                            borderLeft: "2px solid var(--border)",
+                          }}
+                        >
+                          <p className="muted" style={{ fontSize: "0.85rem" }}>
+                            💬 {VERDICT_LABELS[review.verdict]}の判定へのコメント(
+                            {review.comments.length}件)
+                          </p>
+                          {review.comments
+                            .filter((comment) => !comment.parentId)
+                            .map((comment) => (
+                              <div key={comment.id} style={{ marginTop: "0.6rem" }}>
+                                <p style={{ whiteSpace: "pre-wrap" }}>{comment.body}</p>
+                                <p
+                                  className="muted"
+                                  style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}
+                                >
+                                  {formatDateTime(comment.createdAt)}
+                                  {comment._count.reports > 0
+                                    ? ` ・ 通報${comment._count.reports}件`
+                                    : ""}
+                                </p>
+                                <HideCommentControl
+                                  commentId={comment.id}
+                                  hideAction={hideReviewCommentAction.bind(null, comment.id, puuid)}
+                                  unhideAction={unhideReviewCommentAction.bind(
+                                    null,
+                                    comment.id,
+                                    puuid,
+                                  )}
+                                  hiddenAt={comment.hiddenAt?.toISOString() ?? null}
+                                  hiddenReason={comment.hiddenReason}
+                                />
+                                {review.comments
+                                  .filter((reply) => reply.parentId === comment.id)
+                                  .map((reply) => (
+                                    <div
+                                      key={reply.id}
+                                      style={{
+                                        marginTop: "0.6rem",
+                                        marginLeft: "1rem",
+                                        paddingLeft: "0.75rem",
+                                        borderLeft: "2px solid var(--border)",
+                                      }}
+                                    >
+                                      <span className="badge">
+                                        ⚔️ {reply.moderator?.displayName}
+                                      </span>
+                                      <p style={{ marginTop: "0.35rem", whiteSpace: "pre-wrap" }}>
+                                        {reply.body}
+                                      </p>
+                                      <p
+                                        className="muted"
+                                        style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}
+                                      >
+                                        {formatDateTime(reply.createdAt)}
+                                      </p>
+                                      <HideCommentControl
+                                        commentId={reply.id}
+                                        hideAction={hideReviewCommentAction.bind(
+                                          null,
+                                          reply.id,
+                                          puuid,
+                                        )}
+                                        unhideAction={unhideReviewCommentAction.bind(
+                                          null,
+                                          reply.id,
+                                          puuid,
+                                        )}
+                                        hiddenAt={reply.hiddenAt?.toISOString() ?? null}
+                                        hiddenReason={reply.hiddenReason}
+                                      />
+                                    </div>
+                                  ))}
+                                {!comment.hiddenAt && (
+                                  <div style={{ marginLeft: "1rem" }}>
+                                    <ReviewCommentReplyForm commentId={comment.id} puuid={puuid} />
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    marginTop: "0.75rem",
+                    paddingTop: "0.75rem",
+                    borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  <p className="muted" style={{ marginBottom: "0.5rem" }}>
+                    {report.moderatorReviews.length > 0
+                      ? "この通報を再評価する"
+                      : "この通報を評価する"}
+                  </p>
+                  <ReviewForm reportId={report.id} puuid={puuid} />
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </section>
     </div>
