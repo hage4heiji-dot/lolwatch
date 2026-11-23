@@ -45,7 +45,7 @@ export function ComparisonSection({
           ※ 参加者が{MIN_PARTICIPANTS_FOR_RANKING_LABEL}
           集まるまでは、仮の境界線(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
           {quadrant.medianMade}
-          回より多いかどうか)でタイプを判定しています。集まった後は参加者の中央値で判定するため、タイプが変わることがあります(現在の参加者
+          回より多いかどうか)でタイプを判定しています。集まった後は参加者の中央値で判定するため、タイプが変わることがあります。灰色の点はほかの参加者です(現在の参加者
           {participants}人)。
         </p>
       ) : (

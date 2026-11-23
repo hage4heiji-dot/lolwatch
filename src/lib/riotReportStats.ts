@@ -12,7 +12,7 @@ export const MIN_PARTICIPANTS_FOR_RANKING = 10;
 const DISTRIBUTION_BUCKETS = [0, 1, 5, 10, 20, 50, 100];
 
 // 参加者が少なく中央値が使えない間の仮の境界線(この値より多ければ「多い」側)。
-// 中央値の代わりにタイプだけ出せるようにするためのもので、点(他の参加者)は描かない。
+// 中央値の代わりにタイプを出せるようにするためのもの。
 export const PROVISIONAL_BOUNDARY = { received: 10, made: 5 };
 
 // 4象限グラフに描く他の参加者の点の上限(多すぎると重いので間引く)。
@@ -82,6 +82,12 @@ export async function getRiotReportComparison(
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
   const participants = values.length;
 
+  // 4象限グラフに描く参加者の点(人数が少ない間も描く。値は回数だけで個人は特定できない)。
+  const step = Math.max(1, Math.ceil(rows.length / MAX_QUADRANT_POINTS));
+  const points = rows
+    .filter((_, i) => i % step === 0)
+    .map((r) => [r.madeTotal, r.receivedTotal] as [number, number]);
+
   if (participants < MIN_PARTICIPANTS_FOR_RANKING) {
     return {
       participants,
@@ -91,7 +97,6 @@ export async function getRiotReportComparison(
       average: null,
       median: null,
       distribution: null,
-      // 人数が少ないうちは他の参加者の点を出すと誰の点か推測されやすいので、点は出さない。
       quadrant: {
         myMade,
         medianReceived: PROVISIONAL_BOUNDARY.received,
@@ -103,7 +108,7 @@ export async function getRiotReportComparison(
           PROVISIONAL_BOUNDARY.made,
         ),
         provisional: true,
-        points: [],
+        points,
       },
     };
   }
@@ -112,10 +117,6 @@ export async function getRiotReportComparison(
   const atLeastMe = values.filter((v) => v >= myReceived).length;
   const median = medianOf(values);
   const medianMade = medianOf(rows.map((r) => r.madeTotal).sort((a, b) => a - b));
-  const step = Math.max(1, Math.ceil(rows.length / MAX_QUADRANT_POINTS));
-  const points = rows
-    .filter((_, i) => i % step === 0)
-    .map((r) => [r.madeTotal, r.receivedTotal] as [number, number]);
 
   const counts = DISTRIBUTION_BUCKETS.map(() => 0);
   for (const v of values) counts[bucketIndex(v)]++;
