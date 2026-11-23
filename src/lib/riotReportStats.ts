@@ -11,6 +11,10 @@ export const MIN_PARTICIPANTS_FOR_RANKING = 10;
 // 分布表示の区切り(下限値)。最後の区切り以上はまとめて「◯回以上」とする。
 const DISTRIBUTION_BUCKETS = [0, 1, 5, 10, 20, 50, 100];
 
+// 参加者が少なく中央値が使えない間の仮の境界線(この値より多ければ「多い」側)。
+// 中央値の代わりにタイプだけ出せるようにするためのもので、点(他の参加者)は描かない。
+export const PROVISIONAL_BOUNDARY = { received: 10, made: 5 };
+
 // 4象限グラフに描く他の参加者の点の上限(多すぎると重いので間引く)。
 const MAX_QUADRANT_POINTS = 600;
 
@@ -31,6 +35,8 @@ export type RiotReportComparison = {
     medianReceived: number;
     medianMade: number;
     type: QuadrantKey;
+    // trueなら境界線は中央値ではなくPROVISIONAL_BOUNDARY(参加者不足の間)。
+    provisional: boolean;
     // 他の参加者の [通報した回数, 通報された回数]。匿名の点としてだけ使う。
     points: [number, number][];
   } | null;
@@ -85,7 +91,20 @@ export async function getRiotReportComparison(
       average: null,
       median: null,
       distribution: null,
-      quadrant: null,
+      // 人数が少ないうちは他の参加者の点を出すと誰の点か推測されやすいので、点は出さない。
+      quadrant: {
+        myMade,
+        medianReceived: PROVISIONAL_BOUNDARY.received,
+        medianMade: PROVISIONAL_BOUNDARY.made,
+        type: getQuadrant(
+          myReceived,
+          myMade,
+          PROVISIONAL_BOUNDARY.received,
+          PROVISIONAL_BOUNDARY.made,
+        ),
+        provisional: true,
+        points: [],
+      },
     };
   }
 
@@ -120,6 +139,7 @@ export async function getRiotReportComparison(
       medianReceived: median,
       medianMade,
       type: getQuadrant(myReceived, myMade, median, medianMade),
+      provisional: false,
       points,
     },
   };

@@ -15,6 +15,7 @@ export function ComparisonSection({
 }) {
   const { participants, myReceived, average, median, moreThanMePercent, quadrant } = comparison;
 
+  // 4象限は参加者が少なくても仮の境界線で出るので、通常ここには来ない(古いデータ形式向けの保険)。
   if (quadrant === null) {
     return (
       <p className="muted riot-compare-note">
@@ -28,7 +29,7 @@ export function ComparisonSection({
   const type = QUADRANTS[quadrant.type];
   return (
     <div className="card riot-compare-dist">
-      <h3>みんなとの比較</h3>
+      <h3>{quadrant.provisional ? "タイプ診断(仮)" : "みんなとの比較"}</h3>
       <div className="rq-type">
         <span className="rq-type-emoji">{type.emoji}</span>
         <div>
@@ -39,16 +40,28 @@ export function ComparisonSection({
         </div>
       </div>
       <ReportQuadrantChart quadrant={quadrant} myReceived={myReceived} meLabel={subject} />
-      <p className="muted" style={{ fontSize: "0.8rem" }}>
-        点線は参加者の中央値(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
-        {quadrant.medianMade}回)です。灰色の点はほかの参加者({participants}
-        人)で、個人は特定できません。
-      </p>
-      <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
-        {subject}より多く通報されている人は{moreThanMePercent}%。通報された回数の平均は{average}
-        回・中央値は{median}
-        回です。※ lolwatchでデータを送信した人の中での比較で、LoLプレイヤー全体ではありません。
-      </p>
+      {quadrant.provisional ? (
+        <p className="muted" style={{ fontSize: "0.8rem" }}>
+          ※ 参加者が{MIN_PARTICIPANTS_FOR_RANKING_LABEL}
+          集まるまでは、仮の境界線(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
+          {quadrant.medianMade}
+          回より多いかどうか)でタイプを判定しています。集まった後は参加者の中央値で判定するため、タイプが変わることがあります(現在の参加者
+          {participants}人)。
+        </p>
+      ) : (
+        <>
+          <p className="muted" style={{ fontSize: "0.8rem" }}>
+            点線は参加者の中央値(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
+            {quadrant.medianMade}回)です。灰色の点はほかの参加者({participants}
+            人)で、個人は特定できません。
+          </p>
+          <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
+            {subject}より多く通報されている人は{moreThanMePercent}%。通報された回数の平均は{average}
+            回・中央値は{median}
+            回です。※ lolwatchでデータを送信した人の中での比較で、LoLプレイヤー全体ではありません。
+          </p>
+        </>
+      )}
     </div>
   );
 }

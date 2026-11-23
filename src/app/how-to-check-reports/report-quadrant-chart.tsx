@@ -38,8 +38,9 @@ export function ReportQuadrantChart({
 }) {
   const { myMade, medianReceived, medianMade, type, points } = quadrant;
   // 中央線がグラフの端に張り付かないよう、最大値は中央値の2倍以上にしておく。
-  const maxX = Math.max(1, myMade, medianMade * 2, ...points.map((p) => p[0]));
-  const maxY = Math.max(1, myReceived, medianReceived * 2, ...points.map((p) => p[1]));
+  // 最大値の点が枠の端に張り付かないよう、少し(1.2倍)余裕をもたせる。
+  const maxX = Math.max(1, myMade, medianMade * 2, ...points.map((p) => p[0])) * 1.2;
+  const maxY = Math.max(1, myReceived, medianReceived * 2, ...points.map((p) => p[1])) * 1.2;
   // 0回の点が枠線に重なって欠けないよう、枠の内側に少し余白(INSET)をとって描く。
   const px = (v: number) => PAD_LEFT + INSET + scale(v, maxX) * (PLOT_W - INSET * 2);
   const py = (v: number) => PAD_TOP + PLOT_H - INSET - scale(v, maxY) * (PLOT_H - INSET * 2);
@@ -96,7 +97,8 @@ export function ReportQuadrantChart({
       <circle cx={myX} cy={myY} r={6} className="rq-me" />
       <text
         x={myX}
-        y={myY - 15}
+        // 上端付近では文字が枠外に切れるので、点の下に出す。
+        y={myY < PAD_TOP + 30 ? myY + 24 : myY - 15}
         textAnchor={myX > SIZE - 50 ? "end" : myX < PAD_LEFT + 30 ? "start" : "middle"}
         className="rq-me-label"
       >
