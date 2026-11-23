@@ -1240,6 +1240,8 @@ a.card:hover {
 
   .watchlist-tally {
     width: 100%;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.7rem;
     padding-left: calc(1.9rem + 0.85rem);
   }
 }
@@ -3467,4 +3469,458 @@ a:has(> .calibration-banner):hover .calibration-banner {
 
 .riot-sample-banner strong {
   color: var(--accent);
+}
+
+/* --- 統計ダッシュボード(ダークパネル版) --- */
+.st-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.st-page .game-cta {
+  margin: 0;
+}
+
+.st-hero {
+  padding: 1.4rem 1.2rem 1.1rem;
+  border-radius: 18px;
+  color: #f3f3f7;
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(124, 147, 255, 0.28), transparent 60%),
+    radial-gradient(80% 60% at 0% 100%, rgba(255, 90, 95, 0.18), transparent 60%),
+    linear-gradient(165deg, #0f1428 0%, #080a14 100%);
+  border: 1px solid rgba(124, 147, 255, 0.3);
+  box-shadow: 0 16px 40px rgba(5, 8, 20, 0.35);
+}
+
+.st-hero-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #9fb0ff;
+}
+
+.st-hero-title {
+  margin: 0.2rem 0 0.9rem;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.st-period {
+  display: inline-flex;
+  padding: 0.25rem;
+  gap: 0.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.st-period a {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: rgba(243, 243, 247, 0.7);
+  text-decoration: none;
+}
+
+.st-period a.active {
+  background: #fff;
+  color: #0d1124;
+}
+
+.st-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.st-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.st-kpi-label {
+  font-size: 0.72rem;
+  color: rgba(243, 243, 247, 0.65);
+}
+
+.st-kpi-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.st-kpi-main {
+  grid-column: 1 / -1;
+  background: linear-gradient(120deg, rgba(124, 147, 255, 0.25), rgba(255, 255, 255, 0.04));
+  border-color: rgba(124, 147, 255, 0.4);
+}
+
+.st-kpi-main .st-kpi-value {
+  font-size: 2.8rem;
+  background: linear-gradient(180deg, #ffffff 30%, #9fb0ff 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.st-kpi-danger {
+  background: rgba(255, 90, 95, 0.12);
+  border-color: rgba(255, 90, 95, 0.4);
+}
+
+.st-kpi-danger .st-kpi-value {
+  color: #ff7b7f;
+}
+
+.st-kpi-wide {
+  grid-column: 1 / -1;
+}
+
+.st-meter {
+  display: block;
+  height: 0.45rem;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.st-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff9f43, #ff5a5f);
+  box-shadow: 0 0 12px rgba(255, 90, 95, 0.6);
+}
+
+.st-hero-note {
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
+  color: rgba(243, 243, 247, 0.55);
+}
+
+.st-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 760px) {
+  .st-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .st-kpi-main {
+    grid-column: span 2;
+    grid-row: span 2;
+    justify-content: center;
+  }
+
+  /* 大きな「総通報件数」(2×2)の右に、残り4つを2×2で並べる */
+  .st-kpi-wide {
+    grid-column: span 1;
+  }
+
+  .st-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.st-panel h2.rq-panel-title {
+  border: none;
+  padding: 0;
+}
+
+/* 暗いパネル内の横棒 */
+.rq-panel .stat-bar-row {
+  font-size: 0.82rem;
+}
+
+.rq-panel .stat-bar-label {
+  color: rgba(243, 243, 247, 0.85);
+}
+
+.rq-panel .stat-bar-track {
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rq-panel .stat-bar-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rq-accent) 70%, #ffffff), var(--rq-accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rq-accent) 55%, transparent);
+}
+
+.rq-panel .stat-bar-count {
+  color: #fff;
+}
+
+/* 通報件数の推移 */
+.st-trend-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.st-trend-num {
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.st-trend-unit {
+  margin-left: 0.2rem;
+  font-size: 0.85rem;
+  color: rgba(243, 243, 247, 0.6);
+}
+
+.st-trend-peak {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(243, 243, 247, 0.8);
+}
+
+.st-trend {
+  height: 120px;
+  margin-top: 0.75rem;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: repeating-linear-gradient(
+    to top,
+    transparent 0 29px,
+    rgba(255, 255, 255, 0.05) 29px 30px
+  );
+}
+
+.st-trend .stat-trend-bar {
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #9fb0ff, rgba(124, 147, 255, 0.35));
+}
+
+.st-trend .st-trend-bar-peak {
+  background: linear-gradient(180deg, #ffb3b5, #ff5a5f);
+  box-shadow: 0 0 12px rgba(255, 90, 95, 0.6);
+}
+
+.st-trend-labels {
+  font-size: 0.68rem;
+  color: rgba(243, 243, 247, 0.55);
+}
+
+/* 妥当/不当投票 */
+.st-vote {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.st-vote-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.st-vote-rates {
+  font-size: 0.75rem;
+  color: rgba(243, 243, 247, 0.6);
+}
+
+.st-vote-bar {
+  display: flex;
+  height: 0.8rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.st-vote-bar i {
+  display: block;
+  height: 100%;
+}
+
+.st-vote-like {
+  background: linear-gradient(90deg, #7c93ff, #9fb0ff);
+}
+
+.st-vote-dislike {
+  background: linear-gradient(90deg, #ff7b7f, #ff5a5f);
+}
+
+/* 通報の多いユーザー */
+.st-ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.st-ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f3f3f7;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.st-ranking-row:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.st-ranking-pos {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.st-ranking-top {
+  font-size: 1.2rem;
+  background: none;
+}
+
+.st-ranking-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.st-ranking-count {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ff7b7f;
+}
+
+.st-ranking-count small {
+  margin-left: 0.1rem;
+  font-size: 0.7rem;
+  color: rgba(243, 243, 247, 0.6);
+}
+
+/* --- ユーザー一覧: スマホでは1人1枚のカード表示にする(表のままだと評価内訳が縦に積まれて行が縦長になるため) --- */
+@media (max-width: 640px) {
+  .players-table,
+  .players-table tbody {
+    display: block;
+  }
+
+  .players-table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  /* 並べ替えできる列(通報件数・最新の通報日時)の見出しだけ、小さなボタンとして残す */
+  .players-table thead th:nth-child(1),
+  .players-table thead th:nth-child(2),
+  .players-table thead th:nth-child(5) {
+    display: none;
+  }
+
+  .players-table thead th {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card-bg);
+    font-size: 0.75rem;
+  }
+
+  .players-table tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank name count"
+      "tally tally tally"
+      "date date date";
+    align-items: center;
+    gap: 0.45rem 0.6rem;
+    padding: 0.8rem 0.85rem;
+    margin-bottom: 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--background);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .players-table tbody tr + tr {
+    border-top: 1px solid var(--border);
+  }
+
+  .players-table td {
+    padding: 0;
+    white-space: normal;
+  }
+
+  .players-table td:nth-child(1) {
+    grid-area: rank;
+  }
+
+  .players-table td:nth-child(2) {
+    grid-area: name;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .players-table td.players-table-count {
+    grid-area: count;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--danger);
+  }
+
+  .players-table td.players-table-count::after {
+    content: "件";
+    margin-left: 0.1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .players-table td:nth-child(4) {
+    grid-area: date;
+    font-size: 0.72rem;
+  }
+
+  .players-table td:nth-child(4)::before {
+    content: "最新の通報: ";
+  }
+
+  .players-table td:nth-child(5) {
+    grid-area: tally;
+  }
+}
+
+/* 注目ユーザー等の集計チップ: 「通報 2件」の途中で折り返さない */
+.watchlist-tally-item {
+  white-space: nowrap;
 }

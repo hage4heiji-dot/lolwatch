@@ -165,7 +165,7 @@ export default async function ReportedPlayersPage({
         </div>
       ) : (
         <div className="table-scroll">
-          <table className="data-table">
+          <table className="data-table players-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -188,7 +188,7 @@ export default async function ReportedPlayersPage({
                         {name ? `${name.riotIdName} #${name.riotIdTagLine}` : player.puuid}
                       </Link>
                     </td>
-                    <td>{player.reportCount}</td>
+                    <td className="players-table-count">{player.reportCount}</td>
                     <td className="muted">
                       {player.latestReportAt ? formatDateTime(player.latestReportAt) : "-"}
                     </td>
