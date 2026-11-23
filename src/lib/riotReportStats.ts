@@ -2,6 +2,7 @@
 // (/how-to-check-reports の「みんなと比べる」用)。
 import { createHmac } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { getQuadrant, type QuadrantKey } from "@/lib/reportCountTitle";
 
 // これ未満の参加人数では順位を出さない(数人だと「上位○%」が意味を持たず、
 // 数値から個人を推測されやすくもなるため)。
@@ -9,6 +10,9 @@ export const MIN_PARTICIPANTS_FOR_RANKING = 10;
 
 // 分布表示の区切り(下限値)。最後の区切り以上はまとめて「◯回以上」とする。
 const DISTRIBUTION_BUCKETS = [0, 1, 5, 10, 20, 50, 100];
+
+// 4象限グラフに描く他の参加者の点の上限(多すぎると重いので間引く)。
+const MAX_QUADRANT_POINTS = 600;
 
 export type RiotReportComparison = {
   participants: number;
@@ -21,6 +25,15 @@ export type RiotReportComparison = {
   average: number | null;
   median: number | null;
   distribution: { label: string; count: number; isMine: boolean }[] | null;
+  // 通報された回数(縦)×通報した回数(横)の4象限。参加者不足ならnull。
+  quadrant: {
+    myMade: number;
+    medianReceived: number;
+    medianMade: number;
+    type: QuadrantKey;
+    // 他の参加者の [通報した回数, 通報された回数]。匿名の点としてだけ使う。
+    points: [number, number][];
+  } | null;
 };
 
 // ブラウザから届くRiot IDのSHA-256(16進)を、サーバーの秘密鍵でHMACして保存用のキーにする。
@@ -47,9 +60,19 @@ function bucketIndex(value: number): number {
   return index;
 }
 
-export async function getRiotReportComparison(myReceived: number): Promise<RiotReportComparison> {
+function medianOf(sorted: number[]): number {
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+export async function getRiotReportComparison(
+  myReceived: number,
+  myMade: number,
+): Promise<RiotReportComparison> {
   // 参加者数が数万規模になるまでは全件の値だけ取ってアプリ側で集計して十分。
-  const rows = await prisma.riotReportStat.findMany({ select: { receivedTotal: true } });
+  const rows = await prisma.riotReportStat.findMany({
+    select: { receivedTotal: true, madeTotal: true },
+  });
   const values = rows.map((r) => r.receivedTotal).sort((a, b) => a - b);
   const participants = values.length;
 
@@ -62,13 +85,18 @@ export async function getRiotReportComparison(myReceived: number): Promise<RiotR
       average: null,
       median: null,
       distribution: null,
+      quadrant: null,
     };
   }
 
   const moreThanMe = values.filter((v) => v > myReceived).length;
   const atLeastMe = values.filter((v) => v >= myReceived).length;
-  const mid = Math.floor(participants / 2);
-  const median = participants % 2 === 0 ? (values[mid - 1] + values[mid]) / 2 : values[mid];
+  const median = medianOf(values);
+  const medianMade = medianOf(rows.map((r) => r.madeTotal).sort((a, b) => a - b));
+  const step = Math.max(1, Math.ceil(rows.length / MAX_QUADRANT_POINTS));
+  const points = rows
+    .filter((_, i) => i % step === 0)
+    .map((r) => [r.madeTotal, r.receivedTotal] as [number, number]);
 
   const counts = DISTRIBUTION_BUCKETS.map(() => 0);
   for (const v of values) counts[bucketIndex(v)]++;
@@ -82,7 +110,18 @@ export async function getRiotReportComparison(myReceived: number): Promise<RiotR
     topPercent: round1((atLeastMe / participants) * 100),
     average: round1(values.reduce((a, b) => a + b, 0) / participants),
     median,
-    distribution: counts.map((count, i) => ({ label: bucketLabel(i), count, isMine: i === myBucket })),
+    distribution: counts.map((count, i) => ({
+      label: bucketLabel(i),
+      count,
+      isMine: i === myBucket,
+    })),
+    quadrant: {
+      myMade,
+      medianReceived: median,
+      medianMade,
+      type: getQuadrant(myReceived, myMade, median, medianMade),
+      points,
+    },
   };
 }
 

@@ -1,0 +1,54 @@
+// 「みんなとの比較」欄。4象限グラフとタイプの説明を出す。
+// 読み込み直後の画面と共有ページの両方で使うため状態は持たない。
+import type { RiotReportComparison } from "@/lib/riotReportStats";
+import { QUADRANTS } from "@/lib/reportCountTitle";
+import { MIN_PARTICIPANTS_FOR_RANKING_LABEL } from "./constants";
+import { ReportQuadrantChart } from "./report-quadrant-chart";
+
+// subjectは共有ページ(他人が見る)では「この人」にする。
+export function ComparisonSection({
+  comparison,
+  subject = "あなた",
+}: {
+  comparison: RiotReportComparison;
+  subject?: string;
+}) {
+  const { participants, myReceived, average, median, moreThanMePercent, quadrant } = comparison;
+
+  if (quadrant === null) {
+    return (
+      <p className="muted riot-compare-note">
+        送信しました。ご協力ありがとうございます!現在の参加者は{participants}人です。参加者が
+        {MIN_PARTICIPANTS_FOR_RANKING_LABEL}
+        集まると、順位とみんなとの比較(4象限)が表示されるようになります。
+      </p>
+    );
+  }
+
+  const type = QUADRANTS[quadrant.type];
+  return (
+    <div className="card riot-compare-dist">
+      <h3>みんなとの比較</h3>
+      <div className="rq-type">
+        <span className="rq-type-emoji">{type.emoji}</span>
+        <div>
+          <p className="rq-type-name">
+            {subject}は「{type.name}」
+          </p>
+          <p className="muted">{type.description}</p>
+        </div>
+      </div>
+      <ReportQuadrantChart quadrant={quadrant} myReceived={myReceived} meLabel={subject} />
+      <p className="muted" style={{ fontSize: "0.8rem" }}>
+        点線は参加者の中央値(通報された回数 {quadrant.medianReceived}回・通報した回数{" "}
+        {quadrant.medianMade}回)です。灰色の点はほかの参加者({participants}
+        人)で、個人は特定できません。
+      </p>
+      <p className="muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
+        {subject}より多く通報されている人は{moreThanMePercent}%。通報された回数の平均は{average}
+        回・中央値は{median}
+        回です。※ lolwatchでデータを送信した人の中での比較で、LoLプレイヤー全体ではありません。
+      </p>
+    </div>
+  );
+}

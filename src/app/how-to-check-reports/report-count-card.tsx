@@ -1,7 +1,12 @@
 // 「通報された回数」の結果カード。スクショ・共有されることを前提にした見た目。
 // 読み込み直後の画面(クライアント)と共有ページ(サーバー)の両方で使うため、状態は持たない。
 import type { CSSProperties } from "react";
-import { getReportCountTitle, TONE_COLORS } from "@/lib/reportCountTitle";
+import {
+  getReportCountTitle,
+  QUADRANTS,
+  TONE_COLORS,
+  type QuadrantKey,
+} from "@/lib/reportCountTitle";
 
 export type ReportCountCardProps = {
   received: number;
@@ -12,10 +17,13 @@ export type ReportCountCardProps = {
   topPercent: number | null;
   // まだ送信しておらず参加者数が分からない間はnull。
   participants: number | null;
+  // 4象限のタイプ。参加者不足・未送信ならnull。
+  quadrantType?: QuadrantKey | null;
 };
 
 export function ReportCountCard(props: ReportCountCardProps) {
-  const { received, made, penaltyCount, topCategory, topPercent, participants } = props;
+  const { received, made, penaltyCount, topCategory, topPercent, participants, quadrantType } =
+    props;
   const { title, tone } = getReportCountTitle(received);
   const colors = TONE_COLORS[tone];
   const style = { "--rc-accent": colors.accent, "--rc-glow": colors.glow } as CSSProperties;
@@ -47,6 +55,16 @@ export function ReportCountCard(props: ReportCountCardProps) {
       </div>
 
       <div className="rc-card-rank">{rankText}</div>
+
+      {quadrantType && (
+        <div className="rc-card-type">
+          <span className="rc-card-type-emoji">{QUADRANTS[quadrantType].emoji}</span>
+          <span>
+            <span className="rc-card-type-label">タイプ</span>
+            <span className="rc-card-type-name">{QUADRANTS[quadrantType].name}</span>
+          </span>
+        </div>
+      )}
 
       <dl className="rc-card-stats">
         <div>

@@ -4,7 +4,8 @@
 // 他の参加者と比べた位置(上位○%・分布)を出す。送信後はXで共有できるようにする。
 import { useState } from "react";
 import type { RiotReportComparison } from "@/lib/riotReportStats";
-import { buildShareText, topCategory } from "@/lib/reportCountTitle";
+import { buildShareText, topCategory, type QuadrantKey } from "@/lib/reportCountTitle";
+import { ComparisonSection } from "./comparison-section";
 import { ReportCountCard } from "./report-count-card";
 
 const SITE_URL = "https://lol-watch.com";
@@ -63,6 +64,7 @@ export function RiotReportCompare(props: Props) {
         penaltyCount={penaltyCount}
         topCategory={topCategory(receivedByCategory)}
         topPercent={comparison?.topPercent ?? null}
+        quadrantType={comparison?.quadrant?.type ?? null}
         participants={comparison?.participants ?? null}
       />
 
@@ -104,9 +106,10 @@ export function RiotReportCompare(props: Props) {
               shareId={shareId}
               received={received}
               topPercent={comparison.topPercent}
+              quadrantType={comparison.quadrant?.type ?? null}
             />
           )}
-          <Distribution comparison={comparison} />
+          <ComparisonSection comparison={comparison} />
         </>
       )}
     </div>
@@ -117,15 +120,17 @@ function ShareActions({
   shareId,
   received,
   topPercent,
+  quadrantType,
 }: {
   shareId: string;
   received: number;
   topPercent: number | null;
+  quadrantType: QuadrantKey | null;
 }) {
   const [copied, setCopied] = useState(false);
   const url = `${SITE_URL}/how-to-check-reports/result/${shareId}`;
   const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(
-    buildShareText(received, topPercent),
+    buildShareText(received, topPercent, quadrantType),
   )}&url=${encodeURIComponent(url)}`;
 
   async function copy() {
@@ -147,48 +152,6 @@ function ShareActions({
         {copied ? "コピーしました" : "結果のリンクをコピー"}
       </button>
       <p className="muted">共有されるのは上のカードの内容だけです。Riot IDは表示されません。</p>
-    </div>
-  );
-}
-
-function Distribution({ comparison }: { comparison: RiotReportComparison }) {
-  const { participants, average, median, moreThanMePercent, distribution } = comparison;
-
-  if (distribution === null) {
-    return (
-      <p className="muted riot-compare-note">
-        送信しました。ご協力ありがとうございます!現在の参加者は{participants}
-        人です。参加者が10人集まると順位が表示されるようになります。
-      </p>
-    );
-  }
-
-  const max = Math.max(...distribution.map((d) => d.count), 1);
-  return (
-    <div className="card riot-compare-dist">
-      <h3>参加者の分布</h3>
-      <p className="muted">
-        あなたより多く通報されている人は{moreThanMePercent}%。平均{average}回・中央値{median}
-        回(参加者
-        {participants}人)。
-      </p>
-      <div style={{ marginTop: "0.9rem" }}>
-        {distribution.map((d) => (
-          <div className={`stat-bar-row${d.isMine ? " riot-compare-mine" : ""}`} key={d.label}>
-            <span className="stat-bar-label">
-              {d.isMine ? `▶ ${d.label}` : d.label}
-            </span>
-            <div className="stat-bar-track">
-              <div className="stat-bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
-            </div>
-            <span className="stat-bar-count">{d.count}人</span>
-          </div>
-        ))}
-      </div>
-      <p className="muted" style={{ marginTop: "0.75rem" }}>
-        ※
-        lolwatchでデータを送信した人の中での位置です。LoLプレイヤー全体の中での位置ではありません。
-      </p>
     </div>
   );
 }

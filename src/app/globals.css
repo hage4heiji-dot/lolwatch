@@ -2905,3 +2905,114 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .riot-compare-dist .stat-bar-label {
   width: 7.5rem;
 }
+
+/* --- 通報回数: 結果カードのタイプ表示 --- */
+.rc-card-type {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rc-card-type-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.rc-card-type-label {
+  display: block;
+  font-size: 0.68rem;
+  color: rgba(243, 243, 247, 0.6);
+}
+
+.rc-card-type-name {
+  display: block;
+  white-space: nowrap;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+/* --- 通報回数: 4象限グラフ --- */
+.rq-type {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.rq-type-emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.rq-type-name {
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.rq-chart {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 0.75rem;
+  font-family: inherit;
+}
+
+.rq-plot {
+  fill: var(--background);
+  stroke: var(--border);
+}
+
+.rq-highlight {
+  fill: var(--accent-soft);
+}
+
+.rq-median {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.7;
+}
+
+.rq-label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--muted);
+}
+
+.rq-label-active {
+  fill: var(--accent);
+  font-weight: 900;
+}
+
+.rq-point {
+  fill: var(--muted);
+  opacity: 0.35;
+}
+
+.rq-me-ring {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2;
+  opacity: 0.45;
+}
+
+.rq-me {
+  fill: var(--danger);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.rq-me-label {
+  font-size: 11px;
+  font-weight: 900;
+  fill: var(--danger);
+}
+
+.rq-axis {
+  font-size: 10px;
+  fill: var(--muted);
+}

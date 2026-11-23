@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getRiotReportComparison, getRiotReportStatForShare } from "@/lib/riotReportStats";
 import { getReportCountTitle, topCategory } from "@/lib/reportCountTitle";
 import { ReportCountCard } from "../../report-count-card";
+import { ComparisonSection } from "../../comparison-section";
 
 // Xで共有された「通報された回数」の結果ページ。順位は参加者の増減で変わるので毎回集計する。
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ export default async function ReportCountResultPage({ params }: Params) {
   const stat = await getRiotReportStatForShare(id);
   if (!stat) notFound();
 
-  const comparison = await getRiotReportComparison(stat.receivedTotal);
+  const comparison = await getRiotReportComparison(stat.receivedTotal, stat.madeTotal);
 
   return (
     <div className="rc-result-page">
@@ -48,7 +49,10 @@ export default async function ReportCountResultPage({ params }: Params) {
         topCategory={topCategory(asCounts(stat.receivedByCategory))}
         topPercent={comparison.topPercent}
         participants={comparison.participants}
+        quadrantType={comparison.quadrant?.type ?? null}
       />
+
+      {comparison.quadrant && <ComparisonSection comparison={comparison} subject="この人" />}
 
       <Link href="/how-to-check-reports" className="game-cta rc-result-cta">
         <span className="game-cta-title">🔍 あなたは何回通報されてる?</span>
@@ -58,7 +62,8 @@ export default async function ReportCountResultPage({ params }: Params) {
       </Link>
 
       <p className="muted" style={{ fontSize: "0.8rem" }}>
-        ※ 回数は本人がRiotのデータをもとに送信した値です。順位はlolwatchでデータを送信した人の中での位置です。
+        ※
+        回数は本人がRiotのデータをもとに送信した値です。順位はlolwatchでデータを送信した人の中での位置です。
       </p>
     </div>
   );

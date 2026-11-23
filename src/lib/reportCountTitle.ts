@@ -61,8 +61,56 @@ export const TONE_COLORS: Record<ReportCountTitle["tone"], { accent: string; glo
 };
 
 // Xの共有文。URLは別途intentのurlパラメータで付ける。
-export function buildShareText(received: number, topPercent: number | null): string {
+export function buildShareText(
+  received: number,
+  topPercent: number | null,
+  quadrantType: QuadrantKey | null = null,
+): string {
   const { title } = getReportCountTitle(received);
   const rank = topPercent !== null && received > 0 ? `(上位${topPercent}%)` : "";
-  return `LoLで自分が通報された回数を調べたら${received}回、称号は「${title}」でした${rank}\nあなたは何回?\n#LoL #lolwatch`;
+  const type = quadrantType
+    ? `\nタイプは${QUADRANTS[quadrantType].emoji}${QUADRANTS[quadrantType].name}`
+    : "";
+  return `LoLで自分が通報された回数を調べたら${received}回、称号は「${title}」でした${rank}${type}\nあなたは何回?\n#LoL #lolwatch`;
+}
+
+export type QuadrantKey = "clash" | "guardian" | "oops" | "peace";
+
+export const QUADRANTS: Record<QuadrantKey, { emoji: string; name: string; description: string }> =
+  {
+    clash: {
+      emoji: "⚔️",
+      name: "バチバチ交戦型",
+      description: "通報されるのも通報するのも多め。試合が熱くなりがち。",
+    },
+    guardian: {
+      emoji: "🛡️",
+      name: "風紀委員型",
+      description: "通報されるのは少なく、通報するのは多め。サモナーズリフトの秩序を守る人。",
+    },
+    oops: {
+      emoji: "💥",
+      name: "うっかりやらかし型",
+      description: "通報されるのは多めで、自分からはあまり通報しない。心当たりは…?",
+    },
+    peace: {
+      emoji: "🕊️",
+      name: "平和主義型",
+      description: "通報されるのも通報するのも少なめ。穏やかにプレイする人。",
+    },
+  };
+
+// 参加者の中央値より「多い」かどうかで4象限に分ける(中央値ちょうどは「少ない」側)。
+export function getQuadrant(
+  received: number,
+  made: number,
+  medianReceived: number,
+  medianMade: number,
+): QuadrantKey {
+  const highReceived = received > medianReceived;
+  const highMade = made > medianMade;
+  if (highReceived && highMade) return "clash";
+  if (highMade) return "guardian";
+  if (highReceived) return "oops";
+  return "peace";
 }
