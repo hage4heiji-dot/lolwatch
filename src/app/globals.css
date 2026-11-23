@@ -2869,9 +2869,6 @@ a:has(> .calibration-banner):hover .calibration-banner {
   font-size: 0.8rem;
 }
 
-.riot-compare-dist h3 {
-  margin-bottom: 0.4rem;
-}
 
 .riot-compare-mine {
   margin-left: -0.5rem;
@@ -2902,9 +2899,6 @@ a:has(> .calibration-banner):hover .calibration-banner {
   grid-column: 1 / -1;
 }
 
-.riot-compare-dist .stat-bar-label {
-  width: 7.5rem;
-}
 
 /* --- 通報回数: 結果カードのタイプ表示 --- */
 .rc-card-type {
@@ -2935,116 +2929,6 @@ a:has(> .calibration-banner):hover .calibration-banner {
   font-weight: 900;
 }
 
-/* --- 通報回数: 4象限グラフ --- */
-.rq-type {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.rq-type-emoji {
-  font-size: 2.2rem;
-  line-height: 1;
-}
-
-.rq-type-name {
-  font-weight: 900;
-  font-size: 1.05rem;
-}
-
-.rq-chart {
-  display: block;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto 0.75rem;
-  font-family: inherit;
-}
-
-.rq-plot {
-  fill: var(--background);
-  stroke: var(--border);
-}
-
-.rq-highlight {
-  fill: var(--accent-soft);
-}
-
-.rq-median {
-  stroke: var(--muted);
-  stroke-width: 1;
-  stroke-dasharray: 4 4;
-  opacity: 0.7;
-}
-
-.rq-label {
-  font-size: 10px;
-  font-weight: 700;
-  fill: var(--muted);
-}
-
-.rq-label-active {
-  fill: var(--accent);
-  font-weight: 900;
-}
-
-/* 色は点ごとにfill属性で指定する(通報された理由の傾向)。ここでfillを指定すると上書きしてしまう。 */
-.rq-point {
-  opacity: 0.7;
-}
-
-.rq-me-ring {
-  fill: none;
-  stroke: var(--danger);
-  stroke-width: 2;
-  opacity: 0.45;
-}
-
-.rq-me {
-  stroke: #fff;
-  stroke-width: 2.5;
-}
-
-.rq-me-label {
-  font-size: 11px;
-  font-weight: 900;
-  fill: var(--danger);
-}
-
-.rq-axis {
-  font-size: 10px;
-  fill: var(--muted);
-}
-
-.rq-lean {
-  font-size: 0.9rem;
-  margin-bottom: 0.6rem;
-}
-
-.rq-legend {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem 1rem;
-  margin: 0 0 0.75rem;
-  padding: 0;
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.rq-legend li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.rq-legend-dot {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 999px;
-}
-
 /* --- 通報回数: チャットの傾向 --- */
 .rc-card-chat {
   display: flex;
@@ -3060,44 +2944,6 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .rc-card-chat-label {
   font-size: 0.68rem;
   color: rgba(243, 243, 247, 0.6);
-}
-
-.chat-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-.chat-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.6rem 0.5rem;
-  border-radius: 10px;
-  background: var(--background);
-  border: 1px solid var(--border);
-  text-align: center;
-}
-
-.chat-tile-label {
-  font-size: 0.7rem;
-  color: var(--muted);
-  line-height: 1.3;
-}
-
-.chat-tile-value {
-  font-size: 1.1rem;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.chat-tile-avg {
-  font-size: 0.7rem;
-  color: var(--muted);
-}
-
-.chat-tile-label {
-  white-space: pre-line;
 }
 
 /* タイプ名の「プレイ系」「・バチバチ交戦型」を塊として扱い、塊の間でだけ折り返す。 */
@@ -3175,4 +3021,422 @@ a:has(> .calibration-banner):hover .calibration-banner {
 .harsh-words summary {
   cursor: pointer;
   color: var(--muted);
+}
+
+/* --- 通報回数: みんなとの比較パネル(結果カードと同じ暗いトーン) --- */
+.rq-panel {
+  --rq-accent: #c8aa6e;
+  --rq-text: #f3f3f7;
+  --rq-muted: rgba(243, 243, 247, 0.62);
+  --rq-line: rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.2rem 1.1rem 1.1rem;
+  border-radius: 18px;
+  color: var(--rq-text);
+  background:
+    radial-gradient(110% 70% at 100% 0%, color-mix(in srgb, var(--rq-accent) 26%, transparent), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, rgba(52, 87, 213, 0.22), transparent 60%),
+    linear-gradient(165deg, #0f1428 0%, #080a14 100%);
+  border: 1px solid color-mix(in srgb, var(--rq-accent) 35%, transparent);
+  box-shadow: 0 14px 40px rgba(5, 8, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.rq-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.rq-panel-kicker {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--rq-accent);
+}
+
+.rq-panel-title {
+  margin: 0.15rem 0 0;
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: var(--rq-text);
+}
+
+.rq-panel-badge {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  color: var(--rq-text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--rq-line);
+}
+
+.rq-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem;
+  border-radius: 14px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--rq-accent) 22%, transparent), rgba(255, 255, 255, 0.03));
+  border: 1px solid color-mix(in srgb, var(--rq-accent) 40%, transparent);
+}
+
+.rq-hero-emoji {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 3.3rem;
+  height: 3.3rem;
+  font-size: 1.8rem;
+  border-radius: 14px;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.25), color-mix(in srgb, var(--rq-accent) 45%, #0b0d18));
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--rq-accent) 40%, transparent);
+}
+
+.rq-hero-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.rq-hero-label {
+  font-size: 0.68rem;
+  color: var(--rq-muted);
+}
+
+.rq-hero-name {
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.rq-hero-desc {
+  font-size: 0.8rem;
+  color: var(--rq-muted);
+  line-height: 1.5;
+}
+
+.rq-chip {
+  --rq-chip: #f08c1a;
+  align-self: flex-start;
+  margin: 0;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rq-chip) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rq-chip) 50%, transparent);
+}
+
+.rq-chip strong {
+  color: var(--rq-chip);
+  margin: 0 0.15rem;
+}
+
+.rq-chip-sub {
+  color: var(--rq-muted);
+  font-size: 0.74rem;
+}
+
+/* グラフ本体 */
+.rq-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rq-chart {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  font-family: inherit;
+  overflow: visible;
+}
+
+/* 縦書きにすると日本語が崩れやすいので、縦軸の名前はグラフの左上に横書きで置く */
+.rq-axis-y {
+  font-size: 0.68rem;
+  color: var(--rq-muted);
+  letter-spacing: 0.05em;
+}
+
+.rq-axis-x {
+  text-align: right;
+  font-size: 0.68rem;
+  color: var(--rq-muted);
+  letter-spacing: 0.05em;
+}
+
+.rq-plot {
+  fill: rgba(255, 255, 255, 0.025);
+}
+
+.rq-frame {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+}
+
+.rq-area {
+  opacity: 0.07;
+}
+
+.rq-area-active {
+  opacity: 0.2;
+}
+
+.rq-grid {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.rq-median {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 5;
+}
+
+.rq-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  fill: rgba(243, 243, 247, 0.5);
+}
+
+.rq-label-active {
+  font-size: 11.5px;
+  font-weight: 900;
+}
+
+.rq-label-hot {
+  fill: #ff8a8d;
+}
+
+/* 色は点ごとにfill属性で指定する(通報された理由の傾向)。ここでfillを指定すると上書きしてしまう。 */
+.rq-point {
+  opacity: 0.85;
+}
+
+.rq-me {
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+
+.rq-me-ring {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.rq-me-pulse {
+  fill: none;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rq-pulse 1.8s ease-out infinite;
+}
+
+@keyframes rq-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rq-me-pulse {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.rq-me-tag {
+  font-size: 11px;
+  font-weight: 900;
+  fill: #0b0d18;
+}
+
+.rq-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.rq-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  color: var(--rq-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--rq-line);
+}
+
+.rq-legend-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.rq-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.rq-mini-stats > div {
+  padding: 0.55rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--rq-line);
+  text-align: center;
+}
+
+.rq-mini-stats dt {
+  font-size: 0.64rem;
+  color: var(--rq-muted);
+  line-height: 1.3;
+}
+
+.rq-mini-stats dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.rq-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--rq-muted);
+}
+
+/* レベルあたりの大きな数値 */
+.rq-metric {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+
+.rq-metric-value {
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #ffffff 25%, var(--rq-accent) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.rq-metric-unit {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--rq-muted);
+}
+
+.rq-metric-rank {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  color: #0b0d18;
+  background: var(--rq-accent);
+}
+
+/* チャットのタイル(自分と平均を横棒で比べる) */
+.rq-chat-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.rq-chat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.6rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--rq-line);
+  min-width: 0;
+}
+
+.rq-chat-label {
+  font-size: 0.68rem;
+  color: var(--rq-muted);
+  line-height: 1.3;
+}
+
+.rq-chat-value {
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rq-chat-value small {
+  font-size: 0.75rem;
+  margin-left: 0.1rem;
+  color: var(--rq-muted);
+}
+
+.rq-chat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rq-chat-bar span {
+  white-space: nowrap;
+}
+
+.rq-chat-bar {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  color: var(--rq-muted);
+}
+
+.rq-chat-bar i {
+  display: block;
+  height: 0.4rem;
+  min-width: 0.4rem;
+  border-radius: 999px;
+}
+
+.rq-chat-bar-me {
+  background: linear-gradient(90deg, var(--rq-accent), #ff9fd0);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rq-accent) 60%, transparent);
+}
+
+.rq-chat-bar-avg {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.rq-chat-bar em {
+  font-style: normal;
+  font-size: 0.58rem;
+  opacity: 0.7;
 }

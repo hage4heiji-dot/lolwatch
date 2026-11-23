@@ -77,29 +77,35 @@ export function buildShareText(
 
 export type QuadrantKey = "clash" | "guardian" | "oops" | "peace";
 
-export const QUADRANTS: Record<QuadrantKey, { emoji: string; name: string; description: string }> =
-  {
-    clash: {
-      emoji: "⚔️",
-      name: "バチバチ交戦型",
-      description: "通報されるのも通報するのも多め。試合が熱くなりがち。",
-    },
-    guardian: {
-      emoji: "🛡️",
-      name: "風紀委員型",
-      description: "通報されるのは少なく、通報するのは多め。サモナーズリフトの秩序を守る人。",
-    },
-    oops: {
-      emoji: "💥",
-      name: "うっかりやらかし型",
-      description: "通報されるのは多めで、自分からはあまり通報しない。心当たりは…?",
-    },
-    peace: {
-      emoji: "🕊️",
-      name: "平和主義型",
-      description: "通報されるのも通報するのも少なめ。穏やかにプレイする人。",
-    },
-  };
+export const QUADRANTS: Record<
+  QuadrantKey,
+  { emoji: string; name: string; description: string; color: string }
+> = {
+  clash: {
+    emoji: "⚔️",
+    name: "バチバチ交戦型",
+    description: "通報されるのも通報するのも多め。試合が熱くなりがち。",
+    color: "#ff5a5f",
+  },
+  guardian: {
+    emoji: "🛡️",
+    name: "風紀委員型",
+    description: "通報されるのは少なく、通報するのは多め。サモナーズリフトの秩序を守る人。",
+    color: "#4da3ff",
+  },
+  oops: {
+    emoji: "💥",
+    name: "うっかりやらかし型",
+    description: "通報されるのは多めで、自分からはあまり通報しない。心当たりは…?",
+    color: "#ff9f43",
+  },
+  peace: {
+    emoji: "🕊️",
+    name: "平和主義型",
+    description: "通報されるのも通報するのも少なめ。穏やかにプレイする人。",
+    color: "#4fd1a5",
+  },
+};
 
 // 参加者の中央値より「多い」かどうかで4象限に分ける(中央値ちょうどは「少ない」側)。
 export function getQuadrant(
