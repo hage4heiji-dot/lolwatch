@@ -7,6 +7,14 @@ import { useState } from "react";
 import { unzip } from "fflate";
 import { analyzeChatLogs, type ChatSummary, type HarshSample } from "@/lib/chatStats";
 import { HarshSamples } from "./harsh-samples";
+import {
+  SAMPLE_CHAT,
+  SAMPLE_COMPARISON,
+  SAMPLE_HARSH,
+  SAMPLE_MADE_BY_CATEGORY,
+  SAMPLE_PENALTIES,
+  SAMPLE_RECEIVED_BY_CATEGORY,
+} from "./sample-data";
 import { RiotReportCompare } from "./riot-report-compare";
 import { RIOT_REPORT_CATEGORY_LABELS as REPORT_CATEGORY_LABELS } from "@/lib/reportCountTitle";
 
@@ -254,13 +262,37 @@ function GameReports({
   );
 }
 
+// 「サンプルを見る」で表示する架空の読み込み結果(Riot IDは持たせないので送信もできない)。
+const SAMPLE_RESULT: ParsedData = {
+  reports: {
+    lol: { reports_received: SAMPLE_RECEIVED_BY_CATEGORY, reports_made: SAMPLE_MADE_BY_CATEGORY },
+  },
+  penalties: SAMPLE_PENALTIES,
+  riotIdHash: null,
+  riotId: null,
+  chat: SAMPLE_CHAT,
+  harshSamples: SAMPLE_HARSH,
+};
+
 export function RiotDataReader() {
   const [result, setResult] = useState<ParsedData | null>(null);
+  const [isSample, setIsSample] = useState(false);
+  // 読み込み直すたびに結果表示(送信状態を持つ子コンポーネント)を作り直すためのキー。
+  const [resultKey, setResultKey] = useState(0);
+
+  function showSample() {
+    setError(null);
+    setIsSample(true);
+    setResult(SAMPLE_RESULT);
+    setResultKey((k) => k + 1);
+  }
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleFile(file: File | undefined) {
     setResult(null);
+    setIsSample(false);
+    setResultKey((k) => k + 1);
     setError(null);
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
@@ -295,15 +327,24 @@ export function RiotDataReader() {
 
   return (
     <div className="riot-data-reader">
-      <label className="btn riot-data-file-btn">
-        📂 zipファイルを選ぶ
-        <input
-          type="file"
-          accept=".zip,application/zip"
-          onChange={(e) => handleFile(e.target.files?.[0])}
-          hidden
-        />
-      </label>
+      <div className="riot-data-actions">
+        <label className="btn riot-data-file-btn">
+          📂 zipファイルを選ぶ
+          <input
+            type="file"
+            accept=".zip,application/zip"
+            onChange={(e) => {
+              handleFile(e.target.files?.[0]);
+              // 同じファイルを選び直しても読み込まれるようにする
+              e.target.value = "";
+            }}
+            hidden
+          />
+        </label>
+        <button type="button" className="btn btn-secondary" onClick={showSample}>
+          👀 サンプルを見る
+        </button>
+      </div>
       <p className="muted" style={{ marginTop: "0.5rem" }}>
         🔒
         ファイルはお使いのブラウザの中だけで読み込みます。lolwatchのサーバーには送信・保存されません。
@@ -317,9 +358,18 @@ export function RiotDataReader() {
       )}
 
       {result && (
-        <div className="riot-data-result">
+        <div className="riot-data-result" key={resultKey}>
+          {isSample && (
+            <div className="riot-sample-banner">
+              <strong>👀 サンプル表示中</strong>
+              <span>
+                架空のデータで結果画面の見え方を表示しています。自分の結果は、上の「zipファイルを選ぶ」から確認できます。
+              </span>
+            </div>
+          )}
           {result.reports.lol && (
             <RiotReportCompare
+              sampleComparison={isSample ? SAMPLE_COMPARISON : undefined}
               riotIdHash={result.riotIdHash}
               riotId={result.riotId}
               chat={result.chat}

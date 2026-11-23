@@ -26,6 +26,8 @@ type Props = {
   receivedByCategory: Record<string, number>;
   madeByCategory: Record<string, number>;
   penaltyCount: number;
+  // 「サンプルを見る」用。渡すと送信せずに最初から比較結果を表示する(共有ボタンも出さない)。
+  sampleComparison?: RiotReportComparison;
 };
 
 function sum(m: Record<string, number>): number {
@@ -34,7 +36,9 @@ function sum(m: Record<string, number>): number {
 
 export function RiotReportCompare(props: Props) {
   const { riotIdHash, riotId, chat, receivedByCategory, madeByCategory, penaltyCount } = props;
-  const [comparison, setComparison] = useState<RiotReportComparison | null>(null);
+  const [comparison, setComparison] = useState<RiotReportComparison | null>(
+    props.sampleComparison ?? null,
+  );
   // 共有ページのパス末尾("<id>?v=<version>")。
   const [shareId, setShareId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
