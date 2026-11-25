@@ -203,6 +203,11 @@ async function parseZip(file: File): Promise<ParsedData> {
   };
 }
 
+// 結果カードと比較に使うペナルティ件数はLoLの分だけ数える(履歴はRiotアカウント全体のもの)。
+function countLolPenalties(penalties: Penalty[] | null): number {
+  return penalties?.filter((p) => p.scope === "LEAGUE_OF_LEGENDS").length ?? 0;
+}
+
 function sum(counts: Record<string, number>): number {
   return Object.values(counts).reduce((a, b) => a + b, 0);
 }
@@ -407,7 +412,7 @@ export function RiotDataReader() {
               spend={result.spend}
               receivedByCategory={result.reports.lol.reports_received}
               madeByCategory={result.reports.lol.reports_made}
-              penaltyCount={result.penalties?.length ?? 0}
+              penaltyCount={countLolPenalties(result.penalties)}
             />
           )}
 
@@ -427,17 +432,26 @@ export function RiotDataReader() {
             {!result.penalties || result.penalties.length === 0 ? (
               <p className="muted">ペナルティの記録はありません。</p>
             ) : (
-              <ul className="riot-data-penalties">
-                {result.penalties.map((p, i) => (
-                  <li key={i} className="card">
-                    <strong>{label(PENALTY_REASON_LABELS, p.restriction_reason)}</strong>
-                    <span className="muted">
-                      {formatDate(p.date_issued)} ・ {label(PENALTY_SCOPE_LABELS, p.scope)} ・{" "}
-                      {label(PENALTY_STATUS_LABELS, p.status)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {result.penalties.some((p) => p.scope !== "LEAGUE_OF_LEGENDS") && (
+                  <p className="muted">
+                    ※
+                    履歴にはLoL以外(VALORANT・TFT・Riotアカウント全体など)も含まれます。結果カードとみんなとの比較で数えているのはLoLの分(
+                    {countLolPenalties(result.penalties)}件)だけです。
+                  </p>
+                )}
+                <ul className="riot-data-penalties">
+                  {result.penalties.map((p, i) => (
+                    <li key={i} className="card">
+                      <strong>{label(PENALTY_REASON_LABELS, p.restriction_reason)}</strong>
+                      <span className="muted">
+                        {formatDate(p.date_issued)} ・ {label(PENALTY_SCOPE_LABELS, p.scope)} ・{" "}
+                        {label(PENALTY_STATUS_LABELS, p.status)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </div>
 

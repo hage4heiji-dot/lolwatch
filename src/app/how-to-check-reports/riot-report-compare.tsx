@@ -117,7 +117,7 @@ export function RiotReportCompare(props: Props) {
           <details className="riot-compare-details">
             <summary>送信される内容</summary>
             <ul>
-              <li>LoLで通報された回数・通報した回数(理由別)とペナルティの件数</li>
+              <li>LoLで通報された回数・通報した回数(理由別)とLoLのペナルティの件数</li>
               <li>
                 チャットの集計値(発言した試合数・発言数・全体チャット数・強めの言葉の数)。メッセージの本文は送信しません
               </li>
